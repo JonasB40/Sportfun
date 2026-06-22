@@ -1,0 +1,360 @@
+/* ============================================================
+   Lesgeverfiches — raster van kaarten met inline uitklap
+   ============================================================ */
+
+.fiches-raster-lesgevers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* Wanneer er een fiche uitgeklapt is: die neemt volledige breedte */
+.fiches-raster-lesgevers.heeft-open {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+/* ── Fiche-kaart basis ────────────────────────────────────────── */
+.lg-fiche {
+  background: var(--kleur-wit);
+  border: 1px solid var(--kleur-lichtgrijs);
+  border-radius: var(--border-radius);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+  position: relative;
+}
+.lg-fiche:hover {
+  box-shadow: var(--schaduw);
+  transform: translateY(-1px);
+}
+
+/* Uitgeklapt = volledige breedte */
+.lg-fiche.open {
+  grid-column: 1 / -1;
+  box-shadow: 0 8px 24px rgba(25,67,56,0.12);
+  border-color: var(--kleur-middengroen);
+}
+
+/* Inactieve fiche subtieler */
+.lg-fiche.inactief {
+  opacity: 0.6;
+  background: var(--kleur-zand);
+}
+
+/* ── Kop ─────────────────────────────────────────────────────── */
+.lg-fiche-kop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lg-avatar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--kleur-middengroen);
+  color: var(--kleur-wit);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+.lg-avatar.rol-admin       { background: var(--kleur-donkergroen); }
+.lg-avatar.rol-coordinator { background: var(--kleur-middengroen); }
+.lg-avatar.rol-lesgever    { background: #1a8a6e; }
+.lg-avatar.rol-extra_hulp  { background: #4a7c6f; }
+
+.lg-naam-blok {
+  flex: 1;
+  min-width: 0;
+}
+.lg-naam {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--kleur-donkergroen);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lg-rol-badge {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 999px;
+  background: var(--kleur-zand);
+  color: var(--kleur-donkergroen);
+}
+
+.lg-oog-knop {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: 1.5px solid var(--kleur-lichtgrijs);
+  background: var(--kleur-wit);
+  color: var(--kleur-grijs);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.lg-oog-knop:hover {
+  background: var(--kleur-donkergroen);
+  color: var(--kleur-limoen);
+  border-color: var(--kleur-donkergroen);
+}
+.lg-oog-knop svg { width: 16px; height: 16px; }
+
+.lg-fiche.open .lg-oog-knop {
+  background: var(--kleur-donkergroen);
+  color: var(--kleur-limoen);
+  border-color: var(--kleur-donkergroen);
+}
+
+/* ── Contact info ─────────────────────────────────────────────── */
+.lg-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+}
+.lg-contact-rij {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--kleur-tekst);
+}
+.lg-contact-rij svg {
+  width: 13px; height: 13px;
+  color: var(--kleur-grijs);
+  flex-shrink: 0;
+}
+.lg-contact-rij span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Financiële mini-stats ────────────────────────────────────── */
+.lg-finstats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, var(--kleur-donkergroen), #0f2d25);
+  border-radius: 10px;
+  color: var(--kleur-wit);
+}
+.lg-finstat-blok {
+  display: flex;
+  flex-direction: column;
+}
+.lg-finstat-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: rgba(215,252,92,0.75);
+  margin-bottom: 2px;
+}
+.lg-finstat-waarde {
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+.lg-finstat-waarde.limoen { color: var(--kleur-limoen); }
+
+/* Inactief-badge */
+.lg-inactief-tag {
+  position: absolute;
+  top: 8px; right: 8px;
+  padding: 2px 8px;
+  background: rgba(255,105,85,0.12);
+  color: var(--kleur-koraal);
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* ── Uitgeklapt: detail-sectie ───────────────────────────────── */
+.lg-detail {
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--kleur-lichtgrijs);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 800px) {
+  .lg-detail { grid-template-columns: 1fr; }
+}
+
+.lg-detail-blok {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lg-detail-titel {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--kleur-grijs);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.lg-detail-titel svg { width: 13px; height: 13px; }
+
+.lg-veld {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--kleur-lichtgrijs);
+  font-size: 0.85rem;
+}
+.lg-veld:last-child { border-bottom: none; }
+.lg-veld-label {
+  color: var(--kleur-grijs);
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+.lg-veld-waarde {
+  color: var(--kleur-tekst);
+  font-weight: 700;
+  text-align: right;
+}
+.lg-veld-waarde.leeg {
+  color: var(--kleur-grijs);
+  font-weight: 400;
+  font-style: italic;
+}
+
+/* Bewerk-modus */
+.lg-veld input,
+.lg-veld select {
+  flex: 1;
+  margin-left: 12px;
+  padding: 5px 9px;
+  border: 1.5px solid var(--kleur-lichtgrijs);
+  border-radius: 6px;
+  font-family: var(--font);
+  font-size: 0.83rem;
+  background: var(--kleur-wit);
+  outline: none;
+  transition: border-color 0.15s;
+  text-align: right;
+  max-width: 200px;
+}
+.lg-veld input:focus,
+.lg-veld select:focus {
+  border-color: var(--kleur-middengroen);
+}
+
+/* Acties-balk in uitgeklapte fiche */
+.lg-acties-balk {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px dashed var(--kleur-lichtgrijs);
+  margin-top: 4px;
+}
+
+/* Handtekening preview */
+.lg-handtekening {
+  padding: 8px;
+  background: var(--kleur-zand);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--kleur-grijs);
+}
+.lg-handtekening img {
+  max-width: 100%;
+  max-height: 60px;
+  display: block;
+  margin: 0 auto;
+}
+
+/* KM-locaties table */
+.lg-km-tabel {
+  width: 100%;
+  font-size: 0.82rem;
+  border-collapse: collapse;
+}
+.lg-km-tabel td {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--kleur-lichtgrijs);
+}
+.lg-km-tabel td:last-child {
+  text-align: right;
+  font-weight: 700;
+  color: var(--kleur-donkergroen);
+}
+
+/* Mini-contractlijst */
+.lg-contracten-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.lg-contract-mini {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 10px;
+  background: var(--kleur-zand);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.lg-contract-mini:hover { background: #ede8e2; }
+.lg-contract-mini-naam {
+  font-weight: 700;
+  color: var(--kleur-donkergroen);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 8px;
+}
+.lg-contract-mini-bedrag {
+  font-weight: 700;
+  color: var(--kleur-donkergroen);
+  margin-right: 8px;
+}
+
+/* Filters-balk boven raster */
+.lg-fiches-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.lg-fiches-controls .kf-zoek-wrap {
+  flex: 1;
+  min-width: 160px;
+  max-width: 360px;
+}
+.lg-fiches-controls .filter-select {
+  height: 38px;
+}
+@media (max-width: 600px) {
+  .lg-fiches-controls { flex-direction: column; align-items: stretch; }
+  .lg-fiches-controls .kf-zoek-wrap { max-width: 100%; }
+  .lg-fiches-controls .filter-select { width: 100%; }
+}

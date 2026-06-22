@@ -1,0 +1,518 @@
+/* ============================================================
+   SportFun Portaal — Gedeelde stijlen
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;700;800&display=swap');
+
+:root {
+  --kleur-donkergroen:  #194338;
+  --kleur-middengroen:  #148869;
+  --kleur-limoen:       #D7FC5C;
+  --kleur-zand:         #F7F3EF;
+  --kleur-koraal:       #FF6955;
+  --kleur-wit:          #FFFFFF;
+  --kleur-tekst:        #194338;
+  --kleur-grijs:        #6B7280;
+  --kleur-lichtgrijs:   #E5E7EB;
+  --border-radius:      12px;
+  --border-radius-sm:   8px;
+  --schaduw:            0 2px 12px rgba(25, 67, 56, 0.10);
+  --schaduw-lg:         0 8px 32px rgba(25, 67, 56, 0.15);
+  --nav-breedte:        260px;
+  --font: 'Nunito', sans-serif;
+}
+
+/* ── Reset & basis ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font);
+  color: var(--kleur-tekst);
+  background: var(--kleur-zand);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+a { color: var(--kleur-middengroen); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+img { max-width: 100%; height: auto; display: block; }
+
+ul { list-style: none; }
+
+/* ── Layout met zijbalk ── */
+.portaal-wrapper {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ── Navigatie (zijbalk) ── */
+.zijbalk {
+  width: var(--nav-breedte);
+  background: var(--kleur-donkergroen);
+  color: var(--kleur-wit);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0;
+  height: 100vh;
+  z-index: 100;
+  transition: transform 0.3s ease;
+  overflow-y: auto;
+}
+
+.zijbalk-logo {
+  padding: 24px 20px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+}
+
+.zijbalk-logo .logo-tekst {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--kleur-limoen);
+  letter-spacing: -0.5px;
+}
+
+.zijbalk-logo .logo-sub {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.55);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+.zijbalk-nav {
+  flex: 1;
+  padding: 16px 0;
+}
+
+.zijbalk-nav ul { display: flex; flex-direction: column; gap: 2px; padding: 0 8px; }
+
+.zijbalk-nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--border-radius-sm);
+  color: rgba(255,255,255,0.78);
+  font-weight: 500;
+  font-size: 0.92rem;
+  transition: background 0.15s, color 0.15s;
+  text-decoration: none;
+}
+
+.zijbalk-nav a:hover,
+.zijbalk-nav a.actief {
+  background: rgba(215, 252, 92, 0.15);
+  color: var(--kleur-limoen);
+}
+
+.zijbalk-nav .nav-icoon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.zijbalk-footer {
+  padding: 16px;
+  border-top: 1px solid rgba(255,255,255,0.10);
+}
+
+.gebruiker-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.gebruiker-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--kleur-middengroen);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.85rem;
+  color: var(--kleur-wit);
+  flex-shrink: 0;
+  text-decoration: none;
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.15s;
+  position: relative;
+}
+a.gebruiker-avatar:hover {
+  box-shadow: 0 0 0 3px rgba(215, 252, 92, 0.5);
+  transform: scale(1.08);
+  text-decoration: none;
+}
+
+.gebruiker-naam { font-size: 0.85rem; font-weight: 600; color: var(--kleur-wit); }
+.gebruiker-rol  { font-size: 0.72rem; color: rgba(255,255,255,0.5); text-transform: capitalize; }
+
+/* Badge op profiel-avatar bij openstaande contracten */
+.nav-contract-badge {
+  position: absolute;
+  top: -4px; right: -4px;
+  min-width: 16px; height: 16px;
+  background: var(--kleur-koraal);
+  color: white;
+  font-size: 0.62rem; font-weight: 800;
+  border-radius: 8px;
+  padding: 0 3px;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+  border: 2px solid var(--kleur-donkergroen);
+}
+
+.uitloggen-knop {
+  width: 100%;
+  padding: 8px 14px;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.7);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: background 0.15s;
+  text-align: left;
+  display: flex; align-items: center; gap: 8px;
+}
+.uitloggen-knop:hover { background: rgba(255, 105, 85, 0.2); color: var(--kleur-koraal); }
+
+/* ── Hoofdinhoud ── */
+.hoofdinhoud {
+  margin-left: var(--nav-breedte);
+  flex: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.pagina-header {
+  background: var(--kleur-wit);
+  padding: 20px 32px;
+  border-bottom: 1px solid var(--kleur-lichtgrijs);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.pagina-header h1 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--kleur-donkergroen);
+}
+
+.pagina-inhoud {
+  padding: 28px 32px;
+  flex: 1;
+}
+
+/* ── Hamburger ── */
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  flex-direction: column;
+  gap: 5px;
+}
+.hamburger span {
+  display: block;
+  width: 24px; height: 2px;
+  background: var(--kleur-donkergroen);
+  border-radius: 2px;
+  transition: all 0.25s;
+}
+
+.overlay-nav {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 99;
+}
+
+/* ── Typografie ── */
+h1 { font-size: 1.8rem; font-weight: 800; }
+h2 { font-size: 1.35rem; font-weight: 700; }
+h3 { font-size: 1.1rem; font-weight: 700; }
+h4 { font-size: 0.95rem; font-weight: 700; }
+
+.sectie-titel {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--kleur-donkergroen);
+  margin-bottom: 16px;
+}
+
+/* ── Notificatie-bel ── */
+.notificatie-wrapper {
+  position: relative;
+  cursor: pointer;
+}
+
+.notificatie-bel {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--kleur-zand);
+  border: 1px solid var(--kleur-lichtgrijs);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.notificatie-bel:hover { background: var(--kleur-lichtgrijs); }
+
+.notificatie-badge {
+  position: absolute;
+  top: -3px; right: -3px;
+  background: var(--kleur-koraal);
+  color: var(--kleur-wit);
+  font-size: 0.65rem;
+  font-weight: 700;
+  width: 17px; height: 17px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.notificatie-dropdown {
+  position: absolute;
+  top: 46px; right: 0;
+  width: 320px;
+  background: var(--kleur-wit);
+  border-radius: var(--border-radius);
+  box-shadow: var(--schaduw-lg);
+  border: 1px solid var(--kleur-lichtgrijs);
+  z-index: 200;
+  overflow: hidden;
+}
+
+.notificatie-dropdown-header {
+  padding: 12px 16px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--kleur-lichtgrijs);
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+.notificatie-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--kleur-lichtgrijs);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.notificatie-item:hover { background: var(--kleur-zand); }
+.notificatie-item.ongelezen { background: rgba(20, 136, 105, 0.06); }
+.notificatie-item .notif-tijd { color: var(--kleur-grijs); font-size: 0.72rem; margin-top: 2px; }
+
+/* ── Laadindicator ── */
+.laad-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(247, 243, 239, 0.85);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.laadindicator {
+  width: 44px; height: 44px;
+  border: 4px solid var(--kleur-lichtgrijs);
+  border-top-color: var(--kleur-middengroen);
+  border-radius: 50%;
+  animation: draaien 0.8s linear infinite;
+}
+
+@keyframes draaien { to { transform: rotate(360deg); } }
+
+/* ── Toast meldingen ── */
+#toast-container {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast {
+  padding: 12px 18px;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--kleur-wit);
+  box-shadow: var(--schaduw-lg);
+  animation: inschuiven 0.3s ease;
+  max-width: 320px;
+}
+
+.toast.succes  { background: var(--kleur-middengroen); }
+.toast.fout    { background: var(--kleur-koraal); }
+.toast.info    { background: var(--kleur-donkergroen); }
+
+@keyframes inschuiven {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+/* ── Login pagina (speciaal) ── */
+.login-pagina {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--kleur-donkergroen);
+  padding: 20px;
+}
+
+.login-kaart {
+  background: var(--kleur-wit);
+  border-radius: var(--border-radius);
+  padding: 48px 40px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--schaduw-lg);
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.login-logo .logo-naam {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--kleur-donkergroen);
+  letter-spacing: -1px;
+}
+
+.login-logo .logo-sub {
+  font-size: 0.78rem;
+  color: var(--kleur-grijs);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-top: 4px;
+}
+
+.login-logo .logo-accent {
+  display: inline-block;
+  background: var(--kleur-limoen);
+  color: var(--kleur-donkergroen);
+  padding: 0 6px;
+  border-radius: 4px;
+}
+
+/* ── Responsive ── */
+
+/* Tablet (≤ 1024px) — zijbalk iets smaller */
+@media (max-width: 1024px) {
+  :root { --nav-breedte: 230px; }
+  .pagina-inhoud { padding: 20px 24px; }
+}
+
+/* Mobiel / kleine tablet (≤ 768px) */
+@media (max-width: 768px) {
+  .zijbalk {
+    transform: translateX(-100%);
+    width: 280px; /* iets breder voor comfortabel tikken */
+  }
+  .zijbalk.open {
+    transform: translateX(0);
+  }
+  .overlay-nav.zichtbaar {
+    display: block;
+  }
+  .hamburger {
+    display: flex;
+  }
+  .hoofdinhoud {
+    margin-left: 0;
+  }
+  .pagina-header {
+    padding: 12px 16px;
+    gap: 10px;
+  }
+  /* Linker deel (hamburger + titel) krimpt mee zodat ellipsis werkt */
+  .pagina-header > div:first-child {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .pagina-header h1 {
+    font-size: 1.1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Rechter deel (notificaties / knoppen) krimpt nooit */
+  .pagina-header > div:last-child {
+    flex-shrink: 0;
+  }
+  .pagina-inhoud {
+    padding: 14px 14px;
+  }
+
+  /* Toast: onderin gecentreerd, breedte volgt scherm */
+  #toast-container {
+    left: 12px;
+    right: 12px;
+    bottom: 16px;
+  }
+  .toast {
+    max-width: 100%;
+    text-align: center;
+  }
+
+  /* Notificatie-dropdown: breedte begrensd aan scherm */
+  .notificatie-dropdown {
+    width: min(320px, calc(100vw - 20px));
+    right: -8px;
+  }
+
+  /* Login kaart: minder padding */
+  .login-kaart {
+    padding: 32px 22px;
+  }
+
+  /* Zijbalk-nav links: groter tikgebied */
+  .zijbalk-nav a {
+    padding: 13px 16px;
+    font-size: 0.97rem;
+  }
+}
+
+/* Kleine telefoon (≤ 480px) */
+@media (max-width: 480px) {
+  .login-kaart {
+    padding: 24px 16px;
+  }
+  .pagina-inhoud {
+    padding: 10px 10px;
+  }
+  .pagina-header {
+    padding: 10px 12px;
+  }
+  .sectie-titel {
+    font-size: 1rem;
+  }
+}
+
+@media print {
+  .zijbalk, .pagina-header, .geen-print { display: none !important; }
+  .hoofdinhoud { margin-left: 0; }
+  .pagina-inhoud { padding: 0; }
+  body { background: white; }
+}

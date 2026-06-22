@@ -1,0 +1,15 @@
+# Claude Code lokale instellingen & geheugen
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS / OneDrive rommel
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editor
+.vscode/
+.idea/

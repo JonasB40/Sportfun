@@ -1,0 +1,2678 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kampplanning — SportFun Portaal</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/kampfilter.css">
+  <style>
+    /* ── Bestaande stijlen (behouden) ──────────────────────────────── */
+    .dag-kolom-vandaag { border: 2px solid var(--kleur-middengroen); }
+    .dag-kolom-vandaag .dag-kolom-header { color: var(--kleur-middengroen); }
+
+    .planner-sectie { margin-bottom: 32px; }
+    .planner-sectie-titel {
+      font-size: 1rem; font-weight: 800; color: var(--kleur-donkergroen);
+      margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+
+    /* Dag-blokken (beschikbaarheid) */
+    .dag-blokken { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .dag-blok {
+      padding: 6px 12px; border-radius: 6px; border: 2px solid var(--kleur-lichtgrijs);
+      background: var(--kleur-wit); cursor: pointer; font-size: 0.78rem; font-weight: 700;
+      color: var(--kleur-grijs); transition: all 0.15s; text-align: center; min-width: 64px;
+    }
+    .dag-blok.beschikbaar { background: rgba(20,136,105,0.1); border-color: var(--kleur-middengroen); color: var(--kleur-middengroen); }
+    .dag-blok.onbeschikbaar { background: rgba(255,105,85,0.1); border-color: var(--kleur-koraal); color: var(--kleur-koraal); }
+
+    /* Dag-kolom bewerkopties */
+    .dag-fiche-item { position: relative; }
+    .dagfiche-verwijder-knop {
+      position: absolute; top: 4px; right: 4px;
+      background: rgba(255,105,85,0.12); border: none; border-radius: 4px;
+      color: var(--kleur-koraal); width: 18px; height: 18px; font-size: 0.75rem;
+      cursor: pointer; line-height: 1; display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.15s;
+    }
+    .dag-fiche-item:hover .dagfiche-verwijder-knop { opacity: 1; }
+
+    /* Fiche zoeklijst */
+    .fiche-zoek-item {
+      padding: 8px 10px; border-radius: 6px; cursor: pointer;
+      transition: background .12s; border-bottom: 1px solid var(--kleur-lichtgrijs);
+    }
+    .fiche-zoek-item:hover { background: var(--kleur-zand); }
+    .fiche-zoek-item.geselecteerd { background: rgba(20,136,105,0.1); }
+
+    /* ── Planning tijdlijn ──────────────────────────────────────────── */
+    .plan-wrapper { display: flex; gap: 0; overflow-x: auto; }
+    .plan-wrapper-met-rand { display: flex; flex-direction: column; gap: 0; overflow-x: auto; }
+
+    /* Nieuwe flex-tijdlijn structuur */
+    .plan-tijdlijn-wrap { display: flex; flex-direction: column; min-width: 0; }
+
+    /* Rij 1: header-rij */
+    .plan-header-rij { display: flex; gap: 4px; align-items: stretch; }
+    .plan-tijdas-spacer { width: 44px; flex-shrink: 0; }
+    .plan-headers-wrap { display: flex; gap: 4px; flex: 1; min-width: 0; }
+    .plan-groep-header-cel {
+      flex: 1;
+      background: var(--kleur-donkergroen);
+      color: white;
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 0 10px;
+      height: 34px;
+      border-radius: 6px 6px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-sizing: border-box;
+    }
+    /* Virtuele "Volledige groep" header — subtiel andere tint */
+    .plan-groep-header-cel.virtueel {
+      background: var(--kleur-middengroen);
+      justify-content: space-between;
+    }
+    .plan-groep-instel-knop {
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.35);
+      color: white;
+      font-family: var(--font);
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 5px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .plan-groep-instel-knop:hover { background: rgba(255,255,255,0.30); }
+
+    /* Rij 2: tijdas + groepinhoud — 10px top-padding zodat het 9u-label
+       (dat met translateY(-50%) half boven top:0 uitsteekt) volledig zichtbaar is */
+    .plan-inhoud-rij { display: flex; gap: 4px; align-items: flex-start; padding-top: 10px; padding-bottom: 10px; }
+
+    /* Tijdas kolom */
+    .plan-tijdas-kol {
+      width: 44px;
+      flex-shrink: 0;
+      position: relative;
+      background: var(--kleur-zand);
+      border-radius: 0 0 6px 6px;
+      box-sizing: border-box;
+      overflow: visible;
+    }
+    .plan-tijdas-kol .plan-tijdlabel {
+      right: 4px;
+      background: var(--kleur-zand);
+      padding: 0 3px;
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: var(--kleur-donkergroen);
+    }
+    .plan-tijdas-kol .plan-raster-lijn { display: none; }
+
+    /* Middagpauze overlay — absoluut over alle groepkolommen */
+    .plan-midden-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .plan-midden-overlay > * { pointer-events: auto; }
+
+    /* Rij 3: toevoeg-knoppen */
+    .plan-toevoeg-rij { display: flex; gap: 4px; align-items: flex-start; margin-top: 0; }
+
+    /* ── Oude grid-klassen — behouden voor achterwaartse compatibiliteit ── */
+    .plan-grid { display: flex; flex-direction: column; }
+    .plan-grid-tijdas-header, .plan-grid-tijdas-footer { display: none; }
+    .plan-grid-tijdas { position: relative; box-sizing: border-box; background: var(--kleur-zand); overflow: visible; }
+    .plan-grid-tijdas .plan-tijdlabel { right: 4px; background: var(--kleur-zand); padding: 0 2px; font-size: 0.60rem; }
+    .plan-grid-tijdas .plan-raster-lijn { display: none; }
+    .plan-grid-inhoud { background: var(--kleur-wit); border: 1px solid var(--kleur-lichtgrijs); border-top: none; border-radius: 0 0 6px 6px; overflow: hidden; position: relative; box-sizing: border-box; }
+    .plan-grid-gedeeld { position: relative; pointer-events: none; z-index: 5; min-width: 0; }
+    .plan-grid-gedeeld > * { pointer-events: auto; }
+    .plan-grid-header { background: var(--kleur-donkergroen); color: white; font-weight: 700; font-size: 0.8rem; padding: 0 10px; border-radius: 6px 6px 0 0; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+
+    /* Toevoeg-rij */
+    .plan-grid-toevoeg {
+      display: flex;
+      gap: 4px;
+      padding: 6px 4px;
+      border-top: 1px dashed var(--kleur-lichtgrijs);
+    }
+    .plan-tijdlabel { position: absolute; right: 4px; font-size: 0.62rem; font-weight: 700; color: var(--kleur-donkergroen); transform: translateY(-50%); white-space: nowrap; background: var(--kleur-wit); padding: 0 2px; }
+    /* Toon enkel hele uren bij compacte schaal */
+    .plan-tijdlabel.half { display: none; }
+    /* Eerste en laatste label krijgen extra ruimte zodat ze niet halverwege afgesneden worden */
+    .plan-inhoud-wrapper, .plan-groepen-rij, .plan-gedeeld-laag, .week-kolommen-wrap { box-sizing: border-box; }
+    .plan-raster-lijn { position: absolute; left: 0; right: 0; border-top: 1px solid; }
+    .plan-raster-lijn.heel { border-color: #d1d5db; }
+    .plan-raster-lijn.half { border-color: #f0ede8; }
+
+    .plan-inhoud-wrapper { flex: 1; position: relative; min-width: 0; }
+    .plan-gedeeld-laag { position: absolute; top: 0; left: 0; right: 0; pointer-events: none; z-index: 3; }
+    .plan-groepen-rij { display: flex; gap: 4px; }
+    .plan-groep-kol { flex: 1; min-width: 160px; }
+    .plan-groep-header { background: var(--kleur-donkergroen); color: white; font-weight: 700; font-size: 0.78rem; padding: 4px 10px; border-radius: 6px 6px 0 0; text-align: center; }
+    .plan-groep-inhoud { background: var(--kleur-wit); border: 1px solid var(--kleur-lichtgrijs); border-top: none; border-radius: 0 0 6px 6px; overflow: hidden; }
+    .plan-geen-groepen { padding: 24px 16px; color: var(--kleur-grijs); font-size: 0.85rem; text-align: center; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+    /* Blokken */
+    .plan-blok { position: absolute; left: 2px; right: 2px; border-radius: 4px; padding: 2px 5px; font-size: 0.68rem; overflow: hidden; cursor: pointer; border-left: 3px solid; transition: filter .15s; z-index: 1; line-height: 1.2; }
+    .plan-blok:hover { filter: brightness(0.93); }
+    .plan-blok-breed { left: 0; right: 0; border-radius: 0; opacity: 0.92; pointer-events: all; z-index: 4; }
+    .plan-blok-naam { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .plan-blok-naam.geen-fiche { font-weight: 400; font-style: italic; opacity: 0.6; }
+    .plan-blok-tijd { font-size: 0.60rem; opacity: 0.8; }
+    .plan-blok-lg { font-size: 0.60rem; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .plan-blok-del { position: absolute; top: 2px; right: 2px; background: rgba(255,105,85,0.2); border: none; border-radius: 3px; color: var(--kleur-koraal); width: 14px; height: 14px; font-size: 0.65rem; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; padding: 0; line-height: 1; }
+    .plan-blok:hover .plan-blok-del { opacity: 1; }
+
+    /* Korte blokken (< 30 min): toon enkel naam, geen tijd/lesgever */
+    .plan-blok.kort .plan-blok-tijd,
+    .plan-blok.kort .plan-blok-lg { display: none; }
+    .plan-blok.kort { padding: 1px 5px; font-size: 0.64rem; }
+
+    /* ── Randblokken (vooropvang / naopvang) buiten de tijdas ── */
+    .plan-wrapper-met-rand { display: flex; flex-direction: column; gap: 0; }
+    .plan-randzone { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+
+    .plan-randblok {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 14px;
+      background: linear-gradient(90deg, rgba(255, 165, 70, 0.18), rgba(255, 192, 87, 0.10));
+      border: 1.5px solid #ff9d3a;
+      border-left: 5px solid #ff8b1a;
+      border-radius: 8px;
+      color: #7a3d00;
+      font-size: 0.84rem;
+      cursor: pointer;
+      transition: filter 0.15s, transform 0.1s;
+      flex-wrap: wrap;
+    }
+    .plan-randblok:hover { filter: brightness(0.97); transform: translateX(2px); }
+    .plan-randblok-voor::before { content: '🌅'; font-size: 1.05rem; }
+    .plan-randblok-na::before   { content: '🌇'; font-size: 1.05rem; }
+    .plan-randblok-naam { font-weight: 800; color: #5a2d00; }
+    .plan-randblok-tijd { font-size: 0.76rem; opacity: 0.85; }
+    .plan-randblok-lg { font-size: 0.78rem; font-style: italic; margin-left: auto; }
+    .plan-randblok-lg.leeg { opacity: 0.6; font-weight: 600; }
+
+    /* ── Knop "Vooropvang/Naopvang instellen" ── */
+    .plan-rand-toevoeg-knop {
+      width: 100%;
+      padding: 10px 14px;
+      background: rgba(255, 165, 70, 0.08);
+      border: 1.5px dashed #ff9d3a;
+      border-radius: 8px;
+      color: #7a3d00;
+      font-family: var(--font);
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .plan-rand-toevoeg-knop:hover {
+      background: rgba(255, 165, 70, 0.18);
+      border-color: #ff8b1a;
+      transform: translateY(-1px);
+    }
+    .plan-rand-toevoeg-knop.voor::before { content: '+'; font-size: 1.1rem; font-weight: 800; }
+    .plan-rand-toevoeg-knop.na::before   { content: '+'; font-size: 1.1rem; font-weight: 800; }
+
+    /* ── Mini-randblokken in week-modus (per dag-kolom) ── */
+    .week-randblok {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
+      padding: 4px 8px;
+      background: rgba(255, 165, 70, 0.18);
+      border: 1.5px solid #ff8b1a;
+      border-radius: 5px;
+      font-size: 0.63rem;
+      font-weight: 700;
+      color: #5a2d00;
+      cursor: pointer;
+      height: 100%;
+      box-sizing: border-box;
+      transition: filter 0.15s;
+      overflow: hidden;
+    }
+    .week-randblok:hover { filter: brightness(0.94); }
+    .week-randblok-leeg-slot { background: rgba(255, 165, 70, 0.08); border-style: dashed; }
+    .week-randblok-rij1 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      min-width: 0;
+    }
+    .week-randblok .naam {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-shrink: 1;
+      min-width: 0;
+    }
+    .week-randblok .tijd {
+      font-size: 0.60rem;
+      opacity: 0.85;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .week-randblok .lg {
+      font-size: 0.60rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .week-randblok .lg.leeg {
+      opacity: 0.65;
+      font-style: italic;
+      font-weight: 500;
+    }
+    .week-randblok-voor .naam::before { content: '🌅 '; }
+    .week-randblok-na   .naam::before { content: '🌇 '; }
+
+    /* Raster-lijnen verborgen in week-modus (geen overflow nodig, rasterlijnen zijn al hidden) */
+    .plan-wrapper.week-modus .plan-tijdas { position: relative; overflow: visible; }
+    .plan-wrapper.week-modus .plan-raster-lijn { display: none; }
+
+    /* 9:00 en 16:00 labels: niet verschuiven met translateY(-50%) om clipping te voorkomen */
+    .plan-tijdlabel-eerste { transform: none !important; }
+    .plan-tijdlabel-laatste { transform: translateY(-100%) !important; }
+
+    /* Kleuren per type — middagpauze + activiteit + pauze blijven in tijdas */
+    .plan-blok-middagpauze { background: rgba(215,252,92,0.3); border-color: #a0b020; color: #5a6800; }
+    .plan-blok-pauze { background: rgba(215,252,92,0.2); border-color: #c5d030; color: #6b7a00; }
+    .plan-blok-activiteit { background: rgba(25,67,56,0.07); border-color: var(--kleur-donkergroen); color: var(--kleur-donkergroen); }
+
+    /* Toevoegen-knoppen */
+    .plan-toevoegen-balk { display: flex; gap: 4px; padding: 6px 4px; border-top: 1px dashed var(--kleur-lichtgrijs); }
+    .plan-toevoegen-knop, .plan-pauze-knop { flex: 1; padding: 4px; background: rgba(20,136,105,0.06); border: 1px dashed rgba(20,136,105,0.3); border-radius: 5px; color: var(--kleur-middengroen); font-size: 0.7rem; font-weight: 700; cursor: pointer; font-family: var(--font); }
+    .plan-toevoegen-knop:hover, .plan-pauze-knop:hover { background: rgba(20,136,105,0.14); }
+    .week-toevoeg-rij { padding: 3px 0; }
+    .week-toevoeg-rij .plan-toevoegen-knop { width: 100%; display: block; }
+    .plan-gedeeld-knoppen { display: flex; gap: 6px; padding: 8px 0; flex-wrap: wrap; }
+    .plan-gedeeld-knop { padding: 4px 10px; background: var(--kleur-zand); border: 1px solid var(--kleur-lichtgrijs); border-radius: 5px; font-size: 0.72rem; font-weight: 700; cursor: pointer; font-family: var(--font); color: var(--kleur-donkergroen); }
+    .plan-gedeeld-knop:hover { background: #ede8e2; }
+
+    /* Modus-toggle (Dag / Week) */
+    .modus-toggle { display: inline-flex; background: var(--kleur-zand); border-radius: 8px; padding: 3px; margin-right: 10px; vertical-align: middle; }
+    .modus-knop { padding: 5px 14px; border: none; background: transparent; border-radius: 5px; font-family: var(--font); font-size: 0.78rem; font-weight: 700; cursor: pointer; color: var(--kleur-grijs); display: inline-flex; align-items: center; gap: 5px; transition: all 0.15s; }
+    .modus-knop:hover { color: var(--kleur-donkergroen); }
+    .modus-knop.actief { background: var(--kleur-donkergroen); color: var(--kleur-limoen); box-shadow: 0 2px 6px rgba(25,67,56,0.18); }
+    .modus-toggle-rij { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+
+    /* ─── Week-modus ─────────────────────────────────────────── */
+    .plan-wrapper.week-modus {
+      display: flex;
+      gap: 4px;
+      align-items: stretch;
+    }
+
+    /* Tijdas-kolom: spacers boven en onder zodat de tijdlabels exact uitlijnen met de week-dag-inhoud */
+    .week-tijdas-kol {
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      width: 44px;
+    }
+    .week-tijdas-spacer { flex-shrink: 0; }
+    .week-tijdas-randspacer {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      opacity: 0.55;
+    }
+
+    /* Tijdas zelf — in week-modus géén padding-top, dat regelt de spacer */
+    .plan-wrapper.week-modus .plan-tijdas { padding-top: 8px; padding-bottom: 8px; }
+
+    .week-kolommen-wrap {
+      display: flex;
+      flex: 1;
+      gap: 4px;
+      min-width: 0;
+      align-items: stretch;
+    }
+
+    .week-dag-kol {
+      flex: 1;
+      min-width: 70px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header: vaste hoogte voor consistente uitlijning */
+    .week-dag-header {
+      background: var(--kleur-donkergroen);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 6px 6px 0 0;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+    .week-dag-header:hover { background: #0f2d25; }
+    .week-dag-weekdag { font-weight: 800; font-size: 0.76rem; text-transform: capitalize; line-height: 1.1; }
+    .week-dag-datum { font-size: 0.66rem; opacity: 0.85; font-weight: 600; line-height: 1.1; }
+    .week-dag-kol.vandaag .week-dag-header { background: var(--kleur-middengroen); }
+
+    /* Rand-cel: vaste hoogte voor vooropvang & naopvang slot */
+    .week-rand-cel {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      box-sizing: border-box;
+      padding: 2px 0;
+    }
+    .week-rand-cel > * { width: 100%; margin: 0 !important; }
+
+    /* Inhoud (tijdas-zone) */
+    .week-dag-inhoud {
+      background: var(--kleur-wit);
+      border: 1px solid var(--kleur-lichtgrijs);
+      overflow: hidden;
+      position: relative;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+    .week-dag-leeg {
+      padding: 14px 8px;
+      font-size: 0.7rem;
+      color: var(--kleur-grijs);
+      text-align: center;
+    }
+
+    /* Dag-tabs */
+    /* Thema-filterknoppen in fiche-zoekmodals */
+    .thema-filter-knop {
+      padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;
+      border: 1.5px solid var(--kleur-lichtgrijs); background: var(--kleur-wit);
+      color: var(--kleur-grijs); cursor: pointer; font-family: var(--font);
+      transition: all 0.12s; white-space: nowrap;
+    }
+    .thema-filter-knop:hover { border-color: var(--kleur-middengroen); color: var(--kleur-middengroen); }
+    .thema-filter-knop.actief { background: var(--kleur-donkergroen); color: white; border-color: var(--kleur-donkergroen); }
+
+    .dag-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+    .dag-tab { padding: 6px 14px; border-radius: 6px; border: 1.5px solid var(--kleur-lichtgrijs); background: var(--kleur-wit); font-family: var(--font); font-size: 0.82rem; font-weight: 700; cursor: pointer; color: var(--kleur-grijs); }
+    .dag-tab.actief { background: var(--kleur-donkergroen); color: white; border-color: var(--kleur-donkergroen); }
+    .dag-tab:hover:not(.actief) { border-color: var(--kleur-donkergroen); color: var(--kleur-donkergroen); }
+
+    /* Admin kamp-kaart (planning) */
+    .plankaart { border: 1px solid var(--kleur-lichtgrijs); border-radius: var(--border-radius); margin-bottom: 12px; overflow: hidden; background: var(--kleur-wit); }
+    .plankaart-kop { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; cursor: pointer; gap: 12px; }
+    .plankaart-kop:hover { background: var(--kleur-zand); }
+    .plankaart-info { flex: 1; min-width: 0; }
+    .plankaart-naam { font-weight: 800; font-size: 0.95rem; color: var(--kleur-donkergroen); }
+    .plankaart-meta { font-size: 0.78rem; color: var(--kleur-grijs); margin-top: 3px; }
+    .plankaart-team { font-size: 0.78rem; margin-top: 5px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .plankaart-pijl { font-size: 0.9rem; color: var(--kleur-grijs); transition: transform .2s; }
+    .plankaart-pijl.open { transform: rotate(90deg); }
+    .plankaart-inhoud { padding: 0 18px 18px; border-top: 1px solid var(--kleur-lichtgrijs); display: none; }
+    .plankaart-inhoud.open { display: block; }
+
+    /* Groepen instellen */
+    .groepen-setup { background: var(--kleur-zand); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+
+    /* Laden */
+    .plan-laden { text-align: center; padding: 32px; color: var(--kleur-grijs); }
+
+    /* Lesgever-view planning (eigen kampen) */
+    .eigen-kamp-planning { margin-top: 16px; border-top: 1px solid var(--kleur-lichtgrijs); padding-top: 16px; }
+
+    /* ── Schema-planning (verticale daglijst) ───────────────────── */
+    .plan-schema { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+
+    .schema-blok {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 14px; border-radius: 8px;
+      border: 1.5px solid var(--kleur-lichtgrijs);
+      background: var(--kleur-wit); min-height: 44px; box-sizing: border-box;
+    }
+    .schema-blok-links { flex-shrink: 0; min-width: 130px; }
+    .schema-blok-inhoud {
+      flex: 1; min-width: 0; display: flex; flex-direction: column;
+      justify-content: center; gap: 3px;
+    }
+    .schema-blok-acties { display: flex; gap: 6px; align-items: flex-start; flex-wrap: wrap; flex-shrink: 0; }
+
+    /* Tijdlabel */
+    .schema-tijd { font-size: 0.78rem; font-weight: 700; color: var(--kleur-donkergroen); white-space: nowrap; display: inline-block; }
+    .schema-tijd-bewerkbaar { cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: background 0.15s; }
+    .schema-tijd-bewerkbaar:hover { background: rgba(20,136,105,0.12); text-decoration: underline; }
+
+    /* Fiche info */
+    .schema-fiche-info { display: flex; flex-direction: column; gap: 1px; }
+    .schema-fiche-naam { font-size: 0.88rem; font-weight: 700; color: var(--kleur-donkergroen); }
+    .schema-fiche-meta { font-size: 0.72rem; color: var(--kleur-grijs); }
+    .schema-geen-fiche { font-size: 0.80rem; color: var(--kleur-grijs); font-style: italic; }
+
+    /* Lesgever + pauze labels */
+    .schema-lg { font-size: 0.82rem; font-weight: 600; color: var(--kleur-donkergroen); }
+    .schema-lg.leeg { color: var(--kleur-grijs); font-style: italic; font-weight: 400; }
+    .schema-pauze-label { font-size: 0.82rem; color: var(--kleur-grijs); font-weight: 600; }
+
+    /* Actieknoppen */
+    .schema-knop {
+      padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700;
+      cursor: pointer; font-family: var(--font); border: 1.5px solid; transition: all 0.12s; white-space: nowrap;
+    }
+    .schema-fiche-knop { background: rgba(20,136,105,0.06); border-color: var(--kleur-middengroen); color: var(--kleur-middengroen); }
+    .schema-fiche-knop:hover { background: rgba(20,136,105,0.16); }
+    .schema-fiche-knop.klein { padding: 2px 7px; font-size: 0.67rem; }
+    .schema-lg-knop { background: rgba(25,67,56,0.05); border-color: var(--kleur-donkergroen); color: var(--kleur-donkergroen); }
+    .schema-lg-knop:hover { background: rgba(25,67,56,0.12); }
+    .schema-toggle-knop { background: rgba(215,252,92,0.15); border-color: #a0b020; color: #5a6800; }
+    .schema-toggle-knop:hover { background: rgba(215,252,92,0.3); }
+
+    /* Per-groep blok */
+    .schema-blok-per-groep { flex-direction: column; gap: 8px; }
+    .schema-blok-balk { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .schema-groepen-lijst { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+    .schema-groep-rij {
+      display: flex; align-items: center; gap: 8px; padding: 5px 8px;
+      border-radius: 5px; background: rgba(20,136,105,0.04);
+    }
+    .schema-groep-naam { font-size: 0.74rem; font-weight: 700; color: var(--kleur-donkergroen); min-width: 80px; flex-shrink: 0; }
+    .schema-groep-inhoud { flex: 1; font-size: 0.80rem; min-width: 0; }
+
+    /* Blok-kleuren per type */
+    .schema-blok-vooropvang { border-color: #ff9d3a; border-left: 4px solid #ff8b1a; background: rgba(255,165,70,0.07); }
+    .schema-blok-naopvang   { border-color: #ff9d3a; border-left: 4px solid #ff8b1a; background: rgba(255,165,70,0.07); }
+    .schema-blok-pauze      { border-left: 4px solid #c5d030; background: rgba(215,252,92,0.10); }
+    .schema-blok-middagpauze { border-left: 4px solid #a0b020; background: rgba(215,252,92,0.18); }
+    .schema-blok-activiteit { border-left: 4px solid var(--kleur-middengroen); }
+
+    /* Groepen-knop rij boven schema */
+    .schema-groepen-rij { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+
+    /* ── Responsief ───────────────────────────────────────────── */
+
+    /* Mobiel (≤ 768px): schema-blok compact */
+    @media (max-width: 768px) {
+      /* Tijdas smaller */
+      .schema-blok-links { min-width: 90px; }
+      .schema-tijd { font-size: 0.72rem; }
+
+      /* Actieknoppen naar eigen rij */
+      .schema-blok {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .schema-blok-acties {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .schema-knop { min-height: 36px; }
+
+      /* Plan-wrapper: horizontaal scrollen op mobiel */
+      .plan-wrapper, .plan-wrapper-met-rand {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .plan-groep-kol { min-width: 140px; }
+      .week-dag-kol    { min-width: 80px; }
+
+      /* Plankaart kop: compacter */
+      .plankaart-kop { padding: 12px 14px; gap: 10px; }
+      .plankaart-naam { font-size: 0.88rem; }
+      .plankaart-meta { font-size: 0.72rem; }
+
+      /* Dag-tabs: scrollen */
+      .dag-tabs { overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap; }
+      .dag-tabs::-webkit-scrollbar { display: none; }
+      .dag-tab { white-space: nowrap; min-height: 40px; }
+
+      /* Modus-toggle rij: wrappen */
+      .modus-toggle-rij { flex-wrap: wrap; gap: 6px; }
+
+      /* Uitnodigingskaart acties */
+      .kamp-kaart-header { gap: 12px; }
+    }
+
+    /* Kleine telefoon (≤ 480px) */
+    @media (max-width: 480px) {
+      .schema-blok-links { min-width: 72px; }
+      .schema-blok { padding: 8px 10px; gap: 6px; }
+      .plankaart-inhoud { padding: 0 12px 14px; }
+      .plankaart-team { gap: 4px; }
+      /* Week-dag-headers: toon enkel dag en datum, geen extra info */
+      .week-dag-weekdag { font-size: 0.7rem; }
+      .week-dag-datum   { font-size: 0.6rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="portaal-wrapper">
+  <nav class="zijbalk" id="zijbalk">
+    <div class="zijbalk-logo">
+      <img src="sportfun-logo-wit.svg" alt="SportFun"
+           style="max-width:170px;height:auto;display:block;margin-bottom:4px">
+      <div class="logo-sub">Lesgeversportaal</div>
+    </div>
+    <div class="zijbalk-nav">
+      <ul>
+        <li><a href="dashboard.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>Dashboard
+        </a></li>
+        <li><a href="planner.html" class="actief">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>Kampplanning
+        </a></li>
+        <li class="verberg-admin"><a href="beschikbaarheid.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+            <polyline points="9 15 11 17 15 13"/>
+          </svg>Beschikbaarheid
+        </a></li>
+        <li><a href="fiches.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>Activiteiten
+        </a></li>
+        <li><a href="materiaal.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+          Materiaal
+        </a></li>
+        <li class="enkel-admin"><a href="admin.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>Beheer
+        </a></li>
+      </ul>
+    </div>
+    <div class="zijbalk-footer">
+      <div class="gebruiker-info">
+        <a href="profiel.html" class="gebruiker-avatar" id="nav-avatar" title="Profiel & contracten">?</a>
+        <div>
+          <div class="gebruiker-naam" id="nav-naam">Laden…</div>
+          <div class="gebruiker-rol" id="nav-rol"></div>
+        </div>
+      </div>
+      <button class="uitloggen-knop" id="nav-uitloggen">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>Uitloggen
+      </button>
+    </div>
+  </nav>
+  <div class="overlay-nav" id="overlay-nav"></div>
+
+  <main class="hoofdinhoud">
+    <header class="pagina-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger geen-print" id="hamburger"><span></span><span></span><span></span></button>
+        <h1 id="pagina-titel">Kampplanning</h1>
+      </div>
+      <div class="notificatie-wrapper geen-print">
+        <div class="notificatie-bel" id="notif-bel">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <span class="notificatie-badge verborgen" id="notif-badge">0</span>
+        </div>
+        <div class="notificatie-dropdown verborgen" id="notif-dropdown">
+          <div class="notificatie-dropdown-header">
+            <span>Notificaties</span>
+            <button id="notif-alles-gelezen" style="background:none;border:none;font-size:0.75rem;color:var(--kleur-middengroen);cursor:pointer">Alles gelezen</button>
+          </div>
+          <div id="notif-lijst"></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="pagina-inhoud">
+
+      <div id="laad-toestand" style="text-align:center;padding:60px 20px;color:var(--kleur-grijs)">
+        <div class="laadindicator" style="margin:0 auto 12px"></div>Laden…
+      </div>
+
+      <!-- ADMIN VIEW: alle kampen als uitklapbare kaarten -->
+      <div class="planner-sectie verborgen" id="sectie-admin-kampen">
+        <div class="planner-sectie-titel">
+          🗂 Alle kampen
+          <span class="badge badge-donker" id="badge-admin-kampen">0</span>
+        </div>
+        <!-- Filterbalk -->
+        <div id="planner-kampfilter-container"></div>
+        <!-- Lijst van actieve kampen -->
+        <div id="admin-kampen-lijst"></div>
+        <!-- Archief (afgelopen kampen) -->
+        <div id="archief-toggle-wrap" class="verborgen"
+             style="margin-top:24px;padding:14px 18px;background:var(--kleur-zand);
+                    border:1.5px solid var(--kleur-lichtgrijs);border-radius:12px;
+                    cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+                    gap:10px;font-weight:700;color:var(--kleur-donkergroen)">
+          <span style="display:flex;align-items:center;gap:10px">
+            📦 Archief (afgelopen kampen)
+            <span class="badge badge-grijs" id="archief-aantal">0</span>
+          </span>
+          <span id="archief-pijl" style="transition:transform 0.2s">▼</span>
+        </div>
+        <div id="admin-archief-lijst" class="verborgen" style="margin-top:14px"></div>
+      </div>
+
+      <!-- LESGEVER VIEW: uitnodigingen -->
+      <div class="planner-sectie verborgen" id="sectie-uitnodigingen">
+        <div class="planner-sectie-titel">
+          ✉️ Uitnodigingen
+          <span class="badge badge-koraal" id="badge-uitnodigingen">0</span>
+        </div>
+        <div id="uitnodigingen-lijst"></div>
+      </div>
+
+      <!-- LESGEVER VIEW: bevestigde kampen met planning -->
+      <div class="planner-sectie verborgen" id="sectie-eigen-kampen">
+        <div class="planner-sectie-titel">
+          ✅ Mijn kampen
+          <span class="badge badge-groen" id="badge-eigen-kampen">0</span>
+        </div>
+        <div id="eigen-kampen-lijst">
+          <div class="leeg-toestand" id="geen-eigen-kampen">
+            <div class="leeg-icoon">📅</div>
+            <p>Geen bevestigde kampen.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════════ -->
+
+<!-- Modal: Weigeren -->
+<div class="modal-overlay verborgen" id="weiger-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2>Uitnodiging weigeren</h2>
+      <button class="modal-sluiten" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam">
+      <p style="font-size:0.88rem;margin-bottom:14px">
+        Uitnodiging weigeren voor <strong id="weiger-kamp-naam"></strong>?
+      </p>
+      <div class="formulier-groep">
+        <label for="weiger-reden">Reden (optioneel)</label>
+        <textarea id="weiger-reden" rows="3" placeholder="Bv. 'Al elders ingepland'"></textarea>
+      </div>
+    </div>
+    <div class="modal-voetlijn">
+      <button class="knop knop-omtrek" id="weiger-annuleren">Annuleren</button>
+      <button class="knop knop-gevaar" id="weiger-bevestigen">Weigeren</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Annuleren (reden verplicht) -->
+<div class="modal-overlay verborgen" id="annuleer-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2>Deelname annuleren</h2>
+      <button class="modal-sluiten" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam">
+      <p style="font-size:0.88rem;margin-bottom:14px">
+        Annuleren voor <strong id="annuleer-kamp-naam"></strong>?
+      </p>
+      <div class="formulier-groep">
+        <label for="annuleer-reden">Reden <span style="color:var(--kleur-koraal)">*</span></label>
+        <textarea id="annuleer-reden" rows="3" required placeholder="Verplicht"></textarea>
+        <div class="fout-tekst verborgen" id="annuleer-fout">Reden is verplicht.</div>
+      </div>
+    </div>
+    <div class="modal-voetlijn">
+      <button class="knop knop-omtrek" id="annuleer-cancel">Terug</button>
+      <button class="knop knop-gevaar" id="annuleer-bevestigen">Bevestigen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Groepen instellen -->
+<div class="modal-overlay verborgen" id="groepen-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2>Groepen instellen</h2>
+      <button class="modal-sluiten" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam">
+      <div class="formulier-groep">
+        <label for="groepen-aantal">Aantal groepen</label>
+        <select id="groepen-aantal" style="width:100%;padding:9px 14px;border:1.5px solid var(--kleur-lichtgrijs);border-radius:8px;font-family:var(--font);font-size:0.88rem">
+          <option value="1">1 groep</option>
+          <option value="2" selected>2 groepen</option>
+          <option value="3">3 groepen</option>
+          <option value="4">4 groepen</option>
+        </select>
+        <div class="hulptekst">Verminder je het aantal groepen, dan worden de activiteiten van de verwijderde groep(en) ook verwijderd.</div>
+      </div>
+      <div id="groepen-namen-container"></div>
+    </div>
+    <div class="modal-voetlijn" style="justify-content:space-between">
+      <button class="knop knop-gevaar verborgen" id="groepen-verwijderen-knop"
+              title="Verwijder alle groepen — alle activiteiten in groep-kolommen worden ook verwijderd!">
+        🗑 Alle groepen verwijderen
+      </button>
+      <div class="flex-gap">
+        <button class="knop knop-omtrek" id="groepen-annuleren">Annuleren</button>
+        <button class="knop knop-accent" id="groepen-opslaan">Opslaan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Activiteit toevoegen -->
+<div class="modal-overlay verborgen" id="activiteit-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="activiteit-modal-titel">Activiteit toevoegen</h2>
+      <button class="modal-sluiten" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam">
+      <div class="formulier-groep">
+        <label>1. Kies een lesfiche</label>
+        <div class="hulptekst" style="margin-bottom:8px">
+          Blader per thema of zoek op naam. Mist er een fiche? Voeg toe via <strong>Activiteiten</strong>.
+        </div>
+        <!-- Thema-filterknoppen -->
+        <div id="activiteit-thema-knoppen"
+             style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
+          <button class="thema-filter-knop actief" data-thema="" onclick="window._filterActiviteitThema('')">Alle</button>
+          <button class="thema-filter-knop" data-thema="waterspelen" onclick="window._filterActiviteitThema('waterspelen')">💧 Waterspelen</button>
+          <button class="thema-filter-knop" data-thema="balspelen" onclick="window._filterActiviteitThema('balspelen')">⚽ Balspelen</button>
+          <button class="thema-filter-knop" data-thema="tikspellen" onclick="window._filterActiviteitThema('tikspellen')">🏃 Tikspellen</button>
+          <button class="thema-filter-knop" data-thema="estafettes" onclick="window._filterActiviteitThema('estafettes')">🏁 Estafettes</button>
+          <button class="thema-filter-knop" data-thema="rustig_concentratie" onclick="window._filterActiviteitThema('rustig_concentratie')">🧩 Rustig</button>
+        </div>
+        <input type="search" id="activiteit-zoek" placeholder="Zoek op naam…"
+               style="width:100%;padding:9px 14px;border:1.5px solid var(--kleur-lichtgrijs);border-radius:8px;font-family:var(--font);font-size:0.88rem;outline:none;box-sizing:border-box">
+        <div id="activiteit-resultaten"
+             style="max-height:220px;overflow-y:auto;border:1px solid var(--kleur-lichtgrijs);border-radius:8px;margin-top:6px"></div>
+        <div id="activiteit-geselecteerd" style="margin-top:6px;font-size:0.82rem;color:var(--kleur-middengroen);font-weight:700"></div>
+      </div>
+      <div id="activiteit-tijd-sectie">
+        <div class="hulptekst" style="margin-bottom:6px;margin-top:14px;font-weight:700;color:var(--kleur-donkergroen)">2. Stel het tijdslot in</div>
+        <div class="formulier-rij">
+          <div class="formulier-groep">
+            <label for="activiteit-start">Starttijd</label>
+            <input type="time" id="activiteit-start" value="09:00">
+          </div>
+          <div class="formulier-groep">
+            <label for="activiteit-eind">Eindtijd</label>
+            <input type="time" id="activiteit-eind" value="10:00">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-voetlijn" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <button class="knop knop-gevaar knop-klein verborgen" id="activiteit-ontkoppelen"
+              title="Verwijder de gekoppelde activiteit van dit blok">
+        🗑 Fiche verwijderen
+      </button>
+      <div class="flex-gap">
+        <button class="knop knop-omtrek" id="activiteit-annuleren">Annuleren</button>
+        <button class="knop knop-accent" id="activiteit-opslaan">Toevoegen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Pauze toevoegen -->
+<div class="modal-overlay verborgen" id="pauze-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2 id="pauze-modal-titel">Pauze toevoegen</h2>
+      <button class="modal-sluiten" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam">
+      <div class="formulier-rij">
+        <div class="formulier-groep">
+          <label for="pauze-start">Starttijd</label>
+          <input type="time" id="pauze-start" value="10:15">
+        </div>
+        <div class="formulier-groep">
+          <label for="pauze-eind">Eindtijd</label>
+          <input type="time" id="pauze-eind" value="10:30">
+        </div>
+      </div>
+    </div>
+    <div class="modal-voetlijn">
+      <button class="knop knop-omtrek" id="pauze-annuleren">Annuleren</button>
+      <button class="knop knop-accent" id="pauze-opslaan">Toevoegen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Gedeeld blok toevoegen (vooropvang/naopvang/middagpauze) -->
+<div class="modal-overlay verborgen" id="gedeeld-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2 id="gedeeld-modal-titel">Gedeeld blok toevoegen</h2>
+      <button class="modal-sluiten" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam">
+      <div class="formulier-groep" id="gedeeld-label-wrap">
+        <label for="gedeeld-label">Label</label>
+        <input type="text" id="gedeeld-label" placeholder="Bv. Vooropvang">
+      </div>
+      <div id="gedeeld-tijd-wrap">
+        <div class="formulier-rij">
+          <div class="formulier-groep">
+            <label for="gedeeld-start">Starttijd</label>
+            <input type="time" id="gedeeld-start" value="08:00">
+          </div>
+          <div class="formulier-groep">
+            <label for="gedeeld-eind">Eindtijd</label>
+            <input type="time" id="gedeeld-eind" value="09:00">
+          </div>
+        </div>
+      </div>
+      <div class="formulier-groep" id="gedeeld-lesgevers-wrap">
+        <label id="gedeeld-lesgevers-label">Lesgevers (optioneel)</label>
+        <div id="gedeeld-lesgevers-opties" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"></div>
+      </div>
+    </div>
+    <div class="modal-voetlijn">
+      <button class="knop knop-omtrek" id="gedeeld-annuleren">Annuleren</button>
+      <button class="knop knop-accent" id="gedeeld-opslaan">Toevoegen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Lesfiche bekijken (alleen lezen) -->
+<div class="modal-overlay verborgen" id="fiche-bekijk-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="fiche-bekijk-titel">Lesfiche</h2>
+      <button class="modal-sluiten" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam" id="fiche-bekijk-inhoud">
+      <!-- Inhoud wordt dynamisch geladen -->
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Blok bewerken -->
+<div class="modal-overlay verborgen" id="blok-bewerk-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="blok-bewerk-titel">Blok bewerken</h2>
+      <button class="modal-sluiten" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam">
+      <div class="formulier-groep" id="blok-fiche-wrap">
+        <label>Activiteit</label>
+        <!-- Thema-filterknoppen -->
+        <div id="blok-thema-knoppen"
+             style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
+          <button class="thema-filter-knop actief" data-thema="" onclick="window._filterBlokThema('')">Alle</button>
+          <button class="thema-filter-knop" data-thema="waterspelen" onclick="window._filterBlokThema('waterspelen')">💧 Waterspelen</button>
+          <button class="thema-filter-knop" data-thema="balspelen" onclick="window._filterBlokThema('balspelen')">⚽ Balspelen</button>
+          <button class="thema-filter-knop" data-thema="tikspellen" onclick="window._filterBlokThema('tikspellen')">🏃 Tikspellen</button>
+          <button class="thema-filter-knop" data-thema="estafettes" onclick="window._filterBlokThema('estafettes')">🏁 Estafettes</button>
+          <button class="thema-filter-knop" data-thema="rustig_concentratie" onclick="window._filterBlokThema('rustig_concentratie')">🧩 Rustig</button>
+        </div>
+        <input type="search" id="blok-fiche-zoek" placeholder="Zoek op naam…"
+               style="width:100%;padding:9px 14px;border:1.5px solid var(--kleur-lichtgrijs);border-radius:8px;font-family:var(--font);font-size:0.88rem;outline:none;box-sizing:border-box">
+        <div id="blok-fiche-resultaten"
+             style="max-height:180px;overflow-y:auto;border:1px solid var(--kleur-lichtgrijs);border-radius:8px;margin-top:4px"></div>
+        <div id="blok-fiche-geselecteerd" style="margin-top:4px;font-size:0.82rem;color:var(--kleur-middengroen);font-weight:700"></div>
+      </div>
+      <div class="formulier-groep" id="blok-label-wrap">
+        <label for="blok-label">Label</label>
+        <input type="text" id="blok-label" placeholder="Bv. Pauze">
+      </div>
+      <div class="formulier-rij" id="blok-tijd-wrap">
+        <div class="formulier-groep">
+          <label for="blok-start">Starttijd</label>
+          <input type="time" id="blok-start">
+        </div>
+        <div class="formulier-groep">
+          <label for="blok-eind">Eindtijd</label>
+          <input type="time" id="blok-eind">
+        </div>
+      </div>
+      <div class="formulier-groep" id="blok-lesgevers-wrap">
+        <label>Lesgevers</label>
+        <div id="blok-lesgevers-opties" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"></div>
+      </div>
+    </div>
+    <div class="modal-voetlijn" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <button class="knop knop-middengroen knop-klein verborgen" id="blok-bekijk-fiche-knop"
+              title="Bekijk de volledige inhoud van de gekoppelde lesfiche">
+        📖 Lesfiche bekijken
+      </button>
+      <div class="flex-gap">
+        <button class="knop knop-omtrek" id="blok-bewerk-annuleren">Annuleren</button>
+        <button class="knop knop-accent" id="blok-bewerk-opslaan">Opslaan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- Modal: Materiaaloverzicht -->
+<div class="modal-overlay verborgen" id="materiaal-modal">
+  <div class="modal modal-lg" style="display:flex;flex-direction:column;max-height:92vh;overflow:hidden">
+    <div class="modal-header" style="flex-shrink:0">
+      <div>
+        <h2>📦 Materiaaloverzicht</h2>
+        <div style="font-size:0.82rem;color:var(--kleur-grijs);margin-top:2px" id="materiaal-modal-kamp"></div>
+      </div>
+      <button class="modal-sluiten" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam" id="materiaal-modal-inhoud" style="flex:1;overflow-y:auto"></div>
+    <div class="modal-voetlijn" style="flex-shrink:0">
+      <button class="knop knop-omtrek" onclick="document.getElementById('materiaal-modal').querySelector('.modal-sluiten').click()">Sluiten</button>
+      <button class="knop knop-accent" id="materiaal-afdrukken">🖨 Afdrukken</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { supabase } from './js/supabase.js?v=1780304789500';
+  import { checkSessie, haalProfielOp, vulNavigatieIn, initialiseerNotificatieBel, initialiseerContractBadge } from './js/auth.js?v=1780304789500';
+  import {
+    haalAlleKampenOp, haalAlleGebruikersOp, haalKoppelingenOverzichtOp
+  } from './js/admin.js?v=1780304789500';
+  import {
+    genereerKampDagen,
+    haalKampGroepenOp, slaKampGroepenOp,
+    haalDagBlokkenOp, slaBlokOp, verwijderBlok, initialiseerDagPlanning,
+    renderPlanningTimeline, renderWeekTimeline,
+    haalBevestigdeKoppelingenOp,
+    aanvaardKoppeling, weigerKoppeling, annuleerKoppeling,
+    haalUitnodigingenOp, haalKampTeamOp
+  } from './js/planner.js?v=1780304789500';
+  import { haalFichesOp, haalFicheOp, renderFicheDetail, haalMateriaaloVerzichtVoorKamp, genereerMateriaaloVerzichtHTML } from './js/fiches.js?v=1780304789500';
+  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, formateerDatum, datumNaarNL, dagNaam, lokaleISO } from './js/utils.js?v=1780304789500';
+  import {
+    nieuweFilterState, filterKampen, renderFilterBalk, haalKoppelingsMapOp
+  } from './js/kampfilter.js?v=1780304789500';
+
+  // ── Globale state ────────────────────────────────────────────────
+  let huidigProfiel = null;
+  let alleKampen    = [];
+  let alleGebruikers = [];
+  let alleFiches    = [];
+  const kampState   = new Map(); // kampID → { groepen, huidigDatum, blokken, lesgevers }
+
+  // Modal state
+  let actieveKoppelingID      = null;
+  let actieveKampNaam         = null;
+  let groepenKampID           = null;
+  let activiteitKampID        = null;
+  let activiteitDatum         = null;
+  let activiteitGroepIdx      = null;
+  let activiteitFicheID       = null;
+  let pauzeKampID             = null;
+  let pauzeDatum              = null;
+  let pauzeGroepIdx           = null;
+  let gedeeldKampID           = null;
+  let gedeeldDatum            = null;
+  let gedeeldType             = null;
+  let blokBewerkID            = null;
+  let blokBewerkKampID        = null;
+  let blokBewerkDatum         = null;
+  let blokBewerkFicheID       = null;
+  let ficheKoppelingBlokID    = null;  // Blok-ID wanneer activiteit-modal in update-modus staat
+
+  // ── Initialisatie ────────────────────────────────────────────────
+  async function init() {
+    const gebruiker = await checkSessie();
+    if (!gebruiker) return;
+
+    huidigProfiel = await haalProfielOp(gebruiker.id);
+    if (!huidigProfiel) {
+      document.getElementById('laad-toestand').innerHTML = `
+        <div style="max-width:480px;margin:0 auto;text-align:left;background:#fff;
+                    border-radius:12px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,.1)">
+          <div style="font-size:1.8rem;margin-bottom:12px">⚠️</div>
+          <h2 style="font-size:1.1rem;color:#194338;margin-bottom:8px">Profiel niet gevonden</h2>
+          <p style="font-size:0.88rem;color:#6B7280;line-height:1.6;margin-bottom:20px">
+            De databasepolicies zijn nog niet ingesteld waardoor jouw profiel niet geladen kan worden.
+          </p>
+          <button onclick="location.reload()"
+                  style="margin-top:12px;padding:8px 16px;background:none;
+                         border:2px solid #194338;border-radius:8px;cursor:pointer;
+                         font-weight:700;font-size:0.83rem;color:#194338">
+            ↺ Opnieuw proberen
+          </button>
+        </div>`;
+      return;
+    }
+
+    vulNavigatieIn(huidigProfiel);
+    initialiseerHamburger();
+    initialiseerModals();
+    initialiseerModalListeners();
+
+    initialiseerNotificatieBel(huidigProfiel.id).catch(e =>
+      console.warn('[planner] Notificaties laden mislukt:', e?.message));
+    initialiseerContractBadge(huidigProfiel.id);
+
+    const isAdmin = huidigProfiel.rol === 'admin';
+    const isCoord = huidigProfiel.rol === 'coordinator';
+
+    try {
+      alleFiches = await haalFichesOp(true);
+    } catch (e) {
+      console.warn('[planner] Fiches laden mislukt:', e?.message);
+      alleFiches = [];
+    }
+
+    if (isAdmin || isCoord) {
+      await laadAdminPlannerView();
+    } else {
+      await laadLesgeverPlannerView();
+    }
+
+    document.getElementById('laad-toestand').classList.add('verborgen');
+  }
+
+  // ── ADMIN VIEW ───────────────────────────────────────────────────
+  // Filter-state voor de planner-kampenlijst
+  let plannerFilter        = nieuweFilterState();
+  let plannerKoppelingsMap = new Map();
+  let archiefOpen          = false;
+  let vorigeArchiefDoorzoeken = false;
+  let filterGerenderd      = false;
+  let plannerPeriodeOpen   = {};
+
+  function bepaalVakantiePeriodePlanner(startdatum) {
+    const d = new Date(startdatum);
+    const m = d.getMonth() + 1;
+    const j = d.getFullYear();
+    if (m === 7)              return { key: `${j}-07`,     label: `Juli ${j}`,                volgorde: j * 100 + 7  };
+    if (m === 8)              return { key: `${j}-08`,     label: `Augustus ${j}`,             volgorde: j * 100 + 8  };
+    if (m === 10 || m === 11) return { key: `${j}-herfst`, label: `Herfstvakantie ${j}`,       volgorde: j * 100 + 10 };
+    if (m === 12)             return { key: `${j}-kerst`,  label: `Kerstvakantie ${j}/${j+1}`, volgorde: j * 100 + 12 };
+    if (m === 1)              return { key: `${j-1}-kerst`,label: `Kerstvakantie ${j-1}/${j}`, volgorde: (j-1)*100+12 };
+    if (m === 2)              return { key: `${j}-kroks`,  label: `Krokusvakantie ${j}`,       volgorde: j * 100 + 2  };
+    if (m === 3 || m === 4)   return { key: `${j}-paas`,   label: `Paasvakantie ${j}`,         volgorde: j * 100 + 4  };
+    return { key: `${j}-${String(m).padStart(2,'0')}`, label: d.toLocaleString('nl-BE',{month:'long',year:'numeric'}), volgorde: j*100+m };
+  }
+
+  window._togglePlannerPeriode = function(key) {
+    plannerPeriodeOpen[key] = !plannerPeriodeOpen[key];
+    renderKampenLijst();
+  };
+
+  async function laadAdminPlannerView() {
+    try {
+      [alleKampen, alleGebruikers, plannerKoppelingsMap] = await Promise.all([
+        haalAlleKampenOp(),
+        haalAlleGebruikersOp(),
+        haalKoppelingsMapOp(),
+      ]);
+    } catch (e) {
+      console.error('[planner] Admin data laden mislukt:', e?.message);
+      alleKampen = []; alleGebruikers = []; plannerKoppelingsMap = new Map();
+    }
+
+    const sectie = document.getElementById('sectie-admin-kampen');
+    sectie.classList.remove('verborgen');
+
+    // Filterbalk eenmalig renderen
+    if (!filterGerenderd) {
+      const filterContainer = document.getElementById('planner-kampfilter-container');
+      if (filterContainer) {
+        renderFilterBalk(
+          filterContainer, alleKampen, alleGebruikers, plannerFilter,
+          () => renderKampenLijst(),
+          () => filterKampen(alleKampen, plannerFilter, plannerKoppelingsMap).length
+        );
+        filterGerenderd = true;
+      }
+    }
+
+    // Archief-toggle
+    document.getElementById('archief-toggle-wrap').addEventListener('click', () => {
+      archiefOpen = !archiefOpen;
+      document.getElementById('admin-archief-lijst').classList.toggle('verborgen', !archiefOpen);
+      document.getElementById('archief-pijl').style.transform = archiefOpen ? 'rotate(180deg)' : '';
+    });
+
+    renderKampenLijst();
+  }
+
+  /** Render de actieve + archief kampen op basis van filter-state. */
+  function renderKampenLijst() {
+    const container = document.getElementById('admin-kampen-lijst');
+    const archiefContainer = document.getElementById('admin-archief-lijst');
+    const archiefWrap = document.getElementById('archief-toggle-wrap');
+    const badge = document.getElementById('badge-admin-kampen');
+
+    if (alleKampen.length === 0) {
+      container.innerHTML = `<div class="leeg-toestand"><div class="leeg-icoon">📅</div><p>Geen kampen gevonden.</p></div>`;
+      badge.textContent = 0;
+      archiefWrap.classList.add('verborgen');
+      return;
+    }
+
+    const gefilterd = filterKampen(alleKampen, plannerFilter, plannerKoppelingsMap);
+    const actieveKampen = gefilterd.filter(k => k.status !== 'afgelopen');
+    const afgelopenKampen = gefilterd.filter(k => k.status === 'afgelopen');
+
+    badge.textContent = gefilterd.length;
+
+    if (actieveKampen.length === 0) {
+      container.innerHTML = afgelopenKampen.length > 0
+        ? `<div class="font-klein kleur-grijs" style="text-align:center;padding:14px">Geen actieve kampen — bekijk archief hieronder.</div>`
+        : `<div class="leeg-toestand"><div class="leeg-icoon">🔍</div><p>Geen kampen gevonden voor deze filters.</p></div>`;
+    } else {
+      // Groepeer per vakantieperiode
+      const periodeMap = new Map();
+      for (const k of actieveKampen) {
+        const p = bepaalVakantiePeriodePlanner(k.startdatum);
+        if (!periodeMap.has(p.key)) periodeMap.set(p.key, { ...p, kampen: [] });
+        periodeMap.get(p.key).kampen.push(k);
+      }
+      const periodes = [...periodeMap.values()].sort((a, b) => a.volgorde - b.volgorde);
+
+      // Eerste komende periode standaard open
+      const vandaag = new Date().toISOString().slice(0, 10);
+      const eersteKomende = periodes.find(p =>
+        p.kampen.some(k => k.startdatum >= vandaag)
+      ) ?? periodes[0];
+
+      for (const p of periodes) {
+        if (!(p.key in plannerPeriodeOpen)) {
+          plannerPeriodeOpen[p.key] = (p.key === eersteKomende?.key);
+        }
+      }
+
+      container.innerHTML = periodes.map(p => {
+        const isOpen = !!plannerPeriodeOpen[p.key];
+        let inhoud = '';
+        if (isOpen) {
+          // Subgroep per locatie
+          const locatieMap = new Map();
+          for (const k of p.kampen) {
+            const loc = k.locatie ?? '—';
+            if (!locatieMap.has(loc)) locatieMap.set(loc, []);
+            locatieMap.get(loc).push(k);
+          }
+          const locaties = [...locatieMap.entries()].sort(([a], [b]) => a.localeCompare(b, 'nl'));
+          inhoud = locaties.map(([loc, kampen]) => {
+            const gesorteerd = [...kampen].sort((a, b) =>
+              (a.leeftijdsgroep ?? '').localeCompare(b.leeftijdsgroep ?? '', 'nl'));
+            return `
+              <div style="margin:8px 0 4px;padding:6px 16px 5px;background:rgba(215,252,92,0.10);
+                          border-left:3px solid var(--kleur-limoen);font-size:0.8rem;
+                          font-weight:700;color:var(--kleur-donkergroen)">
+                📍 ${loc}
+              </div>
+              ${gesorteerd.map(k => renderPlanKaart(k)).join('')}`;
+          }).join('');
+        }
+        return `
+          <div style="margin-bottom:10px">
+            <div style="padding:11px 16px;background:var(--kleur-donkergroen);color:white;
+                        font-weight:700;cursor:pointer;user-select:none;border-radius:${isOpen ? '10px 10px 0 0' : '10px'};
+                        display:flex;align-items:center;justify-content:space-between"
+                 onclick="window._togglePlannerPeriode('${p.key}')">
+              <span style="display:flex;align-items:center;gap:10px">
+                ${p.label}
+                <span style="background:rgba(215,252,92,0.2);color:var(--kleur-limoen);
+                             border-radius:20px;padding:1px 9px;font-size:0.72rem;font-weight:800">
+                  ${p.kampen.length}
+                </span>
+              </span>
+              <span style="color:var(--kleur-limoen);transition:transform 0.2s;
+                           transform:${isOpen ? 'rotate(90deg)' : 'rotate(0deg)'}">${isOpen ? '▼' : '▶'}</span>
+            </div>
+            ${isOpen ? `<div style="border:1px solid var(--kleur-lichtgrijs);border-top:none;border-radius:0 0 10px 10px;overflow:hidden;padding:4px 0">${inhoud}</div>` : ''}
+          </div>`;
+      }).join('');
+    }
+
+    // Archief
+    if (afgelopenKampen.length > 0) {
+      archiefWrap.classList.remove('verborgen');
+      document.getElementById('archief-aantal').textContent = afgelopenKampen.length;
+      archiefContainer.innerHTML = afgelopenKampen.map(k => renderPlanKaart(k)).join('');
+      if (plannerFilter.archiefDoorzoeken && !vorigeArchiefDoorzoeken) {
+        archiefOpen = true;
+        archiefContainer.classList.remove('verborgen');
+        document.getElementById('archief-pijl').style.transform = 'rotate(180deg)';
+      } else if (!plannerFilter.archiefDoorzoeken) {
+        archiefOpen = false;
+        archiefContainer.classList.add('verborgen');
+        document.getElementById('archief-pijl').style.transform = '';
+      }
+      vorigeArchiefDoorzoeken = plannerFilter.archiefDoorzoeken;
+    } else {
+      archiefWrap.classList.add('verborgen');
+      archiefContainer.classList.add('verborgen');
+    }
+  }
+
+  function renderPlanKaart(kamp) {
+    const dagen = genereerKampDagen(kamp.startdatum, kamp.einddatum);
+    const statusKleur = { concept: 'badge-concept', actief: 'badge-actief', afgelopen: 'badge-afgelopen' }[kamp.status] ?? 'badge-grijs';
+    const statusNaam  = { concept: 'Concept', actief: 'Actief', afgelopen: 'Afgelopen' }[kamp.status] ?? kamp.status;
+
+    // Bouw team-badges: coördinator met ⭐, overige gekoppelde lesgevers met 👤
+    const coordID = kamp.verantwoordelijke ?? null;
+    const gekoppeldIDs = plannerKoppelingsMap.get(kamp.id) ?? new Set();
+    const teamBadges = (() => {
+      const badges = [];
+      // Coördinator altijd eerst
+      if (coordID) {
+        const profiel = alleGebruikers.find(u => u.id === coordID);
+        const naam = profiel
+          ? `${profiel.voornaam} ${profiel.achternaam}`
+          : (kamp.verantwoordelijke_profiel
+              ? `${kamp.verantwoordelijke_profiel.voornaam} ${kamp.verantwoordelijke_profiel.achternaam}`
+              : 'Coördinator');
+        badges.push(`<span class="badge badge-grijs">⭐ ${naam}</span>`);
+      } else {
+        badges.push(`<span class="badge badge-grijs" style="opacity:0.6">Niet toegewezen</span>`);
+      }
+      // Overige lesgevers (niet de coördinator zelf)
+      for (const id of gekoppeldIDs) {
+        if (id === coordID) continue;
+        const profiel = alleGebruikers.find(u => u.id === id);
+        if (!profiel) continue;
+        badges.push(`<span class="badge badge-grijs">👤 ${profiel.voornaam} ${profiel.achternaam}</span>`);
+      }
+      return badges.join('');
+    })();
+
+    return `
+      <div class="plankaart" id="plankaart-${kamp.id}">
+        <div class="plankaart-kop" onclick="window._togglePlanKaart('${kamp.id}')">
+          <div class="plankaart-info">
+            <div class="plankaart-naam">${kamp.naam}</div>
+            <div class="plankaart-meta">
+              📍 ${kamp.locatie ?? '—'} &nbsp;·&nbsp;
+              📅 ${datumNaarNL(kamp.startdatum)} – ${datumNaarNL(kamp.einddatum)} &nbsp;·&nbsp;
+              ${dagen.length} dag${dagen.length !== 1 ? 'en' : ''}
+            </div>
+            <div class="plankaart-team">
+              <span class="badge ${statusKleur}">${statusNaam}</span>
+              ${teamBadges}
+              ${kamp.leeftijdsgroep ? `<span class="badge badge-limoen">${kamp.leeftijdsgroep}</span>` : ''}
+            </div>
+          </div>
+          <span class="plankaart-pijl" id="pijl-${kamp.id}">▶</span>
+        </div>
+        <div class="plankaart-inhoud" id="plankaart-inhoud-${kamp.id}">
+          <div class="plan-laden" id="plan-laden-${kamp.id}">
+            <div class="laadindicator" style="margin:0 auto 8px"></div>Laden…
+          </div>
+        </div>
+      </div>`;
+  }
+
+  window._togglePlanKaart = async (kampID) => {
+    const inhoud = document.getElementById(`plankaart-inhoud-${kampID}`);
+    const pijl   = document.getElementById(`pijl-${kampID}`);
+    const isOpen = inhoud.classList.contains('open');
+
+    if (isOpen) {
+      inhoud.classList.remove('open');
+      pijl.classList.remove('open');
+    } else {
+      inhoud.classList.add('open');
+      pijl.classList.add('open');
+      // Laad planning als nog niet gedaan
+      if (!kampState.has(kampID)) {
+        await _laadKampPlanning(kampID);
+      }
+    }
+  };
+
+  // ── LESGEVER VIEW ────────────────────────────────────────────────
+  async function laadLesgeverPlannerView() {
+    const uid = huidigProfiel.id;
+
+    const [uitnodigingen, bevestigdList] = await Promise.all([
+      haalUitnodigingenOp(uid),
+      haalBevestigdeKoppelingenOp(uid),
+    ]);
+
+    // Zorg dat alleKampen de kampdata bevat zodat _laadKampPlanning de juiste datums vindt
+    alleKampen = [
+      ...bevestigdList.map(k => k.kampen).filter(Boolean),
+      ...uitnodigingen.map(k => k.kampen).filter(Boolean),
+    ];
+
+    // Uitnodigingen
+    if (uitnodigingen.length > 0) {
+      document.getElementById('badge-uitnodigingen').textContent = uitnodigingen.length;
+      document.getElementById('uitnodigingen-lijst').innerHTML =
+        uitnodigingen.map(u => renderUitnodigingKaart(u)).join('');
+      document.getElementById('sectie-uitnodigingen').classList.remove('verborgen');
+    }
+
+    // Bevestigde kampen met planning
+    const sectie    = document.getElementById('sectie-eigen-kampen');
+    const container = document.getElementById('eigen-kampen-lijst');
+    const geenKampen = document.getElementById('geen-eigen-kampen');
+
+    if (bevestigdList.length === 0) {
+      geenKampen.classList.remove('verborgen');
+    } else {
+      geenKampen.classList.add('verborgen');
+      document.getElementById('badge-eigen-kampen').textContent = bevestigdList.length;
+      sectie.classList.remove('verborgen');
+
+      // Haal alle team-infos parallel op
+      const teamInfos = await Promise.all(
+        bevestigdList.map(k => haalKampTeamOp(k.kampen?.id, k.kampen?.verantwoordelijke).catch(() => null))
+      );
+
+      for (let i = 0; i < bevestigdList.length; i++) {
+        const koppeling = bevestigdList[i];
+        const kamp = koppeling.kampen;
+        if (!kamp) continue;
+
+        const teamInfo = teamInfos[i];
+        const teamStrook = _renderLesgeverTeamStrook(teamInfo, uid);
+
+        const kaartEl = document.createElement('div');
+        kaartEl.className = 'kamp-kaart';
+        kaartEl.innerHTML = `
+          <div class="kamp-kaart-header">
+            <div>
+              <div class="kamp-naam">${kamp.naam}</div>
+              <div class="kamp-meta">
+                📍 ${kamp.locatie ?? '—'} &nbsp;·&nbsp;
+                📅 ${datumNaarNL(kamp.startdatum)} – ${datumNaarNL(kamp.einddatum)}
+              </div>
+              <div class="flex-gap mt-8">
+                <span class="badge badge-limoen">${kamp.leeftijdsgroep ?? ''}</span>
+                <span class="badge badge-goedgekeurd">✓ Bevestigd</span>
+              </div>
+            </div>
+            <button class="knop knop-gevaar knop-klein"
+                    onclick="window._annuleerKoppeling('${koppeling.id}','${kamp.naam.replace(/'/g,"\\'")}')">
+              Annuleren
+            </button>
+          </div>
+          ${teamStrook}
+          <div class="eigen-kamp-planning" id="eigenplanning-${kamp.id}">
+            <div class="plan-laden"><div class="laadindicator" style="margin:0 auto 8px"></div>Planning laden…</div>
+          </div>`;
+        container.appendChild(kaartEl);
+
+        // Laad de planning asynchroon
+        _laadKampPlanning(kamp.id, true);
+      }
+    }
+  }
+
+  function _renderLesgeverTeamStrook(teamInfo, eigenID) {
+    if (!teamInfo) return '';
+    const { coordinator, lesgevers } = teamInfo;
+
+    const coordChip = coordinator
+      ? `<span class="team-chip coord" title="Verantwoordelijke">
+           <span class="team-rol">👤 Coördinator</span>
+           <span>${coordinator.voornaam} ${coordinator.achternaam}</span>
+         </span>`
+      : '';
+
+    // Alleen bevestigde collega's tonen (niet degenen die nog moeten antwoorden)
+    const collega = lesgevers.filter(l => l.id !== eigenID && l.koppelingsStatus === 'bevestigd');
+    const collegaChips = collega.map(l => {
+      const rolLabel = { lesgever: 'Lesgever', extra_hulp: 'Extra hulp', coordinator: 'Coördinator', admin: 'Beheerder' }[l.rol] ?? l.rol;
+      return `<span class="team-chip lg ok" title="${rolLabel}">
+                <span>${l.voornaam} ${l.achternaam}</span>
+              </span>`;
+    }).join('');
+
+    if (!coordChip && !collegaChips) return '';
+
+    return `
+      <div class="team-strook">
+        <div class="team-rij">
+          ${coordChip}
+          ${collegaChips}
+        </div>
+      </div>`;
+  }
+
+  function renderUitnodigingKaart(koppeling) {
+    const kamp = koppeling.kampen;
+    const dagen = genereerKampDagen(kamp.startdatum, kamp.einddatum);
+    return `
+      <div class="kaart" style="border-left:4px solid var(--kleur-middengroen);margin-bottom:12px"
+           id="uitnodiging-${koppeling.id}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+          <div>
+            <div class="vet" style="font-size:1rem">${kamp.naam}</div>
+            <div class="kamp-meta mt-8">
+              📍 ${kamp.locatie ?? '—'} &nbsp;·&nbsp;
+              📅 ${datumNaarNL(kamp.startdatum)} – ${datumNaarNL(kamp.einddatum)}
+              &nbsp;·&nbsp; ${dagen.length} dagen
+            </div>
+            <div class="mt-8 flex-gap">
+              <span class="badge badge-limoen">${kamp.leeftijdsgroep ?? ''}</span>
+              <span class="badge badge-geel">⏳ Uitnodiging ontvangen</span>
+            </div>
+          </div>
+          <div class="flex-gap" style="flex-wrap:wrap">
+            <button class="knop knop-accent"
+                    onclick="window._aanvaardUitnodiging('${koppeling.id}','${kamp.naam.replace(/'/g,"\\'")}')">
+              ✓ Aanvaarden
+            </button>
+            <button class="knop knop-omtrek"
+                    onclick="window._weigerUitnodiging('${koppeling.id}','${kamp.naam.replace(/'/g,"\\'")}')">
+              ✕ Weigeren
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── Kamp planning laden ──────────────────────────────────────────
+  async function _laadKampPlanning(kampID, isLesgeverView = false) {
+    const kamp     = alleKampen.find(k => k.id === kampID) ?? { id: kampID, startdatum: null, einddatum: null };
+    const isEditeerbaar = ['admin','coordinator','lesgever'].includes(huidigProfiel.rol);
+
+    // Haal bevestigde lesgevers op voor dit kamp
+    let lesgeversVoorKamp = [];
+    try {
+      const { data } = await supabase
+        .from('kamp_lesgevers')
+        .select('lesgever_id, profielen!lesgever_id(id, voornaam, achternaam)')
+        .eq('kamp_id', kampID)
+        .eq('status', 'bevestigd');
+      lesgeversVoorKamp = (data ?? []).map(k => k.profielen).filter(Boolean);
+    } catch (e) {
+      console.warn('[planner] Lesgevers ophalen mislukt:', e?.message);
+    }
+
+    // Haal groepen op
+    const groepen = await haalKampGroepenOp(kampID);
+
+    // Bepaal startdag
+    const dagen = kamp.startdatum && kamp.einddatum
+      ? genereerKampDagen(kamp.startdatum, kamp.einddatum)
+      : [];
+    const huidigDatum = dagen[0] ?? lokaleISO(new Date());
+
+    // Sla state op
+    kampState.set(kampID, { groepen, huidigDatum, blokken: [], lesgevers: lesgeversVoorKamp });
+
+    // Render dag-tabs + tijdlijn in de juiste container
+    const containerId = isLesgeverView ? `eigenplanning-${kampID}` : `plankaart-inhoud-${kampID}`;
+    await renderKampPlanningUI(kampID, huidigDatum, containerId, isEditeerbaar, isLesgeverView);
+  }
+
+  window._laadKampPlanning = _laadKampPlanning;
+
+  async function renderKampPlanningUI(kampID, datum, containerId, isEditeerbaar, isLesgeverView = false) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const state = kampState.get(kampID);
+    if (!state) return;
+
+    const kamp  = alleKampen.find(k => k.id === kampID) ?? { id: kampID, startdatum: datum, einddatum: datum };
+    const dagen = kamp.startdatum && kamp.einddatum
+      ? genereerKampDagen(kamp.startdatum, kamp.einddatum)
+      : [datum];
+
+    // Modus default 'dag' tenzij eerder gewijzigd
+    if (!state.modus) state.modus = 'dag';
+    const isWeekModus = state.modus === 'week';
+
+    // Laad blokken voor huidige dag (altijd nodig voor dag-modus en auto-init)
+    const blokken = await initialiseerDagPlanning(kampID, datum, state.groepen);
+    state.blokken = blokken;
+    state.huidigDatum = datum;
+
+    // Bij week-modus: laad blokken voor ALLE dagen parallel
+    let blokkenPerDag = new Map();
+    if (isWeekModus) {
+      const dagblokken = await Promise.all(
+        dagen.map(async d => [d, await initialiseerDagPlanning(kampID, d, state.groepen)])
+      );
+      blokkenPerDag = new Map(dagblokken);
+    }
+
+    // Modus-toggle
+    const modusToggle = `
+      <div class="modus-toggle">
+        <button class="modus-knop ${!isWeekModus ? 'actief' : ''}"
+                onclick="window._wisselModus('${kampID}','dag','${containerId}',${isEditeerbaar},${isLesgeverView})"
+                title="Toon één dag tegelijk">
+          📆 Dag
+        </button>
+        <button class="modus-knop ${isWeekModus ? 'actief' : ''}"
+                onclick="window._wisselModus('${kampID}','week','${containerId}',${isEditeerbaar},${isLesgeverView})"
+                title="Toon hele week naast elkaar">
+          📅 Week
+        </button>
+      </div>`;
+
+    // Dag-tabs (alleen in dag-modus)
+    const tabsHTML = !isWeekModus ? dagen.map(d => {
+      const dateObj = new Date(d + 'T00:00:00');
+      const label = dateObj.toLocaleDateString('nl-BE', { weekday: 'short', day: 'numeric', month: 'numeric' });
+      return `<button class="dag-tab${d === datum ? ' actief' : ''}"
+                      onclick="window._wisselDag('${kampID}','${d}','${containerId}',${isEditeerbaar},${isLesgeverView})">${label}</button>`;
+    }).join('') : '';
+
+    // Geen losse setup-box meer — de "⚙ Groepen" knop zit nu in de groep-header
+    // van de virtuele "Volledige groep". Het uurrooster toont altijd.
+    const groepenSetupHTML = '';
+
+    // Render tijdlijn (dag of week)
+    const tijdlijnHTML = isWeekModus
+      ? renderWeekTimeline(kampID, dagen, blokkenPerDag, state.groepen, `window._wisselNaarDagModus_${containerId.replace(/-/g,'_')}`, isEditeerbaar, state.lesgevers ?? [])
+      : renderPlanningTimeline(kampID, datum, blokken, state.groepen, isEditeerbaar, state.lesgevers);
+
+    // Helper voor klik op week-dag-header — switch terug naar dag-modus
+    window[`_wisselNaarDagModus_${containerId.replace(/-/g,'_')}`] = (k, d) => {
+      const st = kampState.get(k);
+      if (st) { st.modus = 'dag'; st.huidigDatum = d; }
+      renderKampPlanningUI(k, d, containerId, isEditeerbaar, isLesgeverView);
+    };
+
+    container.innerHTML = `
+      <div style="padding-top:14px">
+        ${groepenSetupHTML}
+        <div class="modus-toggle-rij">
+          ${modusToggle}
+          ${!isWeekModus ? `<div class="dag-tabs">${tabsHTML}</div>` : ''}
+          ${isEditeerbaar ? `<button class="knop knop-klein knop-omtrek" onclick="window._stelGroepenIn('${kampID}')" style="margin-left:auto;flex-shrink:0">⚙️ Groepen</button>` : ''}
+        </div>
+        ${tijdlijnHTML}
+        ${!isLesgeverView ? `
+          <div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--kleur-lichtgrijs);display:flex;gap:8px;flex-wrap:wrap">
+            <button class="knop knop-omtrek knop-klein"
+                    onclick="window._toonMateriaaloVerzicht('${kampID}')">
+              📦 Materiaaloverzicht
+            </button>
+          </div>` : ''}
+      </div>`;
+  }
+
+  /** Wissel tussen dag- en week-modus voor een kamp. */
+  window._wisselModus = async (kampID, modus, containerId, isEditeerbaar, isLesgeverView) => {
+    const state = kampState.get(kampID);
+    if (!state) return;
+    state.modus = modus;
+    const datum = state.huidigDatum;
+    await renderKampPlanningUI(kampID, datum, containerId, isEditeerbaar, isLesgeverView);
+  };
+
+  window._wisselDag = async (kampID, datum, containerId, isEditeerbaar, isLesgeverView) => {
+    const state = kampState.get(kampID);
+    if (!state) return;
+    state.huidigDatum = datum;
+    await renderKampPlanningUI(kampID, datum, containerId, isEditeerbaar, isLesgeverView);
+  };
+
+  // ── Groepen instellen ────────────────────────────────────────────
+  window._stelGroepenIn = (kampID) => {
+    groepenKampID = kampID;
+    const state   = kampState.get(kampID);
+    const huidig  = state?.groepen ?? [];
+
+    const aantalSelect = document.getElementById('groepen-aantal');
+    aantalSelect.value = huidig.length > 0 ? String(huidig.length) : '2';
+    renderGroepenNamenInputs(aantalSelect.value, huidig);
+
+    // Toon de "Alle groepen verwijderen" knop enkel als er al groepen zijn
+    document.getElementById('groepen-verwijderen-knop')
+      .classList.toggle('verborgen', huidig.length === 0);
+
+    openModal('groepen-modal');
+  };
+
+  function renderGroepenNamenInputs(aantal, bestaand = []) {
+    const container = document.getElementById('groepen-namen-container');
+    container.innerHTML = '';
+    const n = Number(aantal);
+    for (let i = 0; i < n; i++) {
+      const naam = bestaand[i]?.naam ?? `Groep ${i + 1}`;
+      // Toon verwijder-knop per groep (behalve als er nog maar 1 over is)
+      const verwijderBtn = n > 1
+        ? `<button type="button" class="knop knop-gevaar knop-klein groep-verwijder-btn"
+                   data-idx="${i}"
+                   title="Verwijder deze groep — activiteiten in deze groep worden ook verwijderd"
+                   style="margin-left:8px;flex-shrink:0">
+             🗑 Verwijder
+           </button>`
+        : '';
+      container.innerHTML += `
+        <div class="formulier-groep">
+          <label>Groep ${i + 1}</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="text" class="groep-naam-input" data-idx="${i}" value="${naam.replace(/"/g, '&quot;')}"
+                   placeholder="Bv. Rood / Blauw / Beginners" style="flex:1">
+            ${verwijderBtn}
+          </div>
+        </div>`;
+    }
+    // Koppel klik-handlers voor verwijder-knoppen
+    container.querySelectorAll('.groep-verwijder-btn').forEach(btn => {
+      btn.addEventListener('click', () => verwijderGroepInline(Number(btn.dataset.idx)));
+    });
+  }
+
+  /**
+   * Verwijder één specifieke groep uit de huidige modal (lokale UI-actie).
+   * Voor opslaan moet de gebruiker nog steeds op "Opslaan" klikken.
+   * @param {number} idx - Index van de te verwijderen groep.
+   */
+  function verwijderGroepInline(idx) {
+    // Lees huidige inputs
+    const inputs = document.querySelectorAll('.groep-naam-input');
+    const huidig = Array.from(inputs).map((inp, i) => ({
+      groep_index: i,
+      naam: inp.value.trim() || `Groep ${i + 1}`,
+    }));
+    // Verwijder de groep op idx en herindexer
+    huidig.splice(idx, 1);
+    const nieuwAantal = huidig.length;
+    // Update aantal-select
+    document.getElementById('groepen-aantal').value = String(Math.max(1, nieuwAantal));
+    // Herrender de inputs met overgebleven namen
+    renderGroepenNamenInputs(nieuwAantal, huidig);
+  }
+
+  document.getElementById('groepen-aantal').addEventListener('change', (e) => {
+    // Behoud de huidige namen wanneer aantal wijzigt
+    const inputs = document.querySelectorAll('.groep-naam-input');
+    const huidig = Array.from(inputs).map((inp, i) => ({
+      groep_index: i, naam: inp.value.trim() || `Groep ${i + 1}`,
+    }));
+    renderGroepenNamenInputs(e.target.value, huidig);
+  });
+
+  document.getElementById('groepen-opslaan').addEventListener('click', async () => {
+    const opslaanBtn = document.getElementById('groepen-opslaan');
+    opslaanBtn.disabled = true;
+    opslaanBtn.textContent = '⏳ Bezig…';
+
+    try {
+      const inputs = document.querySelectorAll('.groep-naam-input');
+      const groepen = Array.from(inputs).map((inp, i) => ({
+        groep_index: i,
+        naam: inp.value.trim() || `Groep ${i + 1}`,
+      }));
+
+      // Detecteer of er groepen verminderd worden
+      const huidigeState = kampState.get(groepenKampID);
+      const oudAantal = huidigeState?.groepen?.length ?? 0;
+      const nieuwAantal = groepen.length;
+
+      if (nieuwAantal < oudAantal) {
+        // Tel blokken in ALLE dagen (niet alleen huidige) die zouden verwijderd worden
+        const { data: alleBlokken, error: telFout } = await supabase
+          .from('dag_blokken')
+          .select('id')
+          .eq('kamp_id', groepenKampID)
+          .gte('groep_index', nieuwAantal);
+        if (telFout) throw telFout;
+
+        const aantalBlokken = alleBlokken?.length ?? 0;
+
+        // Toon altijd een bevestiging bij verlaging
+        const verwijderdNamen = (huidigeState?.groepen ?? [])
+          .slice(nieuwAantal)
+          .map(g => g.naam)
+          .join(', ');
+
+        const bericht = aantalBlokken > 0
+          ? `Verwijderen van groep(en): ${verwijderdNamen}\n\nActiviteiten met fiches worden bewaard (gedeeld). Pauzeblokken in deze groep(en) worden verwijderd.\n\nDoorgaan?`
+          : `Verwijderen van groep(en): ${verwijderdNamen}\n\nDoorgaan?`;
+
+        if (!confirm(bericht)) {
+          opslaanBtn.disabled = false;
+          opslaanBtn.textContent = 'Opslaan';
+          return;
+        }
+
+        // Activiteitsblokken in te verwijderen groepen eerst beschermen (→ gedeeld)
+        await redActiviteitenNaarGedeeld(groepenKampID, nieuwAantal);
+
+        // Cascade-delete overige blokken in te verwijderen groep_indexes (pauzes e.d.)
+        if (aantalBlokken > 0) {
+          const { error: delFout } = await supabase
+            .from('dag_blokken')
+            .delete()
+            .eq('kamp_id', groepenKampID)
+            .gte('groep_index', nieuwAantal);
+          if (delFout) throw delFout;
+        }
+      }
+
+      const ok = await slaKampGroepenOp(groepenKampID, groepen);
+      if (!ok) throw new Error('Kon groepen niet opslaan in database');
+
+      toonToast(
+        nieuwAantal < oudAantal
+          ? `Aantal groepen verlaagd naar ${nieuwAantal}.`
+          : 'Groepen opgeslagen.',
+        'succes'
+      );
+      sluitModal('groepen-modal');
+      // Herlaad planning
+      kampState.delete(groepenKampID);
+      const isAdmin = ['admin','coordinator'].includes(huidigProfiel.rol);
+      await _laadKampPlanning(groepenKampID, !isAdmin);
+    } catch (fout) {
+      console.error('[planner] Groepen opslaan mislukt:', fout);
+      toonToast('Fout: ' + (fout?.message ?? fout), 'fout');
+    } finally {
+      opslaanBtn.disabled = false;
+      opslaanBtn.textContent = 'Opslaan';
+    }
+  });
+  document.getElementById('groepen-annuleren').addEventListener('click', () => sluitModal('groepen-modal'));
+
+  /**
+   * Beschermt activiteitsblokken in per-groep modus vóór een groepverwijdering.
+   * Per-groep activiteitsblokken met groep_index >= vanafIndex worden teruggezet
+   * naar gedeeld (groep_index = -1), met behoud van de beste fiche.
+   * Zo verdwijnen activiteitsblokken én hun fiches NOOIT door groepwijzigingen.
+   *
+   * @param {string} kampID
+   * @param {number} vanafIndex - Alle per-groep blokken met groep_index >= vanafIndex worden omgezet.
+   */
+  async function redActiviteitenNaarGedeeld(kampID, vanafIndex = 0) {
+    // 1. Haal alle per-groep activiteitsblokken op die zouden verwijderd worden
+    const { data: perGroep } = await supabase
+      .from('dag_blokken')
+      .select('id, datum, start_tijd, eind_tijd, fiche_id')
+      .eq('kamp_id', kampID).eq('type', 'activiteit').gte('groep_index', vanafIndex);
+
+    if (!perGroep?.length) return; // Niets te doen
+
+    // 2. Groepeer per (datum, start_tijd) — kies blok mét fiche als beste kandidaat
+    const slotMap = new Map();
+    for (const b of perGroep) {
+      const k = `${b.datum}|${b.start_tijd}`;
+      if (!slotMap.has(k) || (!slotMap.get(k).fiche_id && b.fiche_id)) {
+        slotMap.set(k, b);
+      }
+    }
+
+    // 3. Haal bestaande gedeelde activiteitsblokken op voor vergelijking
+    const { data: gedeeldAct } = await supabase
+      .from('dag_blokken').select('id, datum, start_tijd, fiche_id')
+      .eq('kamp_id', kampID).eq('type', 'activiteit').eq('groep_index', -1);
+    const gedeeldMap = new Map((gedeeldAct ?? []).map(b => [`${b.datum}|${b.start_tijd}`, b]));
+
+    // 4. Aanmaken ontbrekende gedeelde blokken + update bestaande zonder fiche
+    const teAanmaken = [];
+    for (const [k, b] of slotMap) {
+      if (!gedeeldMap.has(k)) {
+        // Geen gedeeld blok voor dit slot → aanmaken met fiche
+        teAanmaken.push({
+          kamp_id: kampID, datum: b.datum, groep_index: -1, type: 'activiteit',
+          start_tijd: b.start_tijd, eind_tijd: b.eind_tijd,
+          fiche_id: b.fiche_id ?? null, label: null, lesgevers: [],
+        });
+      } else if (b.fiche_id && !gedeeldMap.get(k).fiche_id) {
+        // Gedeeld blok bestaat maar heeft geen fiche → fiche overzetten
+        await supabase.from('dag_blokken')
+          .update({ fiche_id: b.fiche_id })
+          .eq('id', gedeeldMap.get(k).id);
+      }
+    }
+    if (teAanmaken.length > 0) {
+      await supabase.from('dag_blokken').insert(teAanmaken);
+    }
+  }
+
+  // Knop: alle groepen verwijderen
+  document.getElementById('groepen-verwijderen-knop').addEventListener('click', async () => {
+    if (!groepenKampID) return;
+    const bevestigd = confirm(
+      'Weet je zeker dat je alle groepen wilt verwijderen?\n\n' +
+      'Activiteitsblokken worden bewaard (fiches blijven gekoppeld). ' +
+      'Enkel per-groep pauzeblokken worden verwijderd.'
+    );
+    if (!bevestigd) return;
+    try {
+      // 1. Activiteitsblokken in per-groep modus eerst beschermen (→ terug naar gedeeld)
+      await redActiviteitenNaarGedeeld(groepenKampID, 0);
+
+      // 2. Verwijder alle resterende per-groep blokken (pauzes e.d.)
+      const { error: blokFout } = await supabase
+        .from('dag_blokken')
+        .delete()
+        .eq('kamp_id', groepenKampID)
+        .gte('groep_index', 0);
+      if (blokFout) throw blokFout;
+
+      // 3. Verwijder de groepen zelf
+      const ok = await slaKampGroepenOp(groepenKampID, []);
+      if (!ok) throw new Error('Kon groepen niet leegmaken');
+
+      toonToast('Alle groepen verwijderd. Activiteiten zijn behouden.', 'succes');
+      sluitModal('groepen-modal');
+      kampState.delete(groepenKampID);
+      const isAdmin = ['admin','coordinator'].includes(huidigProfiel.rol);
+      await _laadKampPlanning(groepenKampID, !isAdmin);
+    } catch (fout) {
+      console.error('[planner] Verwijderen groepen mislukt:', fout?.message);
+      toonToast('Fout: ' + (fout?.message ?? fout), 'fout');
+    }
+  });
+
+  // ── Activiteit toevoegen ─────────────────────────────────────────
+  /**
+   * Bepaal de voorgestelde start- en eindtijd voor een nieuw blok in een groep.
+   * Pakt de eindtijd van het laatste blok in die groep én checkt of het niet
+   * overlapt met een gedeeld blok (middagpauze).
+   *
+   * @param {string} kampID
+   * @param {string} datum
+   * @param {number} groepIdx
+   * @param {number} [duurMin=60] - Standaardduur in minuten.
+   * @returns {{start: string, eind: string}}
+   */
+  function suggereerVolgendSlot(kampID, datum, groepIdx, duurMin = 60) {
+    const state = kampState.get(kampID);
+    const alle  = state?.blokken ?? [];
+
+    // Verzamel alle "bezette" tijden voor deze groep:
+    // - eigen groep-blokken
+    // - gedeelde blokken (middagpauze) blokkeren ook
+    const eigen  = alle.filter(b => b.datum === datum && (b.groep_index === groepIdx || b.groep_index === -1) && !['vooropvang','naopvang'].includes(b.type));
+
+    // Bepaal startpunt = max eindtijd van blokken die NA 09:00 starten
+    // Standaard start: 09:00
+    let voorgesteldeStart = '09:00';
+    if (eigen.length > 0) {
+      const sorted = eigen.slice().sort((a, b) => a.eind_tijd.localeCompare(b.eind_tijd));
+      voorgesteldeStart = sorted[sorted.length - 1].eind_tijd.slice(0,5);
+    }
+    // Eindtijd = start + duur
+    const [h, m] = voorgesteldeStart.split(':').map(Number);
+    const eindMin = h * 60 + m + duurMin;
+    const eindH = Math.floor(eindMin / 60);
+    const eindM = eindMin % 60;
+    let voorgesteldeEind = `${String(eindH).padStart(2,'0')}:${String(eindM).padStart(2,'0')}`;
+
+    // Als eindtijd over middagpauze (12:00) springt, en start < 12:00, dan klemen we op 12:00
+    if (voorgesteldeStart < '12:00' && voorgesteldeEind > '12:00') {
+      voorgesteldeEind = '12:00';
+    }
+    // Klem op 16:00 (einde kerntijd)
+    if (voorgesteldeEind > '16:00') voorgesteldeEind = '16:00';
+    return { start: voorgesteldeStart, eind: voorgesteldeEind };
+  }
+
+  /**
+   * Controleer of een nieuw blok overlapt met bestaande blokken in dezelfde groep
+   * of met de gedeelde middagpauze.
+   *
+   * @returns {object|null} Het conflicterende blok, of null als geen conflict.
+   */
+  function checkOverlap(kampID, datum, groepIdx, start, eind, negeerID = null) {
+    const state = kampState.get(kampID);
+    if (!state) return null;
+    return (state.blokken ?? []).find(b => {
+      if (b.id === negeerID) return false;
+      if (b.datum !== datum) return false;
+      // Eigen groep OF middagpauze (gedeeld, blokkeert alle groepen)
+      const isGroepMatch = (b.groep_index === groepIdx) || b.type === 'middagpauze';
+      if (!isGroepMatch) return false;
+      // Vooropvang/naopvang blokkeren niet (die staan buiten de tijdas)
+      if (['vooropvang','naopvang'].includes(b.type)) return false;
+      // Overlap-check: start < b.eind && eind > b.start
+      return start < b.eind_tijd.slice(0,5) && eind > b.start_tijd.slice(0,5);
+    }) ?? null;
+  }
+
+  window._voegActiviteitToe = (kampID, datum, groepIdx) => {
+    activiteitKampID  = kampID;
+    activiteitDatum   = datum;
+    activiteitGroepIdx = Number(groepIdx);
+    activiteitFicheID = null;
+
+    document.getElementById('activiteit-modal-titel').textContent =
+      `Activiteit toevoegen — ${datumNaarNLKort(datum)}`;
+    document.getElementById('activiteit-zoek').value = '';
+    document.getElementById('activiteit-geselecteerd').textContent = '';
+    // Reset thema-filter naar "Alle"
+    activiteitActiefThema = '';
+    zetThemaKnopActief('activiteit-thema-knoppen', '');
+    toonActiviteitResultaten(alleFiches.filter(f => f.status === 'goedgekeurd'));
+
+    // Slim suggestie: sluit aan op laatste blok in deze groep
+    const slot = suggereerVolgendSlot(kampID, datum, Number(groepIdx), 60);
+    document.getElementById('activiteit-start').value = slot.start;
+    document.getElementById('activiteit-eind').value  = slot.eind;
+
+    toonActiviteitResultaten(alleFiches.filter(f => f.status === 'goedgekeurd').slice(0, 20));
+    openModal('activiteit-modal');
+  };
+
+  // ── Thema-filter state voor beide fiche-zoekmodals ──────────────
+  let activiteitActiefThema = '';
+  let blokActiefThema       = '';
+
+  /** Pas de actieve themaknop-stijl aan. */
+  function zetThemaKnopActief(containerID, thema) {
+    document.querySelectorAll(`#${containerID} .thema-filter-knop`).forEach(k => {
+      k.classList.toggle('actief', k.dataset.thema === thema);
+    });
+  }
+
+  /** Filter fiches voor de activiteit-zoekmodal op thema + zoekterm. */
+  function filterActiviteitFiches() {
+    const term = (document.getElementById('activiteit-zoek')?.value ?? '').toLowerCase();
+    const gefilterd = alleFiches.filter(f => {
+      if (f.status !== 'goedgekeurd') return false;
+      if (activiteitActiefThema && f.thema !== activiteitActiefThema) return false;
+      if (term && !f.naam.toLowerCase().includes(term)) return false;
+      return true;
+    });
+    toonActiviteitResultaten(gefilterd);
+  }
+
+  window._filterActiviteitThema = (thema) => {
+    activiteitActiefThema = thema;
+    zetThemaKnopActief('activiteit-thema-knoppen', thema);
+    document.getElementById('activiteit-zoek').value = '';
+    filterActiviteitFiches();
+  };
+
+  document.getElementById('activiteit-zoek').addEventListener('input', () => filterActiviteitFiches());
+
+  function toonActiviteitResultaten(fiches) {
+    const div = document.getElementById('activiteit-resultaten');
+    if (fiches.length === 0) {
+      div.innerHTML = '<p class="font-klein kleur-grijs" style="padding:12px">Geen fiches gevonden.</p>';
+      return;
+    }
+    div.innerHTML = fiches.slice(0, 40).map(f => {
+      const themalabel = f.thema
+        ? `<span style="font-size:0.70rem;background:#dbeafe;color:#1e40af;border-radius:10px;padding:1px 6px;font-weight:700">${f.thema.replace('_',' ')}</span>`
+        : '';
+      const matLijst  = Array.isArray(f.materiaal) && f.materiaal.length
+        ? `<span style="font-size:0.70rem;color:#9CA3AF">📦 ${f.materiaal.slice(0, 3).join(', ')}${f.materiaal.length > 3 ? '…' : ''}</span>`
+        : '';
+      return `
+        <div class="fiche-zoek-item" data-id="${f.id}"
+             onclick="window._selecteerActiviteitFiche('${f.id}','${f.naam.replace(/'/g,"\\'")}')">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span class="vet" style="font-size:0.88rem">${f.naam}</span>
+            ${themalabel}
+          </div>
+          <div style="display:flex;gap:8px;margin-top:2px;flex-wrap:wrap">
+            <span class="font-klein kleur-grijs">${f.categorie ?? ''} · ${f.duur_minuten ?? '?'} min · 👥 ${f.min_deelnemers ?? '?'}–${f.max_deelnemers ?? '?'}</span>
+            ${matLijst}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  window._selecteerActiviteitFiche = (id, naam) => {
+    activiteitFicheID = id;
+    document.querySelectorAll('#activiteit-resultaten .fiche-zoek-item').forEach(el => el.classList.remove('geselecteerd'));
+    document.querySelector(`#activiteit-resultaten .fiche-zoek-item[data-id="${id}"]`)?.classList.add('geselecteerd');
+    document.getElementById('activiteit-geselecteerd').textContent = `✓ ${naam}`;
+  };
+
+  document.getElementById('activiteit-opslaan').addEventListener('click', async () => {
+    if (!activiteitFicheID) { toonToast('Selecteer eerst een activiteit.', 'fout'); return; }
+
+    // Update-modus: enkel fiche_id aanpassen op bestaand blok
+    if (ficheKoppelingBlokID) {
+      const ok = await slaBlokOp({ fiche_id: activiteitFicheID }, ficheKoppelingBlokID);
+      if (ok) {
+        toonToast('Activiteit gekoppeld.', 'succes');
+        sluitModal('activiteit-modal');
+        ficheKoppelingBlokID = null;
+        document.getElementById('activiteit-tijd-sectie').style.display = '';
+        await herlaadDagTimeline(activiteitKampID, activiteitDatum);
+      }
+      return;
+    }
+
+    // Nieuw blok aanmaken (gebruikt in week-modus via + Activiteit knop)
+    const start = document.getElementById('activiteit-start').value;
+    const eind  = document.getElementById('activiteit-eind').value;
+    if (!start || !eind) { toonToast('Vul start- en eindtijd in.', 'fout'); return; }
+    if (start >= eind) { toonToast('Eindtijd moet later zijn dan starttijd.', 'fout'); return; }
+
+    const conflict = checkOverlap(activiteitKampID, activiteitDatum, activiteitGroepIdx, start, eind);
+    if (conflict) {
+      const cNaam = conflict.activiteiten_fiches?.naam ?? conflict.label ?? conflict.type;
+      const cTijd = `${conflict.start_tijd.slice(0,5)}–${conflict.eind_tijd.slice(0,5)}`;
+      toonToast(`Overlapt met "${cNaam}" (${cTijd}). Kies een ander tijdslot.`, 'fout');
+      return;
+    }
+
+    const ok = await slaBlokOp({
+      kamp_id: activiteitKampID, datum: activiteitDatum,
+      groep_index: activiteitGroepIdx, type: 'activiteit',
+      start_tijd: start, eind_tijd: eind,
+      fiche_id: activiteitFicheID, label: null, lesgevers: [],
+    });
+    if (ok) {
+      toonToast('Activiteit toegevoegd.', 'succes');
+      sluitModal('activiteit-modal');
+      await herlaadDagTimeline(activiteitKampID, activiteitDatum);
+    }
+  });
+  document.getElementById('activiteit-ontkoppelen').addEventListener('click', async () => {
+    if (!ficheKoppelingBlokID) return;
+    const ok = await slaBlokOp({ fiche_id: null }, ficheKoppelingBlokID);
+    if (ok) {
+      toonToast('Fiche verwijderd van het blok.', 'succes');
+      sluitModal('activiteit-modal');
+      ficheKoppelingBlokID = null;
+      document.getElementById('activiteit-tijd-sectie').style.display = '';
+      document.getElementById('activiteit-ontkoppelen').classList.add('verborgen');
+      await herlaadDagTimeline(activiteitKampID, activiteitDatum);
+    }
+  });
+
+  document.getElementById('activiteit-annuleren').addEventListener('click', () => {
+    ficheKoppelingBlokID = null;
+    document.getElementById('activiteit-tijd-sectie').style.display = '';
+    document.getElementById('activiteit-ontkoppelen').classList.add('verborgen');
+    sluitModal('activiteit-modal');
+  });
+
+  // ── Pauze toevoegen ──────────────────────────────────────────────
+  window._voegPauzeToe = (kampID, datum, groepIdx) => {
+    pauzeKampID  = kampID;
+    pauzeDatum   = datum;
+    pauzeGroepIdx = Number(groepIdx);
+    document.getElementById('pauze-modal-titel').textContent = `Pauze toevoegen — ${datumNaarNLKort(datum)}`;
+    // Slim: sluit aan op laatste blok (15-min standaardduur)
+    const slot = suggereerVolgendSlot(kampID, datum, Number(groepIdx), 15);
+    document.getElementById('pauze-start').value = slot.start;
+    document.getElementById('pauze-eind').value  = slot.eind;
+    openModal('pauze-modal');
+  };
+
+  document.getElementById('pauze-opslaan').addEventListener('click', async () => {
+    const start = document.getElementById('pauze-start').value;
+    const eind  = document.getElementById('pauze-eind').value;
+    if (!start || !eind) { toonToast('Vul start- en eindtijd in.', 'fout'); return; }
+    if (start >= eind) { toonToast('Eindtijd moet later zijn dan starttijd.', 'fout'); return; }
+    // Overlap-check
+    const conflict = checkOverlap(pauzeKampID, pauzeDatum, pauzeGroepIdx, start, eind);
+    if (conflict) {
+      const cNaam = conflict.activiteiten_fiches?.naam ?? conflict.label ?? conflict.type;
+      toonToast(`Overlapt met "${cNaam}" (${conflict.start_tijd.slice(0,5)}–${conflict.eind_tijd.slice(0,5)}).`, 'fout');
+      return;
+    }
+
+    const ok = await slaBlokOp({
+      kamp_id:     pauzeKampID,
+      datum:       pauzeDatum,
+      groep_index: pauzeGroepIdx,
+      type:        'pauze',
+      start_tijd:  start,
+      eind_tijd:   eind,
+      label:       'Pauze',
+      lesgevers:   [],
+    });
+    if (ok) {
+      toonToast('Pauze toegevoegd.', 'succes');
+      sluitModal('pauze-modal');
+      await herlaadDagTimeline(pauzeKampID, pauzeDatum);
+    }
+  });
+  document.getElementById('pauze-annuleren').addEventListener('click', () => sluitModal('pauze-modal'));
+
+  // ── Gedeeld blok toevoegen ───────────────────────────────────────
+  window._voegVooropvangToe = (kampID, datum, type) => {
+    gedeeldKampID = kampID;
+    gedeeldDatum  = datum;
+    gedeeldType   = type;
+
+    const labels = { vooropvang: 'Vooropvang', naopvang: 'Naopvang', middagpauze: 'Middagpauze' };
+    const tijden = {
+      vooropvang:   { start: '08:00', eind: '09:00' },
+      naopvang:     { start: '16:00', eind: '17:00' },
+      middagpauze:  { start: '12:00', eind: '13:00' },
+    };
+
+    const isVastType = ['vooropvang', 'naopvang'].includes(type);
+    document.getElementById('gedeeld-modal-titel').textContent = isVastType
+      ? `${labels[type]} — lesgevers aanduiden`
+      : `${labels[type] ?? type} toevoegen`;
+    document.getElementById('gedeeld-label').value  = labels[type] ?? type;
+    document.getElementById('gedeeld-start').value  = tijden[type]?.start ?? '08:00';
+    document.getElementById('gedeeld-eind').value   = tijden[type]?.eind  ?? '09:00';
+
+    // Vaste blokken: label en tijd niet aanpasbaar
+    document.getElementById('gedeeld-label-wrap').style.display = isVastType ? 'none' : '';
+    document.getElementById('gedeeld-tijd-wrap').style.display  = isVastType ? 'none' : '';
+    const lgLabel = document.getElementById('gedeeld-lesgevers-label');
+    if (lgLabel) lgLabel.textContent = isVastType ? `Wie doet de ${labels[type]}?` : 'Lesgevers (optioneel)';
+
+    // Lesgevers multi-select
+    const state = kampState.get(kampID);
+    const opties = document.getElementById('gedeeld-lesgevers-opties');
+    opties.innerHTML = (state?.lesgevers ?? []).map(lg => `
+      <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer">
+        <input type="checkbox" class="gedeeld-lg-check" value="${lg.id}">
+        ${lg.voornaam} ${lg.achternaam}
+      </label>`).join('');
+    document.getElementById('gedeeld-lesgevers-wrap').style.display =
+      (state?.lesgevers?.length > 0 || isVastType) ? 'block' : 'none';
+
+    openModal('gedeeld-modal');
+  };
+
+  document.getElementById('gedeeld-opslaan').addEventListener('click', async () => {
+    const label = document.getElementById('gedeeld-label').value.trim();
+    const start = document.getElementById('gedeeld-start').value;
+    const eind  = document.getElementById('gedeeld-eind').value;
+    if (!start || !eind) { toonToast('Vul start- en eindtijd in.', 'fout'); return; }
+    if (start >= eind) { toonToast('Eindtijd moet later zijn dan starttijd.', 'fout'); return; }
+
+    const lesgevers = Array.from(document.querySelectorAll('.gedeeld-lg-check:checked')).map(c => c.value);
+
+    const ok = await slaBlokOp({
+      kamp_id:     gedeeldKampID,
+      datum:       gedeeldDatum,
+      groep_index: -1,
+      type:        gedeeldType,
+      start_tijd:  start,
+      eind_tijd:   eind,
+      label:       label || gedeeldType,
+      lesgevers,
+    });
+    if (ok) {
+      toonToast('Blok toegevoegd.', 'succes');
+      sluitModal('gedeeld-modal');
+      await herlaadDagTimeline(gedeeldKampID, gedeeldDatum);
+    }
+  });
+  document.getElementById('gedeeld-annuleren').addEventListener('click', () => sluitModal('gedeeld-modal'));
+
+  // Nieuwe alias voor de "+ Vooropvang/Naopvang instellen" knoppen in de planning
+  window._voegRandblokToe = (kampID, datum, type) => window._voegVooropvangToe(kampID, datum, type);
+
+  // ── Fiche koppelen aan bestaand activiteitsblok ──────────────────
+  window._koppelFicheAanBlok = (blokID, kampID, datum) => {
+    ficheKoppelingBlokID = blokID;
+    activiteitKampID     = kampID;
+    activiteitDatum      = datum;
+    activiteitFicheID    = null;
+
+    document.getElementById('activiteit-modal-titel').textContent = 'Activiteit koppelen';
+    document.getElementById('activiteit-zoek').value = '';
+
+    // Huidige fiche pre-selecteren
+    const state = kampState.get(kampID);
+    const blok  = state?.blokken?.find(b => b.id === blokID);
+    if (blok?.fiche_id) {
+      activiteitFicheID = blok.fiche_id;
+      const fiche = alleFiches.find(f => f.id === blok.fiche_id);
+      document.getElementById('activiteit-geselecteerd').textContent = fiche ? `✓ ${fiche.naam}` : '';
+    } else {
+      document.getElementById('activiteit-geselecteerd').textContent = '';
+    }
+
+    // Verberg tijdslot-sectie (niet nodig bij koppelen aan bestaand blok)
+    document.getElementById('activiteit-tijd-sectie').style.display = 'none';
+
+    // Toon "Fiche verwijderen" knop enkel als er al een fiche gekoppeld is
+    document.getElementById('activiteit-ontkoppelen')
+      .classList.toggle('verborgen', !blok?.fiche_id);
+
+    toonActiviteitResultaten(alleFiches.filter(f => f.status === 'goedgekeurd').slice(0, 20));
+    openModal('activiteit-modal');
+  };
+
+  // ── Toggle gedeeld → per groep ───────────────────────────────────
+  window._togglePerGroep = async (blokID, kampID, datum) => {
+    const state  = kampState.get(kampID);
+    const blok   = state?.blokken?.find(b => b.id === blokID);
+    const groepen = state?.groepen ?? [];
+    if (!blok || groepen.length === 0) {
+      toonToast('Stel eerst groepen in via ⚙️ Groepen.', 'info');
+      return;
+    }
+
+    // Verwijder het gedeeld blok
+    const { error: delErr } = await supabase.from('dag_blokken').delete().eq('id', blokID);
+    if (delErr) { toonToast('Fout bij omschakelen.', 'fout'); return; }
+
+    // Maak per-groep blokken aan (één per groep, zelfde tijden)
+    const { error: insErr } = await supabase.from('dag_blokken').insert(
+      groepen.map(g => ({
+        kamp_id:    kampID, datum,
+        groep_index: g.groep_index,
+        type:       'activiteit',
+        start_tijd: blok.start_tijd,
+        eind_tijd:  blok.eind_tijd,
+        fiche_id:   blok.fiche_id ?? null,
+        label:      null, lesgevers: [],
+      }))
+    );
+    if (insErr) { toonToast('Fout bij aanmaken groepblokken.', 'fout'); return; }
+
+    toonToast('Omgeschakeld naar per groep.', 'succes');
+    await herlaadDagTimeline(kampID, datum);
+  };
+
+  // ── Toggle per groep → gedeeld ───────────────────────────────────
+  window._toggleGedeeld = async (kampID, datum, startTijd, eindTijd) => {
+    // Verwijder alle per-groep activiteitsblokken op dit tijdslot
+    const { error: delErr } = await supabase.from('dag_blokken').delete()
+      .eq('kamp_id', kampID).eq('datum', datum)
+      .eq('start_tijd', startTijd).eq('type', 'activiteit').gte('groep_index', 0);
+    if (delErr) { toonToast('Fout bij omschakelen.', 'fout'); return; }
+
+    // Maak één gedeeld blok aan
+    const { error: insErr } = await supabase.from('dag_blokken').insert({
+      kamp_id: kampID, datum, groep_index: -1, type: 'activiteit',
+      start_tijd: startTijd, eind_tijd: eindTijd, label: null, lesgevers: [],
+    });
+    if (insErr) { toonToast('Fout bij aanmaken gedeeld blok.', 'fout'); return; }
+
+    toonToast('Omgeschakeld naar gedeeld.', 'succes');
+    await herlaadDagTimeline(kampID, datum);
+  };
+
+  // ── Blok bewerken ────────────────────────────────────────────────
+  window._bewerkPlanBlok = async (blokID, kampID, datum) => {
+    blokBewerkID     = blokID;
+    blokBewerkKampID = kampID;
+    blokBewerkDatum  = datum;
+    blokBewerkFicheID = null;
+
+    // Zoek blok in state
+    const state = kampState.get(kampID);
+    const blok  = state?.blokken?.find(b => b.id === blokID);
+    if (!blok) return;
+
+    // Lesgevers (geen admin): direct lesfiche bekijken bij klik op activiteitsblok
+    const isBeheerder = ['admin', 'coordinator'].includes(huidigProfiel?.rol);
+    if (!isBeheerder && blok.type === 'activiteit' && blok.fiche_id) {
+      window._bekijkLesfiche(blok.fiche_id);
+      return;
+    }
+
+    const isActiviteit = blok.type === 'activiteit';
+    const isGedeeld    = blok.groep_index === -1;
+
+    document.getElementById('blok-bewerk-titel').textContent = `Blok bewerken`;
+    document.getElementById('blok-fiche-wrap').style.display   = isActiviteit ? 'block' : 'none';
+    document.getElementById('blok-label-wrap').style.display   = !isActiviteit ? 'block' : 'none';
+
+    const isVast = ['vooropvang', 'naopvang'].includes(blok.type);
+    document.getElementById('blok-bewerk-titel').textContent =
+      isVast ? `${blok.label ?? blok.type} — lesgevers aanduiden` : 'Blok bewerken';
+
+    document.getElementById('blok-label').value = blok.label ?? '';
+    document.getElementById('blok-start').value = (blok.start_tijd ?? '').slice(0, 5);
+    document.getElementById('blok-eind').value  = (blok.eind_tijd  ?? '').slice(0, 5);
+
+    // Vaste blokken: tijden zijn niet aanpasbaar
+    const tijdWrap = document.getElementById('blok-tijd-wrap');
+    if (tijdWrap) tijdWrap.style.display = isVast ? 'none' : '';
+    document.getElementById('blok-label-wrap').style.display = isVast ? 'none' : (!isActiviteit ? 'block' : 'none');
+
+    if (isActiviteit) {
+      blokBewerkFicheID = blok.fiche_id ?? null;
+      const naam = blok.activiteiten_fiches?.naam ?? '';
+      document.getElementById('blok-fiche-geselecteerd').textContent = naam ? `✓ ${naam}` : '';
+      document.getElementById('blok-fiche-zoek').value = '';
+      // Reset thema-filter naar "Alle" bij openen
+      blokActiefThema = '';
+      zetThemaKnopActief('blok-thema-knoppen', '');
+      toonBlokFicheResultaten(alleFiches.filter(f => f.status === 'goedgekeurd'));
+    }
+
+    // "Lesfiche bekijken" knop tonen als er een fiche aan het blok gekoppeld is
+    const bekijkKnop = document.getElementById('blok-bekijk-fiche-knop');
+    if (bekijkKnop) {
+      const heeftFiche = isActiviteit && blok.fiche_id;
+      bekijkKnop.classList.toggle('verborgen', !heeftFiche);
+      bekijkKnop.dataset.ficheId = blok.fiche_id ?? '';
+    }
+
+    // Lesgevers — altijd tonen voor vooropvang/naopvang, optioneel voor andere gedeelde blokken
+    const lesgeverWrap   = document.getElementById('blok-lesgevers-wrap');
+    const lesgeverOpties = document.getElementById('blok-lesgevers-opties');
+    const lesgeverLabel  = lesgeverWrap?.querySelector('label');
+
+    if (isGedeeld) {
+      lesgeverWrap.style.display = 'block';
+      if (lesgeverLabel) {
+        lesgeverLabel.textContent = isVast
+          ? `Wie doet de ${blok.label ?? blok.type}?`
+          : 'Lesgevers';
+      }
+      if (!state?.lesgevers?.length) {
+        lesgeverOpties.innerHTML = `<p class="font-klein kleur-grijs">Nog geen lesgevers gekoppeld aan dit kamp.<br>
+          Koppel eerst lesgevers via <strong>Beheer → Kampen → Lesgevers</strong>.</p>`;
+      } else {
+        lesgeverOpties.innerHTML = state.lesgevers.map(lg => `
+          <label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:0.85rem;cursor:pointer">
+            <input type="checkbox" class="blok-lg-check" value="${lg.id}"
+                   ${(blok.lesgevers ?? []).includes(lg.id) ? 'checked' : ''}>
+            ${lg.voornaam} ${lg.achternaam}
+          </label>`).join('');
+      }
+    } else {
+      lesgeverWrap.style.display = 'none';
+    }
+
+    openModal('blok-bewerk-modal');
+  };
+
+  /** Filter fiches voor de blok-bewerk-modal op thema + zoekterm. */
+  function filterBlokFiches() {
+    const term = (document.getElementById('blok-fiche-zoek')?.value ?? '').toLowerCase();
+    const gefilterd = alleFiches.filter(f => {
+      if (f.status !== 'goedgekeurd') return false;
+      if (blokActiefThema && f.thema !== blokActiefThema) return false;
+      if (term && !f.naam.toLowerCase().includes(term)) return false;
+      return true;
+    });
+    toonBlokFicheResultaten(gefilterd);
+  }
+
+  window._filterBlokThema = (thema) => {
+    blokActiefThema = thema;
+    zetThemaKnopActief('blok-thema-knoppen', thema);
+    document.getElementById('blok-fiche-zoek').value = '';
+    filterBlokFiches();
+  };
+
+  document.getElementById('blok-fiche-zoek').addEventListener('input', () => filterBlokFiches());
+
+  function toonBlokFicheResultaten(fiches) {
+    const div = document.getElementById('blok-fiche-resultaten');
+    if (fiches.length === 0) {
+      div.innerHTML = '<p class="font-klein kleur-grijs" style="padding:10px">Geen fiches gevonden.</p>';
+      return;
+    }
+    div.innerHTML = fiches.slice(0, 40).map(f => {
+      const themalabel = f.thema
+        ? `<span style="font-size:0.68rem;background:#dbeafe;color:#1e40af;border-radius:10px;padding:1px 6px;font-weight:700">${f.thema.replace('_',' ')}</span>`
+        : '';
+      const matLijst  = Array.isArray(f.materiaal) && f.materiaal.length
+        ? `<span style="font-size:0.68rem;color:#9CA3AF">📦 ${f.materiaal.slice(0, 3).join(', ')}${f.materiaal.length > 3 ? '…' : ''}</span>`
+        : '';
+      return `
+        <div class="fiche-zoek-item" data-id="${f.id}"
+             onclick="window._selecteerBlokFiche('${f.id}','${f.naam.replace(/'/g,"\\'")}')">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span class="vet" style="font-size:0.85rem">${f.naam}</span>
+            ${themalabel}
+          </div>
+          <div style="display:flex;gap:8px;margin-top:2px;flex-wrap:wrap">
+            <span class="font-klein kleur-grijs">${f.categorie ?? ''} · ${f.duur_minuten ?? '?'} min · 👥 ${f.min_deelnemers ?? '?'}–${f.max_deelnemers ?? '?'}</span>
+            ${matLijst}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  window._selecteerBlokFiche = (id, naam) => {
+    blokBewerkFicheID = id;
+    document.querySelectorAll('#blok-fiche-resultaten .fiche-zoek-item').forEach(el => el.classList.remove('geselecteerd'));
+    document.querySelector(`#blok-fiche-resultaten .fiche-zoek-item[data-id="${id}"]`)?.classList.add('geselecteerd');
+    document.getElementById('blok-fiche-geselecteerd').textContent = `✓ ${naam}`;
+  };
+
+  /**
+   * Open een read-only modal met de volledige inhoud van een lesfiche.
+   * Werkt voor zowel admin als lesgever.
+   */
+  window._bekijkLesfiche = async (ficheID) => {
+    if (!ficheID) return;
+    const inhoudEl = document.getElementById('fiche-bekijk-inhoud');
+    const titelEl  = document.getElementById('fiche-bekijk-titel');
+    titelEl.textContent = 'Lesfiche';
+    inhoudEl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--kleur-grijs)"><div class="laadindicator" style="margin:0 auto 8px"></div>Laden…</div>';
+    openModal('fiche-bekijk-modal');
+    try {
+      const fiche = await haalFicheOp(ficheID);
+      if (!fiche) {
+        inhoudEl.innerHTML = '<p class="kleur-koraal">Fiche niet gevonden.</p>';
+        return;
+      }
+      titelEl.textContent = fiche.naam;
+      inhoudEl.innerHTML = renderFicheDetail(fiche, false);
+    } catch (fout) {
+      console.error('[planner] Fiche laden mislukt:', fout?.message);
+      inhoudEl.innerHTML = '<p class="kleur-koraal">Kon fiche niet laden.</p>';
+    }
+  };
+
+  // Knop in bewerk-modal: opent fiche-bekijk-modal
+  document.getElementById('blok-bekijk-fiche-knop').addEventListener('click', () => {
+    const ficheID = document.getElementById('blok-bekijk-fiche-knop').dataset.ficheId;
+    if (ficheID) window._bekijkLesfiche(ficheID);
+  });
+
+  document.getElementById('blok-bewerk-opslaan').addEventListener('click', async () => {
+    const state2  = kampState.get(blokBewerkKampID);
+    const blok2   = state2?.blokken?.find(b => b.id === blokBewerkID);
+    const isVast2 = ['vooropvang', 'naopvang'].includes(blok2?.type);
+
+    // Vaste blokken behouden hun originele tijden
+    const start = isVast2 ? (blok2.start_tijd ?? '').slice(0,5) : document.getElementById('blok-start').value;
+    const eind  = isVast2 ? (blok2.eind_tijd  ?? '').slice(0,5) : document.getElementById('blok-eind').value;
+    if (!start || !eind) { toonToast('Vul start- en eindtijd in.', 'fout'); return; }
+    if (start >= eind) { toonToast('Eindtijd moet later zijn dan starttijd.', 'fout'); return; }
+
+    const state = kampState.get(blokBewerkKampID);
+    const blok  = state?.blokken?.find(b => b.id === blokBewerkID);
+    const isActiviteit = blok?.type === 'activiteit';
+    const isGedeeld    = blok?.groep_index === -1;
+
+    // Overlap-check (negeer dit blok zelf — alleen voor activiteit/pauze in groepen)
+    if (blok && ['activiteit', 'pauze'].includes(blok.type)) {
+      const conflict = checkOverlap(blokBewerkKampID, blokBewerkDatum, blok.groep_index, start, eind, blokBewerkID);
+      if (conflict) {
+        const cNaam = conflict.activiteiten_fiches?.naam ?? conflict.label ?? conflict.type;
+        toonToast(`Overlapt met "${cNaam}" (${conflict.start_tijd.slice(0,5)}–${conflict.eind_tijd.slice(0,5)}).`, 'fout');
+        return;
+      }
+    }
+
+    const updateData = {
+      start_tijd: start,
+      eind_tijd:  eind,
+    };
+    if (isActiviteit) {
+      updateData.fiche_id = blokBewerkFicheID ?? blok?.fiche_id ?? null;
+    } else {
+      updateData.label = document.getElementById('blok-label').value.trim() || blok?.label;
+    }
+    if (isGedeeld) {
+      updateData.lesgevers = Array.from(document.querySelectorAll('.blok-lg-check:checked')).map(c => c.value);
+    }
+
+    const ok = await slaBlokOp(updateData, blokBewerkID);
+    if (ok) {
+      toonToast('Blok bijgewerkt.', 'succes');
+      sluitModal('blok-bewerk-modal');
+      await herlaadDagTimeline(blokBewerkKampID, blokBewerkDatum);
+    }
+  });
+  document.getElementById('blok-bewerk-annuleren').addEventListener('click', () => sluitModal('blok-bewerk-modal'));
+
+  // ── Blok verwijderen ─────────────────────────────────────────────
+  window._verwijderPlanBlok = async (blokID, kampID, datum) => {
+    const ok = await verwijderBlok(blokID);
+    if (ok) {
+      toonToast('Blok verwijderd.', 'succes');
+      await herlaadDagTimeline(kampID, datum);
+    }
+  };
+
+  // ── Herlaad tijdlijn na mutatie ──────────────────────────────────
+  async function herlaadDagTimeline(kampID, datum) {
+    const state = kampState.get(kampID);
+    if (!state) return;
+
+    const blokken = await haalDagBlokkenOp(kampID, datum);
+    state.blokken = blokken;
+
+    const isAdmin = ['admin','coordinator'].includes(huidigProfiel.rol);
+    const containerId = isAdmin
+      ? `plankaart-inhoud-${kampID}`
+      : `eigenplanning-${kampID}`;
+
+    await renderKampPlanningUI(kampID, datum, containerId, isAdmin, !isAdmin);
+  }
+
+  // ── Uitnodiging aanvaarden ───────────────────────────────────────
+  window._aanvaardUitnodiging = async (koppelingID, kampNaam) => {
+    const knop = document.querySelector(`#uitnodiging-${koppelingID} .knop-accent`);
+    if (knop) { knop.disabled = true; knop.textContent = 'Bezig…'; }
+    await aanvaardKoppeling(koppelingID, huidigProfiel, kampNaam);
+    location.reload();
+  };
+
+  // ── Uitnodiging weigeren ─────────────────────────────────────────
+  window._weigerUitnodiging = (koppelingID, kampNaam) => {
+    actieveKoppelingID = koppelingID; actieveKampNaam = kampNaam;
+    document.getElementById('weiger-kamp-naam').textContent = kampNaam;
+    document.getElementById('weiger-reden').value = '';
+    document.getElementById('weiger-bevestigen').disabled = false;
+    openModal('weiger-modal');
+  };
+  document.getElementById('weiger-bevestigen').addEventListener('click', async () => {
+    const reden = document.getElementById('weiger-reden').value.trim() || null;
+    document.getElementById('weiger-bevestigen').disabled = true;
+    await weigerKoppeling(actieveKoppelingID, huidigProfiel, actieveKampNaam, reden);
+    sluitModal('weiger-modal'); location.reload();
+  });
+  document.getElementById('weiger-annuleren').addEventListener('click', () => sluitModal('weiger-modal'));
+
+  // ── Koppeling annuleren ──────────────────────────────────────────
+  window._annuleerKoppeling = (koppelingID, kampNaam) => {
+    actieveKoppelingID = koppelingID; actieveKampNaam = kampNaam;
+    document.getElementById('annuleer-kamp-naam').textContent = kampNaam;
+    document.getElementById('annuleer-reden').value = '';
+    document.getElementById('annuleer-fout').classList.add('verborgen');
+    document.getElementById('annuleer-bevestigen').disabled = false;
+    openModal('annuleer-modal');
+  };
+  document.getElementById('annuleer-bevestigen').addEventListener('click', async () => {
+    const reden = document.getElementById('annuleer-reden').value.trim();
+    if (!reden) { document.getElementById('annuleer-fout').classList.remove('verborgen'); return; }
+    document.getElementById('annuleer-bevestigen').disabled = true;
+    await annuleerKoppeling(actieveKoppelingID, huidigProfiel, actieveKampNaam, reden);
+    sluitModal('annuleer-modal'); location.reload();
+  });
+  document.getElementById('annuleer-cancel').addEventListener('click', () => sluitModal('annuleer-modal'));
+
+  // ── Modal listeners ──────────────────────────────────────────────
+  function initialiseerModalListeners() {
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', e => {
+        if (e.target === overlay) overlay.classList.add('verborgen');
+      });
+      overlay.querySelectorAll('.modal-sluiten').forEach(k =>
+        k.addEventListener('click', () => overlay.classList.add('verborgen'))
+      );
+    });
+  }
+
+  // ── Materiaaloverzicht ───────────────────────────────────────────
+  window._toonMateriaaloVerzicht = async (kampID) => {
+    const kamp = alleKampen.find(k => k.id === kampID);
+    const kampNaam = kamp?.naam ?? 'Kamp';
+
+    const overlay  = document.getElementById('materiaal-modal');
+    const inhoud   = document.getElementById('materiaal-modal-inhoud');
+    const kampEl   = document.getElementById('materiaal-modal-kamp');
+
+    if (!overlay || !inhoud) return;
+
+    if (kampEl) kampEl.textContent = kampNaam;
+    inhoud.innerHTML = `<div style="text-align:center;padding:32px;color:var(--kleur-grijs)">
+      <div class="laadindicator" style="margin:0 auto 10px"></div>Materiaal ophalen…
+    </div>`;
+    openModal('materiaal-modal');
+
+    const data = await haalMateriaaloVerzichtVoorKamp(kampID);
+    inhoud.innerHTML = genereerMateriaaloVerzichtHTML(data, kampNaam);
+  };
+
+  document.getElementById('materiaal-afdrukken')?.addEventListener('click', () => {
+    const inhoud  = document.getElementById('materiaal-modal-inhoud')?.innerHTML ?? '';
+    const kampNaam = document.getElementById('materiaal-modal-kamp')?.textContent ?? '';
+    const win = window.open('', '_blank', 'width=800,height=700');
+    win.document.write(`<!DOCTYPE html><html lang="nl"><head>
+      <meta charset="UTF-8">
+      <title>Materiaaloverzicht — ${kampNaam}</title>
+      <style>
+        body { font-family: system-ui, sans-serif; padding: 32px; color: #194338; }
+        @media print { body { padding: 16px; } }
+        .badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:0.78rem; font-weight:700; }
+        .badge-groen { background:rgba(20,136,105,0.12); color:#148869; }
+        :root { --kleur-donkergroen:#194338; --kleur-middengroen:#148869; --kleur-grijs:#6B7280; }
+      </style>
+    </head><body>${inhoud}</body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 400);
+  });
+
+  // ── Hulpfuncties ─────────────────────────────────────────────────
+  function datumNaarNLKort(datum) {
+    const d = new Date(datum + 'T00:00:00');
+    return d.toLocaleDateString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+
+  init();
+</script>
+</body>
+</html>

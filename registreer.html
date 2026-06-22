@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registreren — SportFun Portaal</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body class="login-pagina">
+
+  <div class="login-kaart">
+    <div class="login-logo">
+      <img src="sportfun-logo2.svg" alt="SportFun"
+           style="max-width:220px;height:auto;display:block;margin:0 auto 6px">
+      <div class="logo-sub">Account aanmaken</div>
+    </div>
+
+    <!-- Ongeldige/verlopen token -->
+    <div id="ongeldige-token" class="verborgen" style="text-align:center;padding:20px">
+      <div style="font-size:2rem;margin-bottom:12px">⚠️</div>
+      <h3 style="margin-bottom:8px">Ongeldige uitnodiging</h3>
+      <p style="font-size:0.88rem;color:var(--kleur-grijs);margin-bottom:20px">
+        Deze uitnodigingslink is ongeldig of verlopen.<br>
+        Vraag een nieuwe link aan bij jouw coördinator.
+      </p>
+      <a href="index.html" class="knop knop-omtrek">Terug naar login</a>
+    </div>
+
+    <!-- Registratieformulier -->
+    <div id="registreer-sectie" class="verborgen">
+      <div id="uitnodiging-info" style="
+        background: rgba(20,136,105,0.08);
+        border: 1px solid rgba(20,136,105,0.2);
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 0.82rem;
+        color: var(--kleur-middengroen);
+        margin-bottom: 20px;
+      "></div>
+
+      <form id="registreer-formulier" novalidate>
+        <div class="formulier-rij">
+          <div class="formulier-groep">
+            <label for="voornaam">Voornaam *</label>
+            <input type="text" id="voornaam" required autocomplete="given-name">
+          </div>
+          <div class="formulier-groep">
+            <label for="achternaam">Achternaam *</label>
+            <input type="text" id="achternaam" required autocomplete="family-name">
+          </div>
+        </div>
+        <div class="formulier-groep">
+          <label for="reg-email">E-mailadres *</label>
+          <input type="email" id="reg-email" required readonly
+                 style="background:var(--kleur-zand)">
+          <div class="hulptekst">E-mailadres is gekoppeld aan de uitnodiging.</div>
+        </div>
+        <div class="formulier-groep">
+          <label for="nieuw-wachtwoord">Wachtwoord *</label>
+          <input type="password" id="nieuw-wachtwoord" required
+                 autocomplete="new-password" minlength="8"
+                 placeholder="Minimaal 8 tekens">
+        </div>
+        <div class="formulier-groep">
+          <label for="bevestig-wachtwoord">Wachtwoord bevestigen *</label>
+          <input type="password" id="bevestig-wachtwoord" required
+                 autocomplete="new-password" placeholder="Herhaal je wachtwoord">
+        </div>
+        <div class="formulier-groep">
+          <label for="telefoon">Telefoon</label>
+          <input type="tel" id="telefoon" placeholder="0479 00 00 00">
+        </div>
+
+        <div id="reg-fout" class="verborgen" style="
+          background: rgba(255,105,85,0.1);
+          border: 1px solid rgba(255,105,85,0.3);
+          border-radius: 8px;
+          padding: 10px 14px;
+          font-size: 0.85rem;
+          color: var(--kleur-koraal);
+          margin-bottom: 14px;
+        "></div>
+
+        <button type="submit" class="knop knop-accent w-100 knop-groot" id="reg-knop">
+          Account aanmaken
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script type="module">
+    import { supabase } from './js/supabase.js?v=1780304789425';
+    import { valideerUitnodiging, stuurDoorOpRol } from './js/auth.js?v=1780304789425';
+    import { toonToast } from './js/utils.js?v=1780304789425';
+
+    let uitnodiging = null;
+
+    async function init() {
+      const params = new URLSearchParams(window.location.search);
+      const token  = params.get('token');
+
+      if (!token) {
+        document.getElementById('ongeldige-token').classList.remove('verborgen');
+        return;
+      }
+
+      uitnodiging = await valideerUitnodiging(token);
+
+      if (!uitnodiging) {
+        document.getElementById('ongeldige-token').classList.remove('verborgen');
+        return;
+      }
+
+      // Geldige uitnodiging — toon formulier
+      document.getElementById('registreer-sectie').classList.remove('verborgen');
+      document.getElementById('reg-email').value = uitnodiging.email;
+      document.getElementById('uitnodiging-info').textContent =
+        `✓ Je bent uitgenodigd als ${rolLabel(uitnodiging.rol)}.`;
+    }
+
+    document.getElementById('registreer-formulier').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const voornaam  = document.getElementById('voornaam').value.trim();
+      const achternaam = document.getElementById('achternaam').value.trim();
+      const email     = document.getElementById('reg-email').value;
+      const ww        = document.getElementById('nieuw-wachtwoord').value;
+      const bevestig  = document.getElementById('bevestig-wachtwoord').value;
+      const telefoon  = document.getElementById('telefoon').value.trim();
+      const foutEl    = document.getElementById('reg-fout');
+
+      foutEl.classList.add('verborgen');
+
+      if (!voornaam || !achternaam) {
+        foutEl.textContent = 'Vul je voor- en achternaam in.';
+        foutEl.classList.remove('verborgen');
+        return;
+      }
+
+      if (ww.length < 8) {
+        foutEl.textContent = 'Wachtwoord moet minimaal 8 tekens bevatten.';
+        foutEl.classList.remove('verborgen');
+        return;
+      }
+
+      if (ww !== bevestig) {
+        foutEl.textContent = 'Wachtwoorden komen niet overeen.';
+        foutEl.classList.remove('verborgen');
+        return;
+      }
+
+      const knop = document.getElementById('reg-knop');
+      knop.disabled = true;
+      knop.textContent = 'Account aanmaken…';
+
+      try {
+        // Maak auth-gebruiker aan
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password: ww,
+          options: {
+            data: {
+              voornaam,
+              achternaam,
+              rol: uitnodiging.rol,
+            }
+          }
+        });
+
+        if (error) throw error;
+
+        if (data.user) {
+          // Profiel bijwerken met extra gegevens (trigger heeft het basisrecord al aangemaakt)
+          const { error: profielFout } = await supabase.from('profielen').upsert({
+            id:               data.user.id,
+            voornaam,
+            achternaam,
+            email,
+            rol:              uitnodiging.rol,
+            telefoon:         telefoon || null,
+            uitgenodigd_door: uitnodiging.uitgenodigd_door,
+          }, { onConflict: 'id' });
+
+          if (profielFout) {
+            console.warn('[registreer] Profiel bijwerken mislukt:', profielFout.message);
+            // Niet fataal — auth-account bestaat, gebruiker kan nog inloggen
+          }
+
+          // Markeer uitnodiging als gebruikt (enkel na succesvolle account-aanmaak)
+          await supabase.from('uitnodigingen')
+            .update({ gebruikt: true })
+            .eq('id', uitnodiging.id);
+        }
+
+        toonToast('Account aangemaakt! Je wordt doorgestuurd…', 'succes');
+        setTimeout(() => stuurDoorOpRol(uitnodiging.rol), 2000);
+
+      } catch (fout) {
+        knop.disabled = false;
+        knop.textContent = 'Account aanmaken';
+        foutEl.textContent = fout.message ?? 'Er is een fout opgetreden. Probeer opnieuw.';
+        foutEl.classList.remove('verborgen');
+      }
+    });
+
+    function rolLabel(rol) {
+      return { admin: 'Beheerder', coordinator: 'Coördinator', lesgever: 'Lesgever', extra_hulp: 'Extra hulp' }[rol] ?? rol;
+    }
+
+    init();
+  </script>
+</body>
+</html>

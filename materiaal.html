@@ -1,0 +1,1154 @@
+﻿<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Materiaal &mdash; SportFun Portaal</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <style>
+    /* -- Materiaallijst -- */
+    .materiaal-rij {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--kleur-lichtgrijs);
+    }
+    .materiaal-rij:last-child { border-bottom: none; }
+    .materiaal-item-naam {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--kleur-donkergroen);
+      min-width: 160px;
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
+    .materiaal-fiches-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    @media (max-width: 600px) {
+      .materiaal-rij { flex-direction: column; gap: 6px; }
+      .materiaal-item-naam { min-width: unset; }
+    }
+
+    /* -- Admin: checklist & per-dag overzicht -- */
+    .admin-overzicht {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .admin-checklist-sectie {
+      padding: 16px;
+    }
+    .admin-checklist-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .admin-sectie-titel {
+      font-weight: 800;
+      font-size: 0.88rem;
+      color: var(--kleur-donkergroen);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .vg-label {
+      font-size: 0.78rem;
+      color: var(--kleur-grijs);
+      font-weight: 600;
+    }
+    .vg-balk-wrapper {
+      height: 6px;
+      background: var(--kleur-lichtgrijs);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+    .vg-balk {
+      height: 100%;
+      background: var(--kleur-middengroen);
+      border-radius: 99px;
+      transition: width 0.3s ease;
+    }
+
+    /* Checklist tabel */
+    .checklist-tabel {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    .checklist-tabel thead th {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--kleur-grijs);
+      padding: 0 8px 8px;
+      text-align: left;
+      border-bottom: 2px solid var(--kleur-lichtgrijs);
+    }
+    .chk-rij td {
+      padding: 8px 8px;
+      border-bottom: 1px solid var(--kleur-lichtgrijs);
+      vertical-align: middle;
+      transition: background 0.15s;
+    }
+    .chk-rij:last-child td { border-bottom: none; }
+    .chk-rij:hover td { background: rgba(20,136,105,0.04); }
+    .chk-gedaan .chk-naam {
+      text-decoration: line-through;
+      color: var(--kleur-grijs);
+    }
+    .chk-gedaan td { opacity: 0.6; }
+    .chk-naam { font-weight: 600; color: var(--kleur-donkergroen); }
+    .chk-aantal {
+      font-weight: 800;
+      color: var(--kleur-donkergroen);
+      white-space: nowrap;
+    }
+    .chk-cb-cel { text-align: center; width: 36px; }
+    .admin-checkbox {
+      width: 17px;
+      height: 17px;
+      accent-color: var(--kleur-middengroen);
+      cursor: pointer;
+    }
+    .chk-dagen-cel { padding-left: 4px !important; }
+    .dag-chip {
+      display: inline-block;
+      font-size: 0.70rem;
+      font-weight: 600;
+      color: var(--kleur-donkergroen);
+      background: rgba(20,136,105,0.08);
+      border-radius: 4px;
+      padding: 2px 6px;
+      margin: 1px 2px 1px 0;
+      white-space: nowrap;
+    }
+
+    /* Per-dag accordion */
+    .admin-dagen-sectie {
+      border-top: 2px solid var(--kleur-lichtgrijs);
+      padding: 14px 16px;
+    }
+    .admin-dagen-sectie .admin-sectie-titel {
+      display: block;
+      margin-bottom: 10px;
+    }
+    .dag-accordion-blok {
+      border: 1px solid var(--kleur-lichtgrijs);
+      border-radius: var(--border-radius-sm);
+      margin-bottom: 6px;
+      overflow: hidden;
+    }
+    .dag-toggle-knop {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 10px 12px;
+      background: rgba(20,136,105,0.04);
+      border: none;
+      cursor: pointer;
+      font-family: var(--font, sans-serif);
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--kleur-donkergroen);
+      text-align: left;
+      transition: background 0.12s;
+    }
+    .dag-toggle-knop:hover { background: rgba(20,136,105,0.10); }
+    .dag-chevron {
+      width: 15px; height: 15px;
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+    .dag-chevron-open { transform: rotate(180deg); }
+    .dag-toggle-label { flex: 1; }
+    .dag-toggle-count {
+      font-size: 0.72rem;
+      color: var(--kleur-grijs);
+      font-weight: 400;
+      flex-shrink: 0;
+    }
+    .dag-detail {
+      padding: 12px 14px;
+      border-top: 1px solid var(--kleur-lichtgrijs);
+      background: white;
+    }
+    .dag-fiches {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+    .dag-mat-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .dag-mat-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--kleur-lichtgrijs);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.82rem;
+    }
+    .dag-mat-naam { color: #374151; }
+    .dag-mat-aantal {
+      font-weight: 800;
+      color: var(--kleur-donkergroen);
+    }
+
+    /* -- Kamp-kaarten -- */
+    .kamp-materiaal-kaart {
+      border: 1.5px solid var(--kleur-lichtgrijs);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      margin-bottom: 12px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .kamp-materiaal-kaart:has(.kamp-materiaal-detail:not(.verborgen)) {
+      border-color: rgba(20,136,105,0.35);
+      box-shadow: 0 2px 12px rgba(20,136,105,0.08);
+    }
+    .kamp-kaart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      background: var(--kleur-zand);
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .kamp-kaart-info { flex: 1; min-width: 0; }
+    .kamp-kaart-naam {
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: var(--kleur-donkergroen);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .kamp-kaart-meta {
+      font-size: 0.78rem;
+      color: var(--kleur-grijs);
+      margin-top: 3px;
+    }
+    .kamp-kaart-acties {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    .kamp-materiaal-detail {
+      padding: 16px;
+      border-top: 1px solid var(--kleur-lichtgrijs);
+    }
+    @media (max-width: 500px) {
+      .kamp-kaart-acties { width: 100%; justify-content: flex-end; }
+    }
+
+    /* -- Bewerkbare fiche-kaarten in accordion (admin) -- */
+    .fiche-mini-kaart-edit {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 8px 10px;
+      border: 1.5px solid var(--kleur-lichtgrijs);
+      border-radius: 8px;
+      background: var(--kleur-wit);
+    }
+    .fiche-mini-kop {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 2px;
+    }
+    .mat-edit-regel {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 0;
+      border-top: 1px dashed var(--kleur-lichtgrijs);
+      flex-wrap: wrap;
+    }
+    .mat-edit-tekst {
+      flex: 1;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--kleur-donkergroen);
+    }
+    .mat-edit-acties {
+      display: flex;
+      gap: 4px;
+    }
+    .mat-edit-knop {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px; height: 26px;
+      border-radius: 6px;
+      border: 1.5px solid var(--kleur-lichtgrijs);
+      background: var(--kleur-wit);
+      cursor: pointer;
+      color: var(--kleur-grijs);
+      padding: 0;
+      transition: all 0.12s;
+    }
+    .mat-edit-knop:hover { background: var(--kleur-zand); color: var(--kleur-donkergroen); }
+    .mat-edit-knop-verwijder:hover { border-color: var(--kleur-koraal); color: var(--kleur-koraal); background: rgba(255,105,85,0.06); }
+    .mat-edit-knop-opslaan:hover { border-color: var(--kleur-middengroen); color: var(--kleur-middengroen); background: rgba(20,136,105,0.06); }
+    .mat-edit-form {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex: 1;
+      min-width: 0;
+    }
+    .mat-edit-input {
+      flex: 1;
+      min-width: 100px;
+      padding: 4px 8px;
+      border: 1.5px solid var(--kleur-middengroen);
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: 0.82rem;
+      outline: none;
+    }
+
+    /* -- Categorie filter-pills -- */
+    .mat-cat-filter {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 12px 0 14px;
+      border-bottom: 1px solid var(--kleur-lichtgrijs);
+      margin-bottom: 8px;
+    }
+    .mat-cat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      border: 1.5px solid var(--kleur-lichtgrijs);
+      background: var(--kleur-wit);
+      color: var(--kleur-tekst);
+      font-family: var(--font);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .mat-cat-pill:hover {
+      border-color: var(--kleur-middengroen);
+      color: var(--kleur-middengroen);
+    }
+    .mat-cat-pill.actief {
+      background: var(--kleur-donkergroen);
+      border-color: var(--kleur-donkergroen);
+      color: var(--kleur-limoen);
+    }
+    .mat-cat-pill.actief .mat-cat-teller {
+      background: rgba(215,252,92,0.25);
+      color: var(--kleur-limoen);
+    }
+    .mat-cat-teller {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 4px;
+      background: var(--kleur-lichtgrijs);
+      color: var(--kleur-grijs);
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 800;
+    }
+
+    /* -- Categoriebadge op accordion-item -- */
+    .mat-cat-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      background: color-mix(in srgb, var(--cat-kleur) 15%, transparent);
+      color: var(--cat-kleur);
+      flex-shrink: 0;
+    }
+    @media (max-width: 520px) {
+      .mat-cat-badge { display: none; }
+      .mat-cat-pill span:nth-child(2) { display: none; }
+      .mat-cat-pill { padding: 5px 9px; }
+    }
+
+    /* -- Alfabet-scheiding -- */
+    .mat-letter-scheiding {
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--kleur-grijs);
+      padding: 10px 4px 4px;
+      border-bottom: 1.5px solid var(--kleur-lichtgrijs);
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .mat-letter-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px; height: 22px;
+      background: var(--kleur-donkergroen);
+      color: var(--kleur-limoen);
+      border-radius: 5px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    /* -- Accordion materiaallijst -- */
+    .mat-accordion-item {
+      border-bottom: 1px solid var(--kleur-lichtgrijs);
+    }
+    .mat-accordion-item:last-child { border-bottom: none; }
+    .mat-accordion-knop {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 11px 6px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-align: left;
+      font-family: var(--font, sans-serif);
+      font-size: 0.9rem;
+      color: var(--kleur-donkergroen);
+      transition: background 0.15s;
+      border-radius: var(--border-radius-sm);
+    }
+    .mat-accordion-knop:hover { background: rgba(20,136,105,0.06); }
+    .mat-accordion-knop[aria-expanded="true"] { background: rgba(20,136,105,0.05); }
+    .mat-icoon { font-size: 1rem; flex-shrink: 0; }
+    .mat-label { font-weight: 700; flex: 1; }
+    .mat-count { flex-shrink: 0; font-size: 0.72rem !important; }
+    .mat-chevron {
+      width: 16px; height: 16px;
+      flex-shrink: 0;
+      color: var(--kleur-grijs);
+      transition: transform 0.2s;
+    }
+    .mat-chevron-open { transform: rotate(180deg); }
+    .mat-accordion-detail {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+      padding: 8px 12px 14px 36px;
+    }
+    /* Lege zoekresultaten */
+    .mat-geen-resultaten {
+      text-align: center;
+      padding: 28px 16px;
+      color: var(--kleur-grijs);
+      font-size: 0.88rem;
+      display: none;
+    }
+    .mat-geen-resultaten.zichtbaar { display: block; }
+
+    /* Mini fiche-kaartjes */
+    .fiche-mini-kaart {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px 12px;
+      background: white;
+      border: 1.5px solid var(--kleur-lichtgrijs);
+      border-radius: var(--border-radius-sm);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .fiche-mini-kaart:hover {
+      border-color: var(--kleur-middengroen);
+      box-shadow: 0 2px 8px rgba(20,136,105,0.10);
+    }
+    .fiche-mini-cat {
+      display: inline-block;
+      align-self: flex-start;
+      font-size: 0.65rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: white;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+    .fiche-mini-naam {
+      font-size: 0.83rem;
+      font-weight: 700;
+      color: var(--kleur-donkergroen);
+      line-height: 1.3;
+    }
+
+    /* -- Per-dag materiaaloverzicht (lesgever en print) -- */
+    .mat-overzicht { font-family: var(--font, sans-serif); }
+    .mat-overzicht-titel {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--kleur-donkergroen);
+      margin-bottom: 2px;
+    }
+    .mat-overzicht-datum {
+      font-size: 0.78rem;
+      color: var(--kleur-grijs);
+      margin-bottom: 20px;
+    }
+    .mat-overzicht-sectie-label {
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--kleur-grijs);
+      margin-bottom: 10px;
+    }
+    .mat-dag-sectie {
+      margin-bottom: 12px;
+      break-inside: avoid;
+      border-radius: var(--border-radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--kleur-lichtgrijs);
+    }
+    .mat-dag-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      background: var(--kleur-donkergroen);
+      color: white;
+      font-weight: 800;
+      font-size: 0.88rem;
+    }
+    .mat-dag-header svg { opacity: 0.7; flex-shrink: 0; }
+    .mat-dag-fiches {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 8px 12px;
+      background: rgba(20,136,105,0.05);
+      border-bottom: 1px solid var(--kleur-lichtgrijs);
+    }
+    .mat-dag-tabel {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .mat-dag-tabel td {
+      padding: 7px 14px;
+      border-bottom: 1px solid var(--kleur-lichtgrijs);
+      font-size: 0.87rem;
+      color: var(--kleur-tekst);
+    }
+    .mat-dag-tabel td:last-child {
+      font-weight: 800;
+      color: var(--kleur-donkergroen);
+      text-align: right;
+      white-space: nowrap;
+    }
+    .mat-dag-tabel tr:last-child td { border-bottom: none; }
+    .mat-totaal-blok {
+      background: linear-gradient(135deg, var(--kleur-donkergroen), #0f2d25);
+      border-radius: var(--border-radius-sm);
+      padding: 16px;
+      margin-top: 20px;
+    }
+    .mat-totaal-titel {
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: rgba(215,252,92,0.8);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .mat-totaal-tabel { width: 100%; border-collapse: collapse; }
+    .mat-totaal-tabel td {
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      font-size: 0.88rem;
+      color: rgba(255,255,255,0.9);
+    }
+    .mat-totaal-tabel td:last-child {
+      font-weight: 800;
+      color: var(--kleur-limoen);
+      text-align: right;
+      white-space: nowrap;
+    }
+    .mat-totaal-tabel tr:last-child td { border-bottom: none; }
+
+    /* -- Zoekbalk -- */
+    .zoekbalk-wrapper {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    .zoekbalk-wrapper svg {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--kleur-grijs);
+      pointer-events: none;
+    }
+    .zoekbalk-input {
+      width: 100%;
+      padding: 9px 12px 9px 34px;
+      border: 1.5px solid var(--kleur-lichtgrijs);
+      border-radius: var(--border-radius-sm);
+      font-size: 0.88rem;
+      box-sizing: border-box;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .zoekbalk-input:focus { border-color: var(--kleur-middengroen); }
+
+    /* -- Badge varianten -- */
+    .badge-oranje { background: rgba(245,158,11,0.12); color: #b45309; }
+    .badge-grijs  { background: rgba(107,114,128,0.12); color: #6b7280; }
+
+    /* -- Admin stats-bar -- */
+    .admin-stats-bar {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 12px 18px;
+      background: linear-gradient(135deg, rgba(20,136,105,0.06) 0%, rgba(26,168,130,0.04) 100%);
+      border: 1px solid rgba(20,136,105,0.15);
+      border-radius: var(--border-radius);
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .admin-stats-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--kleur-donkergroen);
+      font-weight: 600;
+    }
+    .admin-stats-item strong {
+      font-size: 1.1rem;
+      font-weight: 800;
+    }
+    .admin-stats-hint {
+      margin-left: auto;
+      font-size: 0.78rem;
+      color: var(--kleur-grijs);
+      font-weight: 400;
+    }
+    @media (max-width: 600px) {
+      .admin-stats-hint { margin-left: 0; }
+    }
+
+    /* -- Admin kamp accordion -- */
+    .admin-kamp-accordion {
+      border: 1.5px solid var(--kleur-lichtgrijs);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      margin-bottom: 10px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .admin-kamp-accordion:has(.admin-kamp-acc-inhoud:not(.verborgen)) {
+      border-color: rgba(20,136,105,0.35);
+      box-shadow: 0 2px 12px rgba(20,136,105,0.08);
+    }
+    .admin-kamp-acc-knop {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 14px 16px;
+      background: var(--kleur-lichtgrijs-achtergrond, #f9fafb);
+      border: none;
+      cursor: pointer;
+      font-family: var(--font, sans-serif);
+      text-align: left;
+      transition: background 0.12s;
+    }
+    .admin-kamp-acc-knop:hover { background: rgba(20,136,105,0.07); }
+    .admin-acc-chevron {
+      width: 18px; height: 18px;
+      flex-shrink: 0;
+      color: var(--kleur-grijs);
+      transition: transform 0.2s;
+    }
+    .admin-acc-chevron-open { transform: rotate(180deg); }
+    .admin-kamp-acc-info { flex: 1; min-width: 0; }
+    .admin-kamp-acc-naam {
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: var(--kleur-donkergroen);
+    }
+    .admin-kamp-acc-meta {
+      font-size: 0.78rem;
+      color: var(--kleur-grijs);
+      margin-top: 2px;
+    }
+    .admin-kamp-acc-rechts {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .mini-vg-wrap {
+      width: 80px;
+      height: 5px;
+      background: var(--kleur-lichtgrijs);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .mini-vg-balk {
+      height: 100%;
+      background: var(--kleur-middengroen);
+      border-radius: 99px;
+      transition: width 0.3s ease;
+    }
+    .mini-vg-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--kleur-grijs);
+      min-width: 32px;
+      text-align: right;
+    }
+    .admin-kamp-acc-inhoud {
+      border-top: 1px solid var(--kleur-lichtgrijs);
+      background: white;
+    }
+    @media (max-width: 600px) {
+      .admin-kamp-acc-rechts { display: none; }
+    }
+
+    /* -- Afgelopen kampen -- */
+    .afgelopen-toggle-knop {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: none;
+      border: 1.5px dashed var(--kleur-lichtgrijs);
+      border-radius: var(--border-radius-sm);
+      color: var(--kleur-grijs);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      justify-content: center;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .afgelopen-toggle-knop:hover {
+      border-color: var(--kleur-middengroen);
+      color: var(--kleur-donkergroen);
+    }
+    .afgelopen-sectie { margin-top: 8px; }
+    #afgelopen-kampen-lijst { margin-top: 12px; }
+
+    /* ── Admin: materiaalbeheer ─────────────────────────────────────── */
+    .mat-admin-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid var(--kleur-lichtgrijs);
+      margin-bottom: 16px;
+    }
+    .mat-admin-tab {
+      padding: 9px 18px;
+      font-family: var(--font);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--kleur-grijs);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .mat-admin-tab:hover { color: var(--kleur-donkergroen); }
+    .mat-admin-tab.actief {
+      color: var(--kleur-donkergroen);
+      border-bottom-color: var(--kleur-middengroen);
+    }
+
+    /* Hernoemen-lijst */
+    .mat-hernoem-rij {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--kleur-lichtgrijs);
+    }
+    .mat-hernoem-rij:last-child { border-bottom: none; }
+    .mat-hernoem-naam {
+      font-weight: 700;
+      font-size: 0.88rem;
+      color: var(--kleur-donkergroen);
+    }
+    .mat-hernoem-count {
+      font-size: 0.72rem;
+      color: var(--kleur-grijs);
+    }
+    .mat-hernoem-inline {
+      display: none;
+      grid-column: 1 / -1;
+      padding: 8px 0 4px;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .mat-hernoem-inline.zichtbaar { display: flex; }
+    .mat-hernoem-inline input {
+      flex: 1;
+      min-width: 160px;
+      padding: 6px 10px;
+      border: 1.5px solid var(--kleur-lichtgrijs);
+      border-radius: var(--border-radius-sm);
+      font-family: var(--font);
+      font-size: 0.85rem;
+      outline: none;
+    }
+    .mat-hernoem-inline input:focus { border-color: var(--kleur-middengroen); }
+
+    /* Categorieën-beheer */
+    .mat-cat-nieuw-rij {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      align-items: center;
+    }
+    .mat-cat-input {
+      flex: 1;
+      min-width: 160px;
+      padding: 8px 12px;
+      border: 1.5px solid var(--kleur-lichtgrijs);
+      border-radius: var(--border-radius-sm);
+      font-family: var(--font);
+      font-size: 0.88rem;
+      outline: none;
+    }
+    .mat-cat-input:focus { border-color: var(--kleur-middengroen); }
+    .mat-cat-select {
+      padding: 8px 10px;
+      border: 1.5px solid var(--kleur-lichtgrijs);
+      border-radius: var(--border-radius-sm);
+      font-family: var(--font);
+      font-size: 0.85rem;
+      background: var(--kleur-wit);
+      outline: none;
+    }
+    .mat-cat-tabel {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .mat-cat-tabel th {
+      text-align: left;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--kleur-grijs);
+      padding: 6px 8px;
+      border-bottom: 2px solid var(--kleur-lichtgrijs);
+    }
+    .mat-cat-tabel td {
+      padding: 7px 8px;
+      border-bottom: 1px solid var(--kleur-lichtgrijs);
+      vertical-align: middle;
+    }
+    .mat-cat-tabel tr:last-child td { border-bottom: none; }
+    .mat-cat-tabel select {
+      padding: 4px 8px;
+      border: 1.5px solid var(--kleur-lichtgrijs);
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: 0.82rem;
+      background: var(--kleur-wit);
+      outline: none;
+    }
+    .mat-cat-tabel select:focus { border-color: var(--kleur-middengroen); }
+    .mat-cat-zoek {
+      width: 100%;
+      padding: 7px 12px;
+      border: 1.5px solid var(--kleur-lichtgrijs);
+      border-radius: var(--border-radius-sm);
+      font-family: var(--font);
+      font-size: 0.85rem;
+      margin-bottom: 10px;
+      outline: none;
+    }
+    .mat-cat-zoek:focus { border-color: var(--kleur-middengroen); }
+    @media (max-width: 600px) {
+      .mat-hernoem-rij { grid-template-columns: 1fr auto; }
+    }
+  </style>
+</head>
+<body>
+<div class="portaal-wrapper">
+
+  <!-- Zijbalk -->
+  <nav class="zijbalk" id="zijbalk">
+    <div class="zijbalk-logo">
+      <img src="sportfun-logo-wit.svg" alt="SportFun"
+           style="max-width:170px;height:auto;display:block;margin-bottom:4px">
+      <div class="logo-sub">Lesgeversportaal</div>
+    </div>
+    <div class="zijbalk-nav">
+      <ul>
+        <li><a href="dashboard.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          Dashboard
+        </a></li>
+        <li><a href="planner.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Kampplanning
+        </a></li>
+        <li class="verberg-admin"><a href="beschikbaarheid.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+            <polyline points="9 15 11 17 15 13"/>
+          </svg>Beschikbaarheid
+        </a></li>
+        <li><a href="fiches.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          Activiteiten
+        </a></li>
+        <li><a href="materiaal.html" class="actief">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+          Materiaal
+        </a></li>
+        <li class="enkel-admin"><a href="admin.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          Beheer
+        </a></li>
+      </ul>
+    </div>
+    <div class="zijbalk-footer">
+      <div class="gebruiker-info">
+        <a href="profiel.html" class="gebruiker-avatar" id="nav-avatar" title="Profiel & contracten">?</a>
+        <div>
+          <div class="gebruiker-naam" id="nav-naam">Laden…</div>
+          <div class="gebruiker-rol" id="nav-rol"></div>
+        </div>
+      </div>
+      <button class="uitloggen-knop" id="nav-uitloggen">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Uitloggen
+      </button>
+    </div>
+  </nav>
+  <div class="overlay-nav" id="overlay-nav"></div>
+
+  <!-- Hoofdinhoud -->
+  <main class="hoofdinhoud">
+    <header class="pagina-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger geen-print" id="hamburger">
+          <span></span><span></span><span></span>
+        </button>
+        <h1>Materiaal</h1>
+      </div>
+      <div class="notificatie-wrapper geen-print">
+        <div class="notificatie-bel" id="notif-bel">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <span class="notificatie-badge verborgen" id="notif-badge">0</span>
+        </div>
+        <div class="notificatie-dropdown verborgen" id="notif-dropdown">
+          <div class="notificatie-dropdown-header">
+            <span>Notificaties</span>
+            <button id="notif-alles-gelezen" style="background:none;border:none;font-size:0.75rem;color:var(--kleur-middengroen);cursor:pointer">Alles gelezen</button>
+          </div>
+          <div id="notif-lijst"></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="pagina-inhoud">
+
+      <!-- Globale materiaallijst -->
+      <div class="kaart" style="margin-bottom:24px">
+        <div class="kaart-header">
+          <h2 class="kaart-titel">Alle materialen</h2>
+          <span class="kleur-grijs font-klein" id="materialen-teller" style="font-size:0.8rem"></span>
+        </div>
+
+        <div class="zoekbalk-wrapper">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" id="materiaal-zoek" class="zoekbalk-input"
+                 placeholder="Zoek materiaal…" autocomplete="off">
+        </div>
+
+        <div id="materialen-lijst">
+          <div style="display:flex;align-items:center;gap:8px;padding:16px 0;color:var(--kleur-grijs)">
+            <div class="laadindicator"></div> Laden…
+          </div>
+        </div>
+      </div>
+
+      <!-- Kamp-overzicht -->
+      <div class="kaart">
+        <div class="kaart-header">
+          <h2 class="kaart-titel">Materiaal per kamp</h2>
+        </div>
+
+        <!-- Stats-bar: alleen zichtbaar voor admin/coordinator (via JS) -->
+        <div class="admin-stats-bar" id="admin-stats-bar" style="display:none">
+          <div class="admin-stats-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <strong id="stats-kampen-count">0</strong> lopende kampen
+          </div>
+          <div class="admin-stats-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+            </svg>
+            <strong id="stats-materialen-count">0</strong> unieke materialen
+          </div>
+          <div class="admin-stats-hint">
+            Items worden lokaal bewaard
+          </div>
+        </div>
+
+        <p class="lesgever-hint" style="display:none;font-size:0.83rem;color:var(--kleur-grijs);margin-bottom:16px">
+          Actieve en aankomende kampen. Klik op "Toon materiaal" voor een dag-per-dag overzicht.
+        </p>
+        <div id="kampen-overzicht">
+          <div style="display:flex;align-items:center;gap:8px;padding:16px 0;color:var(--kleur-grijs)">
+            <div class="laadindicator"></div> Laden…
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin: categorieën beheren + globaal hernoemen -->
+      <div class="kaart" id="mat-admin-kaart" style="display:none">
+        <div class="kaart-header">
+          <div>
+            <h2 class="kaart-titel">Materiaalbeheer</h2>
+            <p style="font-size:0.8rem;color:var(--kleur-grijs);margin-top:2px">Hernoem materialen en beheer categorietoewijzingen</p>
+          </div>
+        </div>
+
+        <!-- Tabbladen -->
+        <div class="mat-admin-tabs" id="mat-admin-tabs">
+          <button class="mat-admin-tab actief" data-tab="hernoem">Materialen hernoemen</button>
+          <button class="mat-admin-tab" data-tab="categorieen">Categorietoewijzingen</button>
+        </div>
+
+        <!-- Tab: hernoemen -->
+        <div class="mat-admin-inhoud" id="mat-tab-hernoem">
+          <p style="font-size:0.82rem;color:var(--kleur-grijs);margin-bottom:12px">
+            Hernoem een materiaalitem in één klik over alle fiches heen. Handig om "bal" en "ballen" samen te voegen.
+          </p>
+          <div id="mat-hernoem-lijst">
+            <div style="display:flex;align-items:center;gap:8px;padding:16px 0;color:var(--kleur-grijs)">
+              <div class="laadindicator"></div> Laden…
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: categorieën -->
+        <div class="mat-admin-inhoud verborgen" id="mat-tab-categorieen">
+          <div class="mat-cat-nieuw-rij" id="mat-cat-nieuw-rij">
+            <input type="text" id="mat-cat-nieuw-trefwoord" class="mat-cat-input"
+                   placeholder="Nieuw trefwoord (bv. bal)" autocomplete="off">
+            <select id="mat-cat-nieuw-categorie" class="mat-cat-select">
+              <option value="sport">🏃 Sportmateriaal</option>
+              <option value="water">💧 Waterspelletjes</option>
+              <option value="knutsel">🎨 Knutselmateriaal</option>
+              <option value="muziek">🎵 Muziek & Dans</option>
+              <option value="spel">🎲 Spelmateriaal</option>
+              <option value="natuur">🌿 Natuur & Avontuur</option>
+              <option value="veiligheid">🏥 Veiligheid & EHBO</option>
+              <option value="diversen">📦 Diversen</option>
+            </select>
+            <button class="knop knop-primair knop-klein" onclick="window._voegTrefwoordToe()">Toevoegen</button>
+          </div>
+          <div id="mat-cat-tabel-wrapper">
+            <div style="display:flex;align-items:center;gap:8px;padding:16px 0;color:var(--kleur-grijs)">
+              <div class="laadindicator"></div> Laden…
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+  import { checkSessie, haalProfielOp, vulNavigatieIn, initialiseerNotificatieBel } from './js/auth.js?v=1780304789425';
+  import { initialiseerModals, initialiseerHamburger, markeerActiefNavItem } from './js/utils.js?v=1780304789425';
+  import { initialiseerMateriaalPagina } from './js/materiaal.js?v=1780304793000';
+
+  const gebruiker = await checkSessie();
+  if (!gebruiker) throw new Error('Niet ingelogd');
+
+  const profiel = await haalProfielOp(gebruiker.id);
+  if (!profiel) { window.location.href = 'index.html'; throw new Error('Geen profiel'); }
+
+  vulNavigatieIn(profiel);
+  initialiseerModals();
+  initialiseerHamburger();
+  markeerActiefNavItem('materiaal.html');
+  initialiseerNotificatieBel(gebruiker.id);
+
+  await initialiseerMateriaalPagina(profiel);
+</script>
+</body>
+</html>

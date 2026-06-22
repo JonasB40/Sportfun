@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profiel & Contracten — SportFun Portaal</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <style>
+    .profiel-veld { padding: 9px 0; border-bottom: 1px solid var(--kleur-lichtgrijs); }
+    .profiel-veld:last-child { border-bottom: none; }
+    .profiel-veld-label { font-size: 0.75rem; color: var(--kleur-grijs); font-weight: 600; margin-bottom: 2px; }
+
+    /* Handtekening preview */
+    .handtekening-preview {
+      border: 2px dashed var(--kleur-lichtgrijs);
+      border-radius: var(--border-radius-sm);
+      min-height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: var(--kleur-zand);
+      position: relative;
+    }
+    .handtekening-preview img {
+      max-width: 100%;
+      max-height: 160px;
+      object-fit: contain;
+      border-radius: 4px;
+    }
+    .handtekening-preview .geen-handtekening {
+      text-align: center;
+      color: var(--kleur-grijs);
+      font-size: 0.82rem;
+      padding: 20px;
+    }
+
+    /* Upload knoppen */
+    .upload-knoppen {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .upload-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 16px;
+      border-radius: var(--border-radius-sm);
+      font-family: var(--font);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      border: 2px solid var(--kleur-donkergroen);
+      color: var(--kleur-donkergroen);
+      background: transparent;
+      white-space: nowrap;
+    }
+    .upload-label:hover {
+      background: var(--kleur-donkergroen);
+      color: var(--kleur-wit);
+      transform: translateY(-1px);
+    }
+    .upload-label.primair {
+      background: var(--kleur-donkergroen);
+      color: var(--kleur-wit);
+    }
+    .upload-label.primair:hover { background: #0f2d25; }
+
+    /* Upload voortgang */
+    .upload-voortgang {
+      height: 4px;
+      background: var(--kleur-lichtgrijs);
+      border-radius: 2px;
+      margin-top: 8px;
+      overflow: hidden;
+      display: none;
+    }
+    .upload-voortgang-balk {
+      height: 100%;
+      background: var(--kleur-middengroen);
+      width: 0%;
+      transition: width 0.3s;
+      border-radius: 2px;
+    }
+
+    /* IBAN */
+    .iban-display {
+      font-family: 'Courier New', monospace;
+      letter-spacing: 1px;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 900px) {
+      #hoofd-raster { grid-template-columns: 1fr !important; }
+    }
+  </style>
+</head>
+<body>
+<div class="portaal-wrapper">
+
+  <!-- Zijbalk -->
+  <nav class="zijbalk" id="zijbalk">
+    <div class="zijbalk-logo">
+      <img src="sportfun-logo-wit.svg" alt="SportFun"
+           style="max-width:170px;height:auto;display:block;margin-bottom:4px">
+      <div class="logo-sub">Lesgeversportaal</div>
+    </div>
+    <div class="zijbalk-nav">
+      <ul>
+        <li><a href="dashboard.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          Dashboard
+        </a></li>
+        <li><a href="planner.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Kampplanning
+        </a></li>
+        <li class="verberg-admin"><a href="beschikbaarheid.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+            <polyline points="9 15 11 17 15 13"/>
+          </svg>Beschikbaarheid
+        </a></li>
+        <li><a href="fiches.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          Activiteiten
+        </a></li>
+        <li><a href="materiaal.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+          Materiaal
+        </a></li>
+        <li class="enkel-admin"><a href="admin.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          Beheer
+        </a></li>
+      </ul>
+    </div>
+    <div class="zijbalk-footer">
+      <div class="gebruiker-info">
+        <a href="profiel.html" class="gebruiker-avatar" id="nav-avatar" title="Profiel & contracten">?</a>
+        <div>
+          <div class="gebruiker-naam" id="nav-naam">Laden…</div>
+          <div class="gebruiker-rol" id="nav-rol"></div>
+        </div>
+      </div>
+      <button class="uitloggen-knop" id="nav-uitloggen">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Uitloggen
+      </button>
+    </div>
+  </nav>
+  <div class="overlay-nav" id="overlay-nav"></div>
+
+  <!-- Hoofdinhoud -->
+  <main class="hoofdinhoud">
+    <header class="pagina-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger geen-print" id="hamburger">
+          <span></span><span></span><span></span>
+        </button>
+        <h1>Profiel &amp; Contracten</h1>
+      </div>
+      <div class="notificatie-wrapper geen-print">
+        <div class="notificatie-bel" id="notif-bel">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <span class="notificatie-badge verborgen" id="notif-badge">0</span>
+        </div>
+        <div class="notificatie-dropdown verborgen" id="notif-dropdown">
+          <div class="notificatie-dropdown-header">
+            <span>Notificaties</span>
+            <button id="notif-alles-gelezen" style="background:none;border:none;font-size:0.75rem;color:var(--kleur-middengroen);cursor:pointer">Alles gelezen</button>
+          </div>
+          <div id="notif-lijst"></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="pagina-inhoud">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start" id="hoofd-raster">
+
+        <!-- Linkerkolom: persoonlijke gegevens + handtekening -->
+        <div style="display:flex;flex-direction:column;gap:20px">
+
+          <!-- Profielkaart -->
+          <div class="kaart">
+            <div class="kaart-header">
+              <h2 class="kaart-titel">Mijn gegevens</h2>
+              <button class="knop knop-omtrek knop-klein" id="bewerken-knop">Bewerken</button>
+            </div>
+
+            <!-- Weergavemodus -->
+            <div id="profiel-weergave">
+              <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+                <div class="gebruiker-avatar" id="profiel-avatar"
+                     style="width:56px;height:56px;font-size:1.2rem;flex-shrink:0">?</div>
+                <div>
+                  <div style="font-size:1.1rem;font-weight:800" id="profiel-volledige-naam">—</div>
+                  <div id="profiel-rol-badge" style="margin-top:4px"></div>
+                </div>
+              </div>
+              <div style="display:grid;gap:0">
+                <div class="profiel-veld">
+                  <div class="profiel-veld-label">E-mail</div>
+                  <div id="pv-email">—</div>
+                </div>
+                <div class="profiel-veld">
+                  <div class="profiel-veld-label">Telefoon</div>
+                  <div id="pv-telefoon">—</div>
+                </div>
+                <div class="profiel-veld">
+                  <div class="profiel-veld-label">Adres</div>
+                  <div id="pv-adres">—</div>
+                </div>
+                <div class="profiel-veld">
+                  <div class="profiel-veld-label">Geboortedatum</div>
+                  <div id="pv-geboorte">—</div>
+                </div>
+                <div class="profiel-veld">
+                  <div class="profiel-veld-label">Rekeningnummer (IBAN)</div>
+                  <div id="pv-iban" class="iban-display">—</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bewerkingsmodus -->
+            <form id="profiel-formulier" class="verborgen" novalidate>
+              <div class="formulier-rij">
+                <div class="formulier-groep">
+                  <label for="vn">Voornaam *</label>
+                  <input type="text" id="vn" required>
+                </div>
+                <div class="formulier-groep">
+                  <label for="an">Achternaam *</label>
+                  <input type="text" id="an" required>
+                </div>
+              </div>
+              <div class="formulier-groep">
+                <label for="tel">Telefoon</label>
+                <input type="tel" id="tel" placeholder="bv. 0479 00 00 00">
+              </div>
+              <div class="formulier-groep">
+                <label for="adres">Adres</label>
+                <input type="text" id="adres" placeholder="Straat 1, 2000 Stad">
+              </div>
+              <div class="formulier-groep">
+                <label for="geboorte">Geboortedatum</label>
+                <input type="date" id="geboorte">
+              </div>
+              <div class="formulier-groep">
+                <label for="iban">Rekeningnummer (IBAN)</label>
+                <input type="text" id="iban"
+                       placeholder="BE68 5390 0754 7034"
+                       maxlength="32"
+                       style="font-family:monospace;letter-spacing:1px">
+                <div class="hulptekst">Belgisch IBAN: BE + 14 cijfers (bv. BE68 5390 0754 7034)</div>
+                <div class="fout-tekst verborgen" id="iban-fout"></div>
+              </div>
+              <div class="flex-gap mt-8">
+                <button type="submit" class="knop knop-accent">Opslaan</button>
+                <button type="button" class="knop knop-omtrek" id="annuleer-bewerken">Annuleren</button>
+              </div>
+            </form>
+
+            <!-- GDPR -->
+            <div class="gdpr-melding mt-16">
+              🔒 Uw gegevens worden verwerkt conform de AVG/GDPR-wetgeving en worden
+              niet gedeeld met derden. Het rekeningnummer wordt enkel gebruikt voor
+              vrijwilligersvergoedingen.
+            </div>
+          </div>
+
+          <!-- Handtekeningkaart -->
+          <div class="kaart">
+            <div class="kaart-header">
+              <h2 class="kaart-titel">Mijn handtekening</h2>
+              <div id="handtekening-status"></div>
+            </div>
+
+            <p style="font-size:0.82rem;color:var(--kleur-grijs);margin-bottom:14px">
+              Upload een foto of scan van je handtekening. Deze wordt gebruikt op
+              vrijwilligerscontracten.
+            </p>
+
+            <!-- Huidige handtekening -->
+            <div class="handtekening-preview" id="handtekening-preview">
+              <div class="geen-handtekening" id="geen-handtekening-tekst">
+                <div style="font-size:2rem;margin-bottom:6px">✍️</div>
+                <div>Nog geen handtekening opgeladen</div>
+              </div>
+              <img id="handtekening-img" src="" alt="Handtekening"
+                   class="verborgen" style="padding:12px">
+            </div>
+
+            <!-- Voortgangsbalk -->
+            <div class="upload-voortgang" id="upload-voortgang">
+              <div class="upload-voortgang-balk" id="upload-voortgang-balk"></div>
+            </div>
+
+            <!-- Upload knoppen -->
+            <div class="upload-knoppen">
+              <!-- Bestand kiezen (werkt op desktop + mobiel, toont galerij/bestanden) -->
+              <label class="upload-label primair" for="upload-bestand">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                Bestand uploaden
+              </label>
+              <input type="file" id="upload-bestand"
+                     accept="image/jpeg,image/png,image/webp"
+                     style="display:none">
+
+              <!-- Foto nemen via camera (mobiel) -->
+              <label class="upload-label" for="upload-camera" title="Foto nemen met camera">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2.5">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+                Foto nemen
+              </label>
+              <input type="file" id="upload-camera"
+                     accept="image/*"
+                     capture="environment"
+                     style="display:none">
+
+              <!-- Verwijderen -->
+              <button type="button" class="knop knop-gevaar knop-klein verborgen"
+                      id="verwijder-handtekening">
+                Verwijderen
+              </button>
+            </div>
+
+            <div style="font-size:0.72rem;color:var(--kleur-grijs);margin-top:8px">
+              Toegestane formaten: JPG, PNG, WEBP · Max. 5 MB
+            </div>
+          </div>
+
+          <!-- Attest GGS type 2 -->
+          <div class="kaart">
+            <div class="kaart-header">
+              <h2 class="kaart-titel">Attest GGS type&nbsp;2</h2>
+              <div id="attest-status-badge"></div>
+            </div>
+
+            <p style="font-size:0.82rem;color:var(--kleur-grijs);margin-bottom:14px">
+              Attest van goed gedrag en zeden type&nbsp;2 (werken met kinderen).
+              Verplicht voor lesgevers bij SportFun.
+            </p>
+
+            <!-- Huidig attest -->
+            <div id="attest-info" class="verborgen">
+              <div class="profiel-veld">
+                <div class="profiel-veld-label">Uitgiftedatum</div>
+                <div id="attest-datum-weergave">—</div>
+              </div>
+              <a id="attest-download-link" href="#" target="_blank" rel="noopener"
+                 class="knop knop-omtrek knop-klein"
+                 style="display:inline-flex;align-items:center;gap:6px;margin-top:12px">
+                📄 Attest bekijken / downloaden
+              </a>
+            </div>
+
+            <!-- Waarschuwing als nog niet opgeladen -->
+            <div id="geen-attest-melding"
+                 style="display:flex;align-items:center;gap:8px;padding:12px 14px;
+                        background:rgba(255,105,85,0.08);border:1.5px solid rgba(255,105,85,0.3);
+                        border-radius:var(--border-radius-sm);margin-bottom:12px">
+              ⚠️ <span style="font-size:0.85rem;color:#92400e">Nog geen attest opgeladen</span>
+            </div>
+
+            <!-- Datum + upload -->
+            <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+              <div class="formulier-groep" style="margin:0">
+                <label for="attest-datum-input"
+                       style="font-size:0.78rem;font-weight:600;margin-bottom:4px;display:block">
+                  Uitgiftedatum van het attest
+                </label>
+                <input type="date" id="attest-datum-input"
+                       style="padding:8px 10px;border:1.5px solid var(--kleur-lichtgrijs);
+                              border-radius:var(--border-radius-sm);font-size:0.88rem;
+                              font-family:var(--font);max-width:200px">
+              </div>
+              <div class="upload-knoppen" style="margin-top:0">
+                <label class="upload-label primair" for="attest-upload-bestand">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" stroke-width="2.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  PDF uploaden
+                </label>
+                <input type="file" id="attest-upload-bestand"
+                       accept="application/pdf" style="display:none">
+                <button type="button" class="knop knop-gevaar knop-klein verborgen"
+                        id="verwijder-attest">Verwijderen</button>
+              </div>
+            </div>
+
+            <div id="attest-upload-status"
+                 style="font-size:0.72rem;color:var(--kleur-grijs);margin-top:6px"></div>
+            <div style="font-size:0.72rem;color:var(--kleur-grijs);margin-top:2px">
+              Enkel PDF · Max. 10&nbsp;MB
+            </div>
+          </div>
+
+        </div><!-- /linkerkolom -->
+
+        <!-- Rechterkolom: contracten -->
+        <div>
+          <!-- Financieel overzicht -->
+          <div class="kaart mb-16" id="financieel-overzicht" style="background:linear-gradient(135deg, var(--kleur-donkergroen), #0f2d25);color:var(--kleur-wit);padding:18px 20px;display:none">
+            <div style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:rgba(215,252,92,0.85);margin-bottom:8px">
+              💰 Mijn vergoedingen ${HUIDIG_JAAR}
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:end">
+              <div>
+                <div style="font-size:0.7rem;color:rgba(255,255,255,0.6)">Uitbetaald</div>
+                <div style="font-size:1.1rem;font-weight:800;color:var(--kleur-limoen)" id="fin-uitbetaald">€0,00</div>
+              </div>
+              <div>
+                <div style="font-size:0.7rem;color:rgba(255,255,255,0.6)">Openstaand</div>
+                <div style="font-size:1.1rem;font-weight:800" id="fin-openstaand">€0,00</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:0.7rem;color:rgba(255,255,255,0.6)">Totaal</div>
+                <div style="font-size:1.35rem;font-weight:800" id="fin-totaal">€0,00</div>
+              </div>
+            </div>
+            <div style="margin-top:10px">
+              <div style="font-size:0.7rem;color:rgba(255,255,255,0.6);margin-bottom:4px" id="fin-max-label">van jaarmax €1.761,00</div>
+              <div style="height:6px;background:rgba(255,255,255,0.15);border-radius:3px;overflow:hidden">
+                <div style="height:100%;background:var(--kleur-limoen);width:0%;transition:width 0.4s ease" id="fin-balk"></div>
+              </div>
+            </div>
+          </div>
+
+          <h2 class="sectie-titel">Mijn vrijwilligerscontracten</h2>
+          <div id="laad-contracten" style="text-align:center;padding:40px;color:var(--kleur-grijs)">
+            <div class="laadindicator" style="margin:0 auto 10px"></div>
+            <div>Contracten worden geladen…</div>
+          </div>
+          <div id="geen-contracten" class="leeg-toestand verborgen">
+            <div class="leeg-icoon">📄</div>
+            <p>Geen contracten beschikbaar.</p>
+          </div>
+          <div id="contracten-lijst"></div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal: Contract bekijken/ondertekenen -->
+<div class="modal-overlay verborgen" id="contract-modal-overlay">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="contract-modal-titel">Contract</h2>
+      <button class="modal-sluiten" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam" id="contract-modal-inhoud"></div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+  import { supabase } from './js/supabase.js?v=1780304789425';
+  import { checkSessie, haalProfielOp, vulNavigatieIn, rolLabel, initialiseerNotificatieBel } from './js/auth.js?v=1780304789425';
+  import { haalContractenOp, renderContractItem, renderContractModal, onderteken, openContractAfdrukken } from './js/contracten.js?v=1780304789425';
+  import {
+    haalJaarTotaalLesgeverOp, haalLimietenOp, formaatBedrag, contractStatusPil, HUIDIG_JAAR
+  } from './js/financieel.js?v=1780304789425';
+  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, datumNaarNL, toonToast } from './js/utils.js?v=1780304789425';
+
+  let huidigProfiel = null;
+
+  // ── Initialisatie ──────────────────────────────────────────────
+  async function init() {
+    const gebruiker = await checkSessie();
+    if (!gebruiker) return;
+
+    huidigProfiel = await haalProfielOp(gebruiker.id);
+    if (!huidigProfiel) return;
+
+    vulNavigatieIn(huidigProfiel);
+    await initialiseerNotificatieBel(huidigProfiel.id);
+    initialiseerHamburger();
+    initialiseerModals();
+
+    vulProfielIn(huidigProfiel);
+    await laadHandtekening();
+    await laadAttest();
+    await laadContracten();
+    initialiseerUpload();
+    initialiseerAttestUpload();
+  }
+
+  // ── Profiel weergave ───────────────────────────────────────────
+  function vulProfielIn(p) {
+    const initialen = ((p.voornaam?.[0] ?? '') + (p.achternaam?.[0] ?? '')).toUpperCase();
+    document.getElementById('profiel-avatar').textContent = initialen;
+    document.getElementById('profiel-volledige-naam').textContent = `${p.voornaam} ${p.achternaam}`;
+    document.getElementById('profiel-rol-badge').innerHTML =
+      `<span class="badge badge-groen">${rolLabel(p.rol)}</span>`;
+    document.getElementById('pv-email').textContent    = p.email ?? '—';
+    document.getElementById('pv-telefoon').textContent = p.telefoon ?? '—';
+    document.getElementById('pv-adres').textContent    = p.adres ?? '—';
+    document.getElementById('pv-geboorte').textContent =
+      p.geboortedatum ? datumNaarNL(p.geboortedatum) : '—';
+    document.getElementById('pv-iban').textContent =
+      p.rekeningnummer ? formateerIBAN(p.rekeningnummer) : '—';
+  }
+
+  // ── Profiel bewerken ───────────────────────────────────────────
+  document.getElementById('bewerken-knop').addEventListener('click', () => {
+    document.getElementById('profiel-weergave').classList.add('verborgen');
+    document.getElementById('profiel-formulier').classList.remove('verborgen');
+    document.getElementById('bewerken-knop').classList.add('verborgen');
+
+    document.getElementById('vn').value      = huidigProfiel.voornaam ?? '';
+    document.getElementById('an').value      = huidigProfiel.achternaam ?? '';
+    document.getElementById('tel').value     = huidigProfiel.telefoon ?? '';
+    document.getElementById('adres').value   = huidigProfiel.adres ?? '';
+    document.getElementById('geboorte').value = huidigProfiel.geboortedatum ?? '';
+    document.getElementById('iban').value    = huidigProfiel.rekeningnummer ?? '';
+  });
+
+  document.getElementById('annuleer-bewerken').addEventListener('click', sluitBewerkModus);
+
+  // IBAN automatisch spaties toevoegen tijdens typen
+  document.getElementById('iban').addEventListener('input', (e) => {
+    const cursor = e.target.selectionStart;
+    const oud    = e.target.value;
+    const nieuw  = oud.replace(/\s/g, '').toUpperCase()
+      .replace(/(.{4})/g, '$1 ').trim();
+    e.target.value = nieuw;
+    // Herstel cursorpositie
+    const extra = nieuw.length - oud.length;
+    e.target.setSelectionRange(cursor + extra, cursor + extra);
+    document.getElementById('iban-fout').classList.add('verborgen');
+  });
+
+  document.getElementById('profiel-formulier').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const ibanRauw = document.getElementById('iban').value.replace(/\s/g, '').toUpperCase();
+    if (ibanRauw && !valideerIBAN(ibanRauw)) {
+      document.getElementById('iban-fout').textContent =
+        'Ongeldig IBAN. Belgisch formaat: BE + 14 cijfers (bv. BE68539007547034).';
+      document.getElementById('iban-fout').classList.remove('verborgen');
+      document.getElementById('iban').focus();
+      return;
+    }
+
+    const updates = {
+      voornaam:        document.getElementById('vn').value.trim(),
+      achternaam:      document.getElementById('an').value.trim(),
+      telefoon:        document.getElementById('tel').value.trim() || null,
+      adres:           document.getElementById('adres').value.trim() || null,
+      geboortedatum:   document.getElementById('geboorte').value || null,
+      rekeningnummer:  ibanRauw || null,
+    };
+
+    if (!updates.voornaam || !updates.achternaam) {
+      toonToast('Voornaam en achternaam zijn verplicht.', 'fout');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profielen').update(updates).eq('id', huidigProfiel.id);
+      if (error) throw error;
+
+      huidigProfiel = { ...huidigProfiel, ...updates };
+      vulProfielIn(huidigProfiel);
+      vulNavigatieIn(huidigProfiel);
+      sluitBewerkModus();
+      toonToast('Profiel opgeslagen.', 'succes');
+    } catch (fout) {
+      toonToast('Kon profiel niet opslaan: ' + fout.message, 'fout');
+    }
+  });
+
+  function sluitBewerkModus() {
+    document.getElementById('profiel-weergave').classList.remove('verborgen');
+    document.getElementById('profiel-formulier').classList.add('verborgen');
+    document.getElementById('bewerken-knop').classList.remove('verborgen');
+  }
+
+  // ── Handtekening ───────────────────────────────────────────────
+
+  /**
+   * Laad en toon de huidige handtekening via een signed URL
+   * (private bucket, geldig voor 1 uur).
+   */
+  async function laadHandtekening() {
+    // Enkel ophalen als het profiel een handtekening-pad heeft opgeslagen
+    if (!huidigProfiel.handtekening_url) return;
+
+    const pad = huidigProfiel.handtekening_url;
+    try {
+      const { data, error } = await supabase.storage
+        .from('handtekeningen')
+        .createSignedUrl(pad, 3600);
+
+      if (error || !data?.signedUrl) return;
+
+      toonHandtekeningPreview(data.signedUrl);
+    } catch {
+      // Stille fout — handtekening simpelweg niet tonen
+    }
+  }
+
+  /**
+   * Toon een handtekening-afbeelding in de preview.
+   * @param {string} url - URL van de afbeelding.
+   */
+  function toonHandtekeningPreview(url) {
+    const img   = document.getElementById('handtekening-img');
+    const geen  = document.getElementById('geen-handtekening-tekst');
+    const verwijderKnop = document.getElementById('verwijder-handtekening');
+    const statusEl = document.getElementById('handtekening-status');
+
+    img.src = url;
+    img.classList.remove('verborgen');
+    geen.classList.add('verborgen');
+    verwijderKnop.classList.remove('verborgen');
+    statusEl.innerHTML = '<span class="badge badge-goedgekeurd">✓ Opgeladen</span>';
+  }
+
+  /**
+   * Verwerk een gekozen bestand: valideer, toon preview en upload.
+   * @param {File} bestand
+   */
+  async function verwerKBestand(bestand) {
+    // Validatie grootte
+    if (bestand.size > 5 * 1024 * 1024) {
+      toonToast('Bestand is te groot (max. 5 MB).', 'fout');
+      return;
+    }
+
+    // Validatie type
+    const toegestaan = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!toegestaan.includes(bestand.type)) {
+      toonToast('Alleen JPG, PNG of WEBP toegestaan.', 'fout');
+      return;
+    }
+
+    // Lokale preview tonen terwijl upload bezig is
+    const lokaleUrl = URL.createObjectURL(bestand);
+    toonHandtekeningPreview(lokaleUrl);
+
+    // Voortgangsbalk tonen
+    const voortgang = document.getElementById('upload-voortgang');
+    const balk = document.getElementById('upload-voortgang-balk');
+    voortgang.style.display = 'block';
+    balk.style.width = '30%';
+
+    try {
+      const pad = `${huidigProfiel.id}/handtekening`;
+
+      balk.style.width = '60%';
+
+      // Upload naar Supabase Storage (overschrijf bestaand)
+      const { error: uploadFout } = await supabase.storage
+        .from('handtekeningen')
+        .upload(pad, bestand, {
+          upsert: true,
+          contentType: bestand.type,
+        });
+
+      if (uploadFout) throw uploadFout;
+
+      balk.style.width = '100%';
+
+      // Sla het pad op in het profiel
+      await supabase.from('profielen')
+        .update({ handtekening_url: pad })
+        .eq('id', huidigProfiel.id);
+
+      huidigProfiel.handtekening_url = pad;
+
+      toonToast('Handtekening opgeslagen.', 'succes');
+
+      // Haal signed URL op voor stabiele weergave
+      const { data } = await supabase.storage
+        .from('handtekeningen')
+        .createSignedUrl(pad, 3600);
+      if (data?.signedUrl) toonHandtekeningPreview(data.signedUrl);
+
+    } catch (fout) {
+      toonToast('Upload mislukt: ' + fout.message, 'fout');
+      // Verberg preview bij fout
+      document.getElementById('handtekening-img').classList.add('verborgen');
+      document.getElementById('geen-handtekening-tekst').classList.remove('verborgen');
+    } finally {
+      setTimeout(() => { voortgang.style.display = 'none'; balk.style.width = '0%'; }, 800);
+      URL.revokeObjectURL(lokaleUrl);
+    }
+  }
+
+  /**
+   * Verwijder de huidige handtekening uit Storage en het profiel.
+   */
+  async function verwijderHandtekening() {
+    if (!confirm('Handtekening verwijderen?')) return;
+
+    const pad = `${huidigProfiel.id}/handtekening`;
+
+    try {
+      await supabase.storage.from('handtekeningen').remove([pad]);
+      await supabase.from('profielen')
+        .update({ handtekening_url: null })
+        .eq('id', huidigProfiel.id);
+
+      huidigProfiel.handtekening_url = null;
+
+      document.getElementById('handtekening-img').classList.add('verborgen');
+      document.getElementById('geen-handtekening-tekst').classList.remove('verborgen');
+      document.getElementById('verwijder-handtekening').classList.add('verborgen');
+      document.getElementById('handtekening-status').innerHTML = '';
+      toonToast('Handtekening verwijderd.', 'succes');
+    } catch (fout) {
+      toonToast('Kon handtekening niet verwijderen.', 'fout');
+    }
+  }
+
+  // ── Attest van goed gedrag en zeden type 2 ────────────────────
+
+  /** Laad de huidige atteststatus en toon de juiste UI. */
+  async function laadAttest() {
+    const badge     = document.getElementById('attest-status-badge');
+    const info      = document.getElementById('attest-info');
+    const geenMeld  = document.getElementById('geen-attest-melding');
+    const verwijder = document.getElementById('verwijder-attest');
+
+    if (huidigProfiel.attest_url) {
+      // Genereer tijdelijke signed URL (geldig 1 uur)
+      try {
+        const { data } = await supabase.storage.from('attesten')
+          .createSignedUrl(huidigProfiel.attest_url, 3600);
+        if (data?.signedUrl)
+          document.getElementById('attest-download-link').href = data.signedUrl;
+      } catch (e) {
+        console.warn('[profiel] Attest signed URL:', e?.message);
+      }
+
+      document.getElementById('attest-datum-weergave').textContent =
+        huidigProfiel.attest_datum ? datumNaarNL(huidigProfiel.attest_datum) : '—';
+      if (huidigProfiel.attest_datum)
+        document.getElementById('attest-datum-input').value = huidigProfiel.attest_datum;
+
+      info.classList.remove('verborgen');
+      geenMeld.style.display  = 'none';
+      verwijder.classList.remove('verborgen');
+      badge.innerHTML = '<span class="badge badge-groen">✓ Aanwezig</span>';
+    } else {
+      info.classList.add('verborgen');
+      geenMeld.style.display  = 'flex';
+      verwijder.classList.add('verborgen');
+      badge.innerHTML = '<span class="badge badge-koraal">⚠ Ontbreekt</span>';
+    }
+  }
+
+  /** Koppel upload- en verwijder-listeners voor het attest. */
+  function initialiseerAttestUpload() {
+    document.getElementById('attest-upload-bestand').addEventListener('change', async (e) => {
+      const bestand = e.target.files[0];
+      e.target.value = ''; // reset zodat hetzelfde bestand opnieuw kiesbaar is
+      if (!bestand) return;
+
+      const datum = document.getElementById('attest-datum-input').value;
+      if (!datum) { toonToast('Vul eerst de uitgiftedatum in.', 'fout'); return; }
+      if (bestand.type !== 'application/pdf') {
+        toonToast('Enkel PDF-bestanden zijn toegestaan.', 'fout'); return;
+      }
+      if (bestand.size > 10 * 1024 * 1024) {
+        toonToast('Bestand is te groot (max 10 MB).', 'fout'); return;
+      }
+
+      const statusEl = document.getElementById('attest-upload-status');
+      statusEl.textContent = 'Bezig met uploaden…';
+
+      try {
+        const pad = `${huidigProfiel.id}/attest.pdf`;
+
+        const { error: uploadFout } = await supabase.storage.from('attesten')
+          .upload(pad, bestand, { contentType: 'application/pdf', upsert: true });
+        if (uploadFout) throw uploadFout;
+
+        const { error: updateFout } = await supabase.from('profielen')
+          .update({ attest_url: pad, attest_datum: datum })
+          .eq('id', huidigProfiel.id);
+        if (updateFout) throw updateFout;
+
+        huidigProfiel.attest_url   = pad;
+        huidigProfiel.attest_datum = datum;
+        statusEl.textContent = '';
+        toonToast('Attest succesvol opgeladen.', 'succes');
+        await laadAttest();
+      } catch (fout) {
+        statusEl.textContent = '';
+        console.error('[profiel] Attest upload:', fout?.message ?? fout);
+        toonToast('Uploaden mislukt: ' + (fout?.message ?? 'onbekende fout'), 'fout');
+      }
+    });
+
+    document.getElementById('verwijder-attest').addEventListener('click', async () => {
+      if (!confirm('Attest verwijderen? De beheerder zal dit opmerken.')) return;
+      try {
+        if (huidigProfiel.attest_url) {
+          const { error: removeError } = await supabase.storage.from('attesten')
+            .remove([huidigProfiel.attest_url]);
+          if (removeError) console.warn('[profiel] Attest storage remove:', removeError.message);
+        }
+        const { error } = await supabase.from('profielen')
+          .update({ attest_url: null, attest_datum: null })
+          .eq('id', huidigProfiel.id);
+        if (error) throw error;
+
+        huidigProfiel.attest_url   = null;
+        huidigProfiel.attest_datum = null;
+        toonToast('Attest verwijderd.', 'succes');
+        await laadAttest();
+      } catch (fout) {
+        toonToast('Verwijderen mislukt.', 'fout');
+      }
+    });
+  }
+
+  /** Initialiseer de upload-listeners voor de handtekening. */
+  function initialiseerUpload() {
+    // Bestandskiezer (desktop + galerij op mobiel)
+    document.getElementById('upload-bestand').addEventListener('change', (e) => {
+      if (e.target.files[0]) verwerKBestand(e.target.files[0]);
+      e.target.value = ''; // Reset zodat hetzelfde bestand opnieuw gekozen kan worden
+    });
+
+    // Camera-invoer (opent rechtstreeks camera op mobiel)
+    document.getElementById('upload-camera').addEventListener('change', (e) => {
+      if (e.target.files[0]) verwerKBestand(e.target.files[0]);
+      e.target.value = '';
+    });
+
+    // Verwijderknop
+    document.getElementById('verwijder-handtekening').addEventListener('click', verwijderHandtekening);
+  }
+
+  // ── Contracten laden ───────────────────────────────────────────
+  let contractArchiefOpen = false;
+
+  /** Bereken en toon het financieel overzichtsblok bovenaan contracten. */
+  async function updateFinancieelOverzicht(contracten) {
+    const limiet = await haalLimietenOp(HUIDIG_JAAR);
+
+    // Tel enkel contracten van dit jaar
+    const ditJaar = (contracten ?? []).filter(c => {
+      const start = c.kampen?.startdatum;
+      return start && start.startsWith(String(HUIDIG_JAAR));
+    });
+
+    let uitbetaald = 0, openstaand = 0;
+    for (const c of ditJaar) {
+      const bedrag = Number(c.totaal_bedrag ?? 0);
+      if (c.betaald) uitbetaald += bedrag;
+      else openstaand += bedrag;
+    }
+    const totaal = uitbetaald + openstaand;
+
+    document.getElementById('fin-uitbetaald').textContent = formaatBedrag(uitbetaald);
+    document.getElementById('fin-openstaand').textContent = formaatBedrag(openstaand);
+    document.getElementById('fin-totaal').textContent     = formaatBedrag(totaal);
+    const pct = Math.min(100, (totaal / limiet.max_per_jaar * 100));
+    document.getElementById('fin-balk').style.width = `${pct}%`;
+    document.getElementById('fin-max-label').textContent =
+      `${pct.toFixed(0)}% van jaarmax ${formaatBedrag(limiet.max_per_jaar)}`;
+
+    if (ditJaar.length > 0) {
+      document.getElementById('financieel-overzicht').style.display = 'block';
+    }
+  }
+
+  async function laadContracten() {
+    const contracten = await haalContractenOp(huidigProfiel.id);
+    document.getElementById('laad-contracten').classList.add('verborgen');
+
+    // Update financieel overzicht (altijd, ook bij 0 contracten)
+    await updateFinancieelOverzicht(contracten);
+
+    if (contracten.length === 0) {
+      document.getElementById('geen-contracten').classList.remove('verborgen');
+      return;
+    }
+
+    // Splits actief vs archief (op basis van kampstatus)
+    const actief  = contracten.filter(c => c.kampen?.status !== 'afgelopen');
+    const archief = contracten.filter(c => c.kampen?.status === 'afgelopen');
+
+    let html = '';
+    if (actief.length > 0) {
+      html += actief.map(c => renderContractItem(c)).join('');
+    } else if (archief.length > 0) {
+      html += '<p class="font-klein kleur-grijs" style="text-align:center;padding:14px">Geen actieve contracten — bekijk je archief hieronder.</p>';
+    }
+
+    if (archief.length > 0) {
+      const pijl = contractArchiefOpen ? '▲' : '▼';
+      html += `
+        <div style="margin-top:14px;padding:10px 14px;background:var(--kleur-zand);
+                    border:1px solid var(--kleur-lichtgrijs);border-radius:8px;
+                    cursor:pointer;font-size:0.85rem;font-weight:700;
+                    color:var(--kleur-donkergroen);display:flex;align-items:center;
+                    justify-content:space-between;gap:10px"
+             id="contract-archief-toggle">
+          <span>📦 Archief (${archief.length} contract${archief.length > 1 ? 'en' : ''})</span>
+          <span>${pijl}</span>
+        </div>
+        ${contractArchiefOpen ? `<div style="margin-top:8px;opacity:0.75">${archief.map(c => renderContractItem(c)).join('')}</div>` : ''}
+      `;
+    }
+
+    document.getElementById('contracten-lijst').innerHTML = html;
+
+    document.getElementById('contract-archief-toggle')?.addEventListener('click', () => {
+      contractArchiefOpen = !contractArchiefOpen;
+      laadContracten();
+    });
+
+    window._openContract = async (contractID) => {
+      const contract = contracten.find(c => c.id === contractID);
+      if (!contract) return;
+      document.getElementById('contract-modal-titel').textContent =
+        `Contract — ${contract.kampen?.naam ?? ''}`;
+      document.getElementById('contract-modal-inhoud').innerHTML =
+        renderContractModal(contract);
+      openModal('contract-modal-overlay');
+
+      // Checkbox-listener hier binden — script-tags in innerHTML worden NIET uitgevoerd
+      document.getElementById('akkoord-checkbox')?.addEventListener('change', function () {
+        document.getElementById('onderteken-knop').disabled = !this.checked;
+      });
+
+      document.getElementById('onderteken-knop')?.addEventListener('click', async () => {
+        const knop = document.getElementById('onderteken-knop');
+        knop.disabled = true; knop.textContent = 'Bezig…';
+        const succes = await onderteken(contractID);
+        if (succes) { sluitModal('contract-modal-overlay'); await laadContracten(); }
+        else { knop.disabled = false; knop.textContent = 'Ondertekenen'; }
+      });
+    };
+
+    // Contract afdrukken (mooie HTML-versie met logo en handtekening)
+    window._printContract = async (contractID) => {
+      const contract = contracten.find(c => c.id === contractID);
+      if (!contract?.kampen) return;
+
+      // Haal signed URL op voor de handtekening (private bucket)
+      let handtekeningURL = null;
+      if (huidigProfiel.handtekening_url) {
+        try {
+          const { data } = await supabase.storage
+            .from('handtekeningen')
+            .createSignedUrl(huidigProfiel.handtekening_url, 3600);
+          handtekeningURL = data?.signedUrl ?? null;
+        } catch { /* niet kritiek */ }
+      }
+
+      openContractAfdrukken(huidigProfiel, contract.kampen, {
+        handtekeningURL,
+        ondertekendOp: contract.ondertekend_op,
+      });
+    };
+  }
+
+  // ── IBAN hulpfuncties ──────────────────────────────────────────
+
+  /**
+   * Formatteer een IBAN voor weergave (groepen van 4 tekens).
+   * @param {string} iban - IBAN zonder spaties.
+   * @returns {string} Bv. "BE68 5390 0754 7034"
+   */
+  function formateerIBAN(iban) {
+    return iban.replace(/(.{4})/g, '$1 ').trim();
+  }
+
+  /**
+   * Eenvoudige IBAN-validatie (lengte + mod97-controle).
+   * @param {string} iban - IBAN zonder spaties, in hoofdletters.
+   * @returns {boolean}
+   */
+  function valideerIBAN(iban) {
+    if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]+$/.test(iban)) return false;
+    if (iban.length < 15 || iban.length > 34) return false;
+    // Mod-97 controle
+    const hergerangschikt = iban.slice(4) + iban.slice(0, 4);
+    const numeriek = hergerangschikt.split('').map(c =>
+      isNaN(c) ? (c.charCodeAt(0) - 55).toString() : c
+    ).join('');
+    let rest = 0n;
+    for (const chunk of numeriek.match(/.{1,9}/g) ?? []) {
+      rest = (rest * (10n ** BigInt(chunk.length)) + BigInt(chunk)) % 97n;
+    }
+    return rest === 1n;
+  }
+
+  init();
+</script>
+</body>
+</html>

@@ -1,0 +1,2818 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Beheer — SportFun Portaal</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/kampfilter.css">
+  <link rel="stylesheet" href="css/lesgeverfiches.css">
+  <style>
+    .archief-rij td { background: rgba(247, 243, 239, 0.5); }
+    .archief-rij:hover td { background: var(--kleur-zand); }
+    #archief-toggle-rij:hover td { background: #ede8e2 !important; }
+
+    /* ── Attest-waarschuwingsbadge op lesgeverskaart ── */
+    .lg-attest-ontbreekt {
+      display: inline-flex; align-items: center; gap: 3px;
+      background: rgba(255,105,85,0.12); color: #92400e;
+      border: 1px solid rgba(255,105,85,0.4); border-radius: 10px;
+      font-size: 0.66rem; font-weight: 800; padding: 2px 7px;
+      margin-left: 4px; vertical-align: middle;
+    }
+
+    /* ── Extra dagsoorten ─────────────────────────────────── */
+    .extra-dag-type-rij {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 0; border-bottom: 1px solid var(--kleur-zand);
+    }
+    .extra-dag-type-rij:last-child { border-bottom: none; }
+    .extra-dag-label {
+      width: 160px; font-size: 0.88rem; font-weight: 600;
+      color: var(--kleur-donkergroen); flex-shrink: 0;
+    }
+    .dag-breuk-groep { display: flex; gap: 4px; flex-wrap: wrap; }
+    .dag-breuk-knop {
+      padding: 5px 10px; border-radius: 6px; font-size: 0.82rem; font-weight: 700;
+      border: 1.5px solid var(--kleur-zand); background: white;
+      color: var(--kleur-grijs); cursor: pointer; font-family: var(--font);
+      transition: all 0.15s;
+    }
+    .dag-breuk-knop:hover { border-color: var(--kleur-middengroen); color: var(--kleur-middengroen); }
+    .dag-breuk-knop.actief { background: var(--kleur-middengroen); color: white; border-color: var(--kleur-middengroen); }
+
+    /* ══════════════════════════════════════════════════════════
+       MOBIELE AANPASSINGEN BEHEERPAGINA
+       ══════════════════════════════════════════════════════════ */
+
+    /* ── Tablet (≤ 900px): minder padding in contracten band ── */
+    @media (max-width: 900px) {
+      #contracten-per-kamp-lijst > div > div:first-child {
+        gap: 10px !important;
+      }
+    }
+
+    /* ── Mobiel (≤ 700px): kampentabel → kaarten ───────────── */
+    @media (max-width: 700px) {
+
+      /* Tabel wrapper: geen border, geen overflow-x scroll nodig */
+      #tab-kampen .tabel-wrapper {
+        border: none;
+        background: transparent;
+        border-radius: 0;
+        overflow: visible;
+      }
+      #tab-kampen .tabel-wrapper::after { display: none; }
+
+      /* Tabel zelf: block zodat rijen kaarten worden */
+      #tab-kampen .tabel { display: block; }
+      #tab-kampen .tabel thead { display: none; }
+      #tab-kampen .tabel tbody { display: flex; flex-direction: column; gap: 8px; }
+
+      /* ── Gewone kamp-rij als kaart ── */
+      #tab-kampen .tabel tbody tr:not(.kamp-detail-rij):not(.periode-header-rij):not(.locatie-subheader-rij) {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        background: white;
+        border: 1px solid var(--kleur-lichtgrijs);
+        border-radius: 12px;
+        box-shadow: 0 1px 4px rgba(25,67,56,0.07);
+        overflow: hidden;
+      }
+
+      /* td 1 – kamp naam + locatie: volle breedte, koptekst */
+      #tab-kampen .tabel tbody tr:not(.kamp-detail-rij):not(.periode-header-rij):not(.locatie-subheader-rij) td:nth-child(1) {
+        grid-column: 1 / -1;
+        padding: 12px 14px 4px;
+        border-bottom: none;
+      }
+      /* Verberg de border die tabel-stijl toevoegt */
+      #tab-kampen .tabel tbody tr:not(.kamp-detail-rij):not(.periode-header-rij):not(.locatie-subheader-rij) td:nth-child(1)::after {
+        display: none;
+      }
+
+      /* td 2 – periode: volle breedte, subtiel grijs */
+      #tab-kampen .tabel tbody tr:not(.kamp-detail-rij):not(.periode-header-rij):not(.locatie-subheader-rij) td:nth-child(2) {
+        grid-column: 1 / -1;
+        padding: 0 14px 10px;
+        font-size: 0.78rem;
+        color: var(--kleur-grijs);
+        border-bottom: 1px solid var(--kleur-lichtgrijs);
+      }
+
+      /* td 3 – lesgevers-pills: verbergen */
+      #tab-kampen .tabel tbody tr:not(.kamp-detail-rij):not(.periode-header-rij):not(.locatie-subheader-rij) td:nth-child(3) { display: none; }
+
+      /* td 4 – verantwoordelijke: verbergen */
+      #tab-kampen .tabel tbody tr:not(.kamp-detail-rij):not(.periode-header-rij):not(.locatie-subheader-rij) td:nth-child(4) { display: none; }
+
+      /* td 5 – status badge: linksonder */
+      #tab-kampen .tabel tbody tr:not(.kamp-detail-rij):not(.periode-header-rij):not(.locatie-subheader-rij) td:nth-child(5) {
+        grid-column: 1;
+        padding: 8px 8px 12px 14px;
+        display: flex;
+        align-items: center;
+        border-bottom: none;
+      }
+
+      /* td 6 – acties knoppen: rechtsonder */
+      #tab-kampen .tabel tbody tr:not(.kamp-detail-rij):not(.periode-header-rij):not(.locatie-subheader-rij) td:nth-child(6) {
+        grid-column: 2;
+        padding: 6px 12px 12px 6px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        border-bottom: none;
+      }
+      #tab-kampen .tabel tbody td:nth-child(6) .flex-gap {
+        flex-wrap: wrap;
+        gap: 5px;
+        justify-content: flex-end;
+      }
+
+      /* ── Kamp-detail rij: visueel verbonden aan de kaart ── */
+      #tab-kampen .tabel tbody tr.kamp-detail-rij {
+        display: block;
+        margin-top: -9px;   /* Heft de flex-gap op + 1px overlap */
+      }
+      #tab-kampen .tabel tbody tr.kamp-detail-rij td {
+        display: block;
+        padding: 0 !important;
+        /* Zelfde grijs als de kaart + subtiele groene bovenrand als scheidingslijn */
+        border: 1px solid var(--kleur-lichtgrijs);
+        border-top: 2px solid var(--kleur-middengroen);
+        border-radius: 0 0 12px 12px;
+        overflow: hidden;
+      }
+
+      /* Kampen-tab header: titel + knop op eigen rij */
+      #tab-kampen > div:first-child {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      #tab-kampen > div:first-child .knop {
+        width: 100%;
+        justify-content: center;
+      }
+
+      /* Contracten-tabel: verberg KM kolom */
+      #contracten-per-kamp-lijst .tabel th:nth-child(4),
+      #contracten-per-kamp-lijst .tabel td:nth-child(4) { display: none; }
+
+      /* Contracten kamp-header band: stats kleinere gap + links uitlijnen */
+      #contracten-per-kamp-lijst > div > div:first-child > div:last-child {
+        gap: 10px !important;
+      }
+
+      /* Contracten-tabel Bewerk knop: grotere taptarget */
+      #contracten-per-kamp-lijst .knop-klein {
+        min-height: 36px;
+        padding: 6px 12px;
+      }
+    }
+
+    /* ── Kleine telefoon (≤ 520px) ──────────────────────────── */
+    @media (max-width: 520px) {
+
+      /* Contracten-tabel: verberg ook Vergoeding kolom */
+      #contracten-per-kamp-lijst .tabel th:nth-child(3),
+      #contracten-per-kamp-lijst .tabel td:nth-child(3) { display: none; }
+
+      /* Contracten kamp-band: compacter */
+      #contracten-per-kamp-lijst > div > div:first-child {
+        padding: 12px 14px !important;
+      }
+      #contracten-per-kamp-lijst > div > div:first-child > div:first-child > div:first-child {
+        font-size: 0.9rem !important;
+      }
+
+      /* Contract modal voetlijn: 2×2 grid */
+      #contract-bewerken-overlay .modal-voetlijn {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      /* Opslaan prominent vooraan (order trick) */
+      #contract-bewerken-overlay #cb-opslaan {
+        grid-column: 1 / -1;
+        order: -1;
+      }
+
+      /* Sticky totaal: 2 kolommen */
+      #cb-sticky-totaal > div { grid-template-columns: 1fr 1fr !important; }
+      #cb-sticky-totaal { padding: 10px 14px; }
+
+      /* Lesgevers-tab header: knoppen stapelen */
+      #tab-lesgevers > div:first-child {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      #tab-lesgevers > div:first-child > div {
+        flex-wrap: wrap;
+      }
+      #tab-lesgevers > div:first-child .knop {
+        flex: 1;
+        justify-content: center;
+        min-width: 120px;
+      }
+
+      /* SportFun handtekening: preview boven knoppen */
+      #tab-contracten .kaart > div {
+        flex-direction: column;
+        align-items: flex-start !important;
+      }
+      #tab-contracten .kaart > div > div:last-child {
+        flex-wrap: wrap;
+        width: 100%;
+      }
+      #tab-contracten .kaart > div > div:last-child label.knop {
+        flex: 1;
+        justify-content: center;
+      }
+    }
+
+    /* ── Periode-groepskoppen in kampentabel ── */
+    .periode-header-rij td {
+      background: var(--kleur-donkergroen);
+      color: white;
+      padding: 11px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      border-bottom: none;
+    }
+    .periode-header-rij:hover td { background: #1a4e41; }
+
+    /* ── Locatie-subkoppen binnen een periode ── */
+    .locatie-subheader-rij td {
+      background: rgba(215,252,92,0.10);
+      color: var(--kleur-donkergroen);
+      padding: 7px 16px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border-left: 3px solid var(--kleur-limoen);
+      border-bottom: 1px solid rgba(215,252,92,0.25);
+    }
+
+    /* ── Extra klein (≤ 400px) ──────────────────────────────── */
+    @media (max-width: 400px) {
+      .extra-dag-label { width: 100%; margin-bottom: 4px; }
+      .extra-dag-type-rij { flex-wrap: wrap; }
+      #cb-sticky-totaal { padding: 8px 10px; }
+
+      /* Acties in kamp-kaart: knoppen stapelen */
+      #tab-kampen .tabel tbody td:nth-child(6) .flex-gap {
+        flex-direction: column;
+        gap: 4px;
+      }
+      #tab-kampen .tabel tbody td:nth-child(6) .knop {
+        width: 100%;
+        justify-content: center;
+      }
+
+      /* Extra-dag knoppen: smaller */
+      .dag-breuk-knop { padding: 6px 8px; font-size: 0.78rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="portaal-wrapper">
+
+  <!-- Zijbalk -->
+  <nav class="zijbalk" id="zijbalk">
+    <div class="zijbalk-logo">
+      <img src="sportfun-logo-wit.svg" alt="SportFun"
+           style="max-width:170px;height:auto;display:block;margin-bottom:4px">
+      <div class="logo-sub">Lesgeversportaal</div>
+    </div>
+    <div class="zijbalk-nav">
+      <ul>
+        <li><a href="dashboard.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          Dashboard
+        </a></li>
+        <li><a href="planner.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Kampplanning
+        </a></li>
+        <li class="verberg-admin"><a href="beschikbaarheid.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+            <polyline points="9 15 11 17 15 13"/>
+          </svg>Beschikbaarheid
+        </a></li>
+        <li><a href="fiches.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          Activiteiten
+        </a></li>
+        <li><a href="materiaal.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+          Materiaal
+        </a></li>
+        <li><a href="admin.html" class="actief">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          Beheer
+        </a></li>
+      </ul>
+    </div>
+    <div class="zijbalk-footer">
+      <div class="gebruiker-info">
+        <a href="profiel.html" class="gebruiker-avatar" id="nav-avatar" title="Profiel & contracten">?</a>
+        <div>
+          <div class="gebruiker-naam" id="nav-naam">Laden…</div>
+          <div class="gebruiker-rol" id="nav-rol"></div>
+        </div>
+      </div>
+      <button class="uitloggen-knop" id="nav-uitloggen">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Uitloggen
+      </button>
+    </div>
+  </nav>
+  <div class="overlay-nav" id="overlay-nav"></div>
+
+  <!-- Hoofdinhoud -->
+  <main class="hoofdinhoud">
+    <header class="pagina-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger geen-print" id="hamburger"><span></span><span></span><span></span></button>
+        <h1>Beheer</h1>
+      </div>
+      <div class="notificatie-wrapper geen-print">
+        <div class="notificatie-bel" id="notif-bel">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <span class="notificatie-badge verborgen" id="notif-badge">0</span>
+        </div>
+        <div class="notificatie-dropdown verborgen" id="notif-dropdown">
+          <div class="notificatie-dropdown-header">
+            <span>Notificaties</span>
+            <button id="notif-alles-gelezen" style="background:none;border:none;font-size:0.75rem;color:var(--kleur-middengroen);cursor:pointer">Alles gelezen</button>
+          </div>
+          <div id="notif-lijst"></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="pagina-inhoud">
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-knop actief" data-tab="kampen">Kampen</button>
+        <button class="tab-knop" data-tab="lesgevers">Lesgevers</button>
+        <button class="tab-knop" data-tab="contracten">📄 Contracten</button>
+      </div>
+
+      <!-- Tab 1: Kampen -->
+      <div class="tab-inhoud actief" id="tab-kampen">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h2 class="sectie-titel" style="margin:0">Overzicht kampen</h2>
+          <button class="knop knop-accent" id="nieuw-kamp-knop">+ Nieuw kamp</button>
+        </div>
+        <!-- Filterbalk wordt hier gerenderd -->
+        <div id="kampfilter-container"></div>
+
+        <div class="tabel-wrapper">
+          <table class="tabel">
+            <thead>
+              <tr>
+                <th>Kamp</th><th>Periode</th><th>Lesgevers</th>
+                <th>Verantwoordelijke</th><th>Status</th><th>Acties</th>
+              </tr>
+            </thead>
+            <tbody id="kampen-tabel-body">
+              <tr><td colspan="6" style="text-align:center;padding:32px;color:var(--kleur-grijs)">
+                <div class="laadindicator" style="margin:0 auto 8px"></div>Laden…
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 2: Lesgevers (fiches-raster) -->
+      <div class="tab-inhoud" id="tab-lesgevers">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <h2 class="sectie-titel" style="margin:0">Teamleden</h2>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <div style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--kleur-grijs)">
+              Jaar:
+              <select class="filter-select" id="lg-fin-jaar-filter" style="min-width:80px">
+                <option value="2026">2026</option>
+                <option value="2025">2025</option>
+                <option value="2024">2024</option>
+              </select>
+            </div>
+            <button class="knop knop-omtrek" id="beschikbaarheid-matrix-knop">📋 Beschikbaarheidsmatrix</button>
+            <button class="knop knop-primair" id="nieuw-account-knop">+ Account aanmaken</button>
+            <button class="knop knop-omtrek" id="uitnodiging-knop">Uitnodigingslink</button>
+          </div>
+        </div>
+
+        <!-- Filterbalk voor fiches -->
+        <div class="lg-fiches-controls">
+          <div class="kf-zoek-wrap" style="position:relative">
+            <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--kleur-grijs);width:15px;height:15px"
+                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="search" id="lg-zoek" placeholder="Zoek op naam of e-mail…"
+                   style="width:100%;height:38px;padding:0 14px 0 36px;border:1.5px solid var(--kleur-lichtgrijs);border-radius:8px;font-family:var(--font);font-size:0.88rem;outline:none">
+          </div>
+          <select class="filter-select" id="lg-rol-filter">
+            <option value="">Alle rollen</option>
+            <option value="admin">Beheerders</option>
+            <option value="coordinator">Coördinatoren</option>
+            <option value="lesgever">Lesgevers</option>
+            <option value="extra_hulp">Extra hulp</option>
+          </select>
+          <select class="filter-select" id="lg-status-filter">
+            <option value="">Alle statussen</option>
+            <option value="actief">Enkel actief</option>
+            <option value="inactief">Enkel inactief</option>
+          </select>
+        </div>
+
+        <div id="lg-fiches-raster" class="fiches-raster-lesgevers">
+          <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--kleur-grijs)">
+            <div class="laadindicator" style="margin:0 auto 8px"></div>Lesgevers worden geladen…
+          </div>
+        </div>
+
+        <!-- Beschikbaarheidsmatrix (verborgen tot knop) -->
+        <div id="beschikbaarheid-matrix-sectie" class="verborgen" style="margin-top:24px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <h3 style="margin:0;font-size:1rem;font-weight:700;color:var(--kleur-donkergroen)">Beschikbaarheid per lesgever</h3>
+            <button class="knop knop-omtrek knop-klein" id="beschikbaarheid-matrix-sluiten">✕ Sluiten</button>
+          </div>
+          <div id="beschikbaarheid-matrix-inhoud" style="overflow-x:auto">
+            <div style="text-align:center;padding:32px;color:var(--kleur-grijs)">
+              <div class="laadindicator" style="margin:0 auto 8px"></div>Matrix wordt geladen…
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Contracten -->
+      <div class="tab-inhoud" id="tab-contracten">
+
+        <!-- SportFun handtekening -->
+        <div class="kaart mb-16" style="padding:14px 18px">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+            <div>
+              <div class="vet" style="margin-bottom:2px">Handtekening SportFun vzw</div>
+              <div class="font-klein kleur-grijs">
+                Wordt afgedrukt op alle vrijwilligerscontracten namens de organisatie.
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <div id="sf-handtekening-preview-wrapper" style="display:none;
+                background:var(--kleur-zand);border-radius:8px;padding:6px 10px;
+                border:1px solid var(--kleur-lichtgrijs)">
+                <img id="sf-handtekening-preview" alt="Handtekening SportFun"
+                     style="max-height:56px;max-width:180px;display:block">
+              </div>
+              <div>
+                <label class="knop knop-omtrek knop-klein" style="cursor:pointer;margin:0"
+                       for="sf-handtekening-input">
+                  📤 Handtekening uploaden
+                </label>
+                <input type="file" id="sf-handtekening-input" accept="image/png,image/jpeg"
+                       style="display:none">
+                <div class="hulptekst" style="margin-top:4px">PNG of JPEG, max 2&nbsp;MB</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <h2 class="sectie-titel" style="margin:0">Vrijwilligerscontracten</h2>
+          <div style="display:inline-flex;background:var(--kleur-zand);border-radius:8px;padding:3px" id="contr-sort-toggle">
+            <button class="contr-sort-knop actief" data-mode="kamp"
+              style="padding:5px 14px;border:none;background:var(--kleur-donkergroen);color:var(--kleur-limoen);border-radius:5px;font-family:var(--font);font-size:0.78rem;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(25,67,56,0.18)">
+              Per kamp
+            </button>
+            <button class="contr-sort-knop" data-mode="lesgever"
+              style="padding:5px 14px;border:none;background:transparent;border-radius:5px;font-family:var(--font);font-size:0.78rem;font-weight:700;cursor:pointer;color:var(--kleur-grijs)">
+              Per lesgever
+            </button>
+          </div>
+        </div>
+        <div id="contracten-per-kamp-lijst">
+          <div style="text-align:center;padding:40px;color:var(--kleur-grijs)">
+            <div class="laadindicator" style="margin:0 auto 8px"></div>Laden…
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Modal: Kamp aanmaken/bewerken -->
+<div class="modal-overlay verborgen" id="kamp-modal-overlay">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="kamp-modal-titel">Nieuw kamp</h2>
+      <button class="modal-sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam">
+      <form id="kamp-formulier" novalidate>
+        <input type="hidden" id="kamp-id">
+        <div class="formulier-rij">
+          <div class="formulier-groep">
+            <label for="kamp-naam">Kampnaam *</label>
+            <input type="text" id="kamp-naam" required placeholder="bv. Zomerkamp Gent">
+          </div>
+          <div class="formulier-groep">
+            <label for="kamp-leeftijd">Leeftijdsgroep *</label>
+            <input type="text" id="kamp-leeftijd" required
+                   list="leeftijd-suggesties"
+                   placeholder="bv. 6-9j of 7-14j"
+                   autocomplete="off">
+            <datalist id="leeftijd-suggesties">
+              <option value="2.5-5j">2,5 – 5 jaar</option>
+              <option value="3-5j">3 – 5 jaar</option>
+              <option value="6-9j">6 – 9 jaar</option>
+              <option value="6-12j">6 – 12 jaar</option>
+              <option value="7-14j">7 – 14 jaar</option>
+              <option value="9-14j">9 – 14 jaar</option>
+              <option value="10-12j">10 – 12 jaar</option>
+              <option value="10+j">10+ jaar</option>
+            </datalist>
+            <div class="hulptekst">Typ vrij of kies een suggestie. Bv. "2.5-5j", "7-14j", "10+j"</div>
+          </div>
+        </div>
+        <div class="formulier-rij">
+          <div class="formulier-groep">
+            <label for="kamp-locatie">Locatie *</label>
+            <input type="text" id="kamp-locatie" required placeholder="bv. Sporthal De Brug"
+                   list="locatie-suggesties" autocomplete="off">
+            <datalist id="locatie-suggesties"></datalist>
+          </div>
+          <div class="formulier-groep">
+            <label for="kamp-adres">Adres</label>
+            <input type="text" id="kamp-adres" placeholder="Straat 1, 9000 Gent">
+          </div>
+        </div>
+        <div class="formulier-rij">
+          <div class="formulier-groep">
+            <label for="kamp-start">Startdatum *</label>
+            <input type="date" id="kamp-start" required>
+          </div>
+          <div class="formulier-groep">
+            <label for="kamp-eind">Einddatum *</label>
+            <input type="date" id="kamp-eind" required>
+          </div>
+          <div class="formulier-groep">
+            <label>Aantal dagen</label>
+            <div style="padding:10px 14px;background:var(--kleur-zand);border-radius:8px;font-weight:700" id="kamp-dagen-display">—</div>
+          </div>
+        </div>
+        <div class="formulier-groep">
+          <label for="kamp-status">Status</label>
+          <select id="kamp-status">
+            <option value="concept">Concept</option>
+            <option value="actief">Actief</option>
+            <option value="afgelopen">Afgelopen</option>
+          </select>
+        </div>
+        <div class="modal-voetlijn" style="border:none;padding:0;margin-top:8px">
+          <button type="button" class="knop knop-omtrek" id="kamp-annuleren">Annuleren</button>
+          <button type="submit" class="knop knop-accent" id="kamp-opslaan-knop">Kamp opslaan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal: Contract bewerken (financiële details) -->
+<div class="modal-overlay verborgen" id="contract-bewerken-overlay">
+  <div class="modal modal-lg" style="display:flex;flex-direction:column;overflow:hidden;max-height:92vh">
+    <div class="modal-header">
+      <h2 id="cb-titel">Contract bewerken</h2>
+      <button class="modal-sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam" style="overflow-y:auto;flex:1">
+      <input type="hidden" id="cb-id">
+
+      <!-- Status badges -->
+      <div class="flex-gap mb-16" id="cb-status-badges"></div>
+
+      <!-- Lesgever + kamp info -->
+      <div class="kaart mb-16" style="background:var(--kleur-zand);padding:12px 16px">
+        <div class="flex-gap" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div>
+            <div class="vet" id="cb-lesgever-naam">—</div>
+            <div class="font-klein kleur-grijs" id="cb-lesgever-info">—</div>
+          </div>
+          <div style="text-align:right">
+            <div class="vet" id="cb-kamp-naam">—</div>
+            <div class="font-klein kleur-grijs" id="cb-kamp-info">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gewerkte dagen -->
+      <div class="formulier-groep">
+        <label>Gewerkte dagen</label>
+        <div class="font-klein kleur-grijs mb-8">Klik om een dag toe te voegen of weg te halen</div>
+        <div class="beschikbaarheid-dagen" id="cb-dagen-knoppen"></div>
+      </div>
+
+      <!-- Financiële velden -->
+      <div class="formulier-rij">
+        <div class="formulier-groep">
+          <label for="cb-dagbedrag">Vergoeding per dag (€) *</label>
+          <input type="number" id="cb-dagbedrag" min="0" max="44.02" step="0.01">
+          <div class="hulptekst" id="cb-dagbedrag-hulp">Wettelijk maximum: €44,02 (2026)</div>
+          <div class="fout-tekst verborgen" id="cb-dagbedrag-fout"></div>
+        </div>
+        <div class="formulier-groep">
+          <label>Aantal gewerkte dagen</label>
+          <div style="padding:10px 14px;background:var(--kleur-zand);border-radius:8px;font-weight:800" id="cb-dagen-display">0</div>
+        </div>
+      </div>
+
+      <div class="formulier-rij">
+        <div class="formulier-groep">
+          <label for="cb-km">Kilometers (heen-terug, totaal)</label>
+          <input type="number" id="cb-km" min="0" step="0.1">
+          <div class="hulptekst">Vul de totale afstand in voor alle kampdagen.</div>
+        </div>
+        <div class="formulier-groep">
+          <label>Vervoermiddel</label>
+          <div class="vervoer-keuze">
+            <button type="button" class="vervoer-knop" data-vervoer="auto" data-tarief="0.4449">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/>
+                <circle cx="6.5" cy="16.5" r="2.5"/>
+                <circle cx="16.5" cy="16.5" r="2.5"/>
+              </svg>
+              <div class="vervoer-label">
+                <strong>Auto</strong>
+                <span>€0,4449/km</span>
+              </div>
+            </button>
+            <button type="button" class="vervoer-knop" data-vervoer="fiets" data-tarief="0.37">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="5.5" cy="17.5" r="3.5"/>
+                <circle cx="18.5" cy="17.5" r="3.5"/>
+                <path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h2"/>
+              </svg>
+              <div class="vervoer-label">
+                <strong>Fiets</strong>
+                <span>€0,37/km</span>
+              </div>
+            </button>
+          </div>
+          <input type="hidden" id="cb-km-tarief" value="0.4449">
+          <div class="hulptekst" id="cb-vervoer-hulp">Auto-tarief 1/7/2025 – 30/6/2026</div>
+        </div>
+      </div>
+
+      <!-- Andere prestaties (inklapbaar) -->
+      <div class="formulier-groep" style="margin-top:14px">
+        <button type="button" id="cb-andere-prestaties-toggle"
+                style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;
+                       cursor:pointer;padding:0;font-family:var(--font);text-align:left">
+          <span style="font-size:0.82rem;font-weight:700;color:var(--kleur-donkergroen);
+                       text-transform:uppercase;letter-spacing:0.5px">Andere prestaties</span>
+          <span id="cb-andere-prestaties-pil" style="display:none;font-size:0.72rem;font-weight:700;
+                padding:2px 8px;border-radius:20px;background:var(--kleur-middengroen);color:white"></span>
+          <svg id="cb-andere-prestaties-pijl" width="16" height="16" viewBox="0 0 24 24"
+               fill="none" stroke="var(--kleur-middengroen)" stroke-width="2.5"
+               style="margin-left:auto;transition:transform 0.2s">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        <div id="cb-andere-prestaties-inhoud" style="display:none;margin-top:10px">
+          <div class="hulptekst mb-8">Zelfde dagvergoeding als de kampdag. Kies 0 als niet van toepassing.</div>
+          <div style="border:1px solid var(--kleur-zand);border-radius:10px;padding:10px 14px">
+
+            <div class="extra-dag-type-rij">
+              <span class="extra-dag-label">Voorbereidingsdag</span>
+              <div class="dag-breuk-groep" id="cb-voorbereidingsdag-knoppen">
+                <button type="button" class="dag-breuk-knop actief" data-waarde="0">0</button>
+                <button type="button" class="dag-breuk-knop" data-waarde="0.25">¼</button>
+                <button type="button" class="dag-breuk-knop" data-waarde="0.5">½</button>
+                <button type="button" class="dag-breuk-knop" data-waarde="0.75">¾</button>
+                <button type="button" class="dag-breuk-knop" data-waarde="1">1</button>
+              </div>
+              <input type="hidden" id="cb-voorbereidingsdag" value="0">
+            </div>
+
+            <div class="extra-dag-type-rij">
+              <span class="extra-dag-label">Opruimdag</span>
+              <div class="dag-breuk-groep" id="cb-opruimdag-knoppen">
+                <button type="button" class="dag-breuk-knop actief" data-waarde="0">0</button>
+                <button type="button" class="dag-breuk-knop" data-waarde="0.25">¼</button>
+                <button type="button" class="dag-breuk-knop" data-waarde="0.5">½</button>
+                <button type="button" class="dag-breuk-knop" data-waarde="0.75">¾</button>
+                <button type="button" class="dag-breuk-knop" data-waarde="1">1</button>
+              </div>
+              <input type="hidden" id="cb-opruimdag" value="0">
+            </div>
+
+            <div class="extra-dag-type-rij">
+              <span class="extra-dag-label">Opleidingsdag</span>
+              <div class="dag-breuk-groep" id="cb-opleidingsdag-knoppen">
+                <button type="button" class="dag-breuk-knop actief" data-waarde="0">0</button>
+                <button type="button" class="dag-breuk-knop" data-waarde="0.25">¼</button>
+                <button type="button" class="dag-breuk-knop" data-waarde="0.5">½</button>
+                <button type="button" class="dag-breuk-knop" data-waarde="0.75">¾</button>
+                <button type="button" class="dag-breuk-knop" data-waarde="1">1</button>
+              </div>
+              <input type="hidden" id="cb-opleidingsdag" value="0">
+            </div>
+
+            <div class="extra-dag-type-rij">
+              <span class="extra-dag-label">Evaluatiemoment</span>
+              <div class="dag-breuk-groep" id="cb-evaluatiemoment-knoppen">
+                <button type="button" class="dag-breuk-knop actief" data-waarde="0">0</button>
+                <button type="button" class="dag-breuk-knop" data-waarde="0.25">¼</button>
+                <button type="button" class="dag-breuk-knop" data-waarde="0.5">½</button>
+                <button type="button" class="dag-breuk-knop" data-waarde="0.75">¾</button>
+                <button type="button" class="dag-breuk-knop" data-waarde="1">1</button>
+              </div>
+              <input type="hidden" id="cb-evaluatiemoment" value="0">
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="formulier-groep" style="margin-top:14px">
+        <label for="cb-opmerking">Opmerking (optioneel)</label>
+        <textarea id="cb-opmerking" rows="2" placeholder="Bv. Speciale afspraak rond carpoolen"></textarea>
+      </div>
+    </div>
+
+    <!-- Sticky totaal — altijd zichtbaar boven de actieknoppen -->
+    <div id="cb-sticky-totaal" style="background:var(--kleur-donkergroen);color:var(--kleur-wit);padding:12px 24px;flex-shrink:0;
+                border-top:2px solid rgba(215,252,92,0.2)">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px 14px;align-items:center;flex-wrap:wrap">
+        <div>
+          <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(215,252,92,0.7)">Kampdagen</div>
+          <div style="font-size:1rem;font-weight:800" id="cb-totaal-vergoeding">€0,00</div>
+        </div>
+        <div>
+          <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(215,252,92,0.7)">Andere prestaties</div>
+          <div style="font-size:1rem;font-weight:800" id="cb-totaal-extra">€0,00</div>
+        </div>
+        <div>
+          <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(215,252,92,0.7)">Km-vergoeding</div>
+          <div style="font-size:1rem;font-weight:800" id="cb-totaal-km">€0,00</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(215,252,92,0.85)">Totaal</div>
+          <div style="font-size:1.5rem;font-weight:800;color:var(--kleur-limoen)" id="cb-totaal">€0,00</div>
+        </div>
+      </div>
+      <div class="font-klein mt-8" id="cb-jaar-info" style="color:rgba(215,252,92,0.75);font-size:0.72rem"></div>
+      <div id="cb-fout" class="verborgen" style="
+        background:rgba(255,105,85,0.15);border:1px solid rgba(255,105,85,0.4);
+        border-radius:8px;padding:8px 12px;font-size:0.82rem;color:#ffb0a0;margin-top:8px"></div>
+    </div>
+
+    <div class="modal-voetlijn">
+      <button class="knop knop-omtrek" id="cb-annuleren">Annuleren</button>
+      <button class="knop knop-omtrek" id="cb-print-knop">📄 PDF</button>
+      <button class="knop knop-middengroen" id="cb-betaald-knop">💰 Markeer als betaald</button>
+      <button class="knop knop-accent" id="cb-opslaan">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nieuw account aanmaken -->
+<div class="modal-overlay verborgen" id="nieuw-account-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Nieuw account aanmaken</h2>
+      <button class="modal-sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam">
+      <div class="formulier-rij">
+        <div class="formulier-groep">
+          <label for="na-voornaam">Voornaam *</label>
+          <input type="text" id="na-voornaam" placeholder="bv. Tom" autocomplete="off">
+        </div>
+        <div class="formulier-groep">
+          <label for="na-achternaam">Achternaam *</label>
+          <input type="text" id="na-achternaam" placeholder="bv. Claes" autocomplete="off">
+        </div>
+      </div>
+      <div class="formulier-groep">
+        <label for="na-email">E-mailadres *</label>
+        <input type="email" id="na-email" placeholder="tom@voorbeeld.be" autocomplete="off">
+      </div>
+      <div class="formulier-rij">
+        <div class="formulier-groep">
+          <label for="na-telefoon">Telefoon</label>
+          <input type="tel" id="na-telefoon" placeholder="0479 00 00 00">
+        </div>
+        <div class="formulier-groep">
+          <label for="na-rol">Rol *</label>
+          <select id="na-rol">
+            <option value="lesgever">Lesgever</option>
+            <option value="extra_hulp">Extra hulp</option>
+            <option value="coordinator">Coördinator</option>
+            <option value="admin">Beheerder</option>
+          </select>
+        </div>
+      </div>
+      <div class="formulier-groep">
+        <label for="na-wachtwoord">Wachtwoord *</label>
+        <div style="position:relative">
+          <input type="password" id="na-wachtwoord" placeholder="Minimaal 8 tekens" autocomplete="new-password">
+          <button type="button" id="ww-genereer"
+                  title="Willekeurig wachtwoord genereren"
+                  style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--kleur-middengroen);font-size:0.8rem;font-weight:700;font-family:var(--font)">
+            Genereer
+          </button>
+        </div>
+        <div class="hulptekst">De gebruiker kan dit later wijzigen via "Wachtwoord vergeten".</div>
+      </div>
+      <div id="ww-gegenereerd" class="verborgen" style="
+        background:rgba(20,136,105,0.08);border:1px solid rgba(20,136,105,0.2);
+        border-radius:8px;padding:10px 14px;font-size:0.82rem;margin-top:-10px;margin-bottom:10px
+      ">
+        <span style="color:var(--kleur-grijs)">Gegenereerd wachtwoord:</span>
+        <strong id="ww-gegenereerd-waarde" style="margin-left:8px;letter-spacing:1px"></strong>
+        <button type="button" id="kopieer-ww"
+                style="margin-left:10px;background:none;border:none;color:var(--kleur-middengroen);cursor:pointer;font-size:0.78rem;font-weight:700;font-family:var(--font)">
+          Kopiëren
+        </button>
+      </div>
+
+      <div id="na-fout" class="verborgen" style="
+        background:rgba(255,105,85,0.1);border:1px solid rgba(255,105,85,0.3);
+        border-radius:8px;padding:10px 14px;font-size:0.85rem;color:var(--kleur-koraal);
+        margin-bottom:8px
+      "></div>
+
+      <div id="na-succes" class="verborgen" style="
+        background:rgba(20,136,105,0.08);border:1px solid rgba(20,136,105,0.2);
+        border-radius:8px;padding:12px 16px;font-size:0.88rem;color:var(--kleur-middengroen)
+      "></div>
+    </div>
+    <div class="modal-voetlijn">
+      <button class="knop knop-omtrek" id="na-annuleren">Annuleren</button>
+      <button class="knop knop-primair" id="na-opslaan">Account aanmaken</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Uitnodiging versturen -->
+<div class="modal-overlay verborgen" id="uitnodiging-modal-overlay">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2>Uitnodiging versturen</h2>
+      <button class="modal-sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam">
+      <div class="formulier-groep">
+        <label for="uitnodiging-email">E-mailadres *</label>
+        <input type="email" id="uitnodiging-email" placeholder="nieuw@teamlid.be" required>
+      </div>
+      <div class="formulier-groep">
+        <label for="uitnodiging-rol">Rol *</label>
+        <select id="uitnodiging-rol">
+          <option value="lesgever">Lesgever</option>
+          <option value="extra_hulp">Extra hulp</option>
+          <option value="coordinator">Coördinator</option>
+          <option value="admin">Beheerder</option>
+        </select>
+      </div>
+      <button class="knop knop-accent w-100" id="genereer-uitnodiging-knop">Uitnodigingslink genereren</button>
+
+      <div id="uitnodiging-resultaat" class="verborgen" style="margin-top:16px">
+        <div style="font-size:0.83rem;font-weight:700;margin-bottom:8px;color:var(--kleur-donkergroen)">
+          Uitnodigingslink (stuur dit manueel door):
+        </div>
+        <div class="link-kopieer-vak">
+          <span id="uitnodiging-link" style="flex:1;word-break:break-all"></span>
+          <button class="kopieer-knop" id="kopieer-link-knop">Kopiëren</button>
+        </div>
+        <div style="font-size:0.75rem;color:var(--kleur-grijs);margin-top:8px">
+          De link vervalt na 7 dagen.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal: Rol wijzigen -->
+<!-- Modal: Wachtwoord resetten (admin) -->
+<div class="modal-overlay verborgen" id="ww-reset-overlay">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2>🔑 Wachtwoord resetten</h2>
+      <button class="modal-sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam">
+      <input type="hidden" id="ww-reset-id">
+      <input type="hidden" id="ww-reset-email">
+      <p style="font-size:0.88rem;margin-bottom:14px">
+        Voor <strong id="ww-reset-naam">—</strong>
+      </p>
+
+      <!-- Optie keuze -->
+      <div class="formulier-groep">
+        <label class="checkbox-groep">
+          <input type="radio" name="ww-opt" value="direct" id="ww-opt-direct" checked>
+          <span><strong>Direct nieuw wachtwoord instellen</strong> — lesgever kan meteen inloggen</span>
+        </label>
+        <label class="checkbox-groep mt-8">
+          <input type="radio" name="ww-opt" value="mail" id="ww-opt-mail">
+          <span><strong>Reset-mail sturen</strong> — lesgever kiest zelf een nieuw wachtwoord</span>
+        </label>
+      </div>
+
+      <!-- Veld voor direct -->
+      <div class="formulier-groep" id="ww-direct-veld">
+        <label for="ww-nieuw">Nieuw wachtwoord (min. 8 tekens)</label>
+        <div style="position:relative">
+          <input type="text" id="ww-nieuw" placeholder="Klik op 'Genereer' of typ zelf">
+          <button type="button" id="ww-genereer-knop"
+                  style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--kleur-middengroen);font-weight:700;font-size:0.78rem;cursor:pointer">
+            Genereer
+          </button>
+        </div>
+      </div>
+
+      <div id="ww-fout" class="verborgen" style="margin-top:10px;padding:8px 12px;background:rgba(255,105,85,0.1);color:var(--kleur-koraal);border-radius:8px;font-size:0.83rem"></div>
+      <div id="ww-succes" class="verborgen" style="margin-top:10px;padding:8px 12px;background:rgba(20,136,105,0.1);color:var(--kleur-middengroen);border-radius:8px;font-size:0.83rem"></div>
+
+      <div class="modal-voetlijn" style="border:none;padding:0;margin-top:14px">
+        <button class="knop knop-omtrek" id="ww-annuleren">Annuleren</button>
+        <button class="knop knop-accent" id="ww-uitvoeren">Uitvoeren</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay verborgen" id="rol-modal-overlay">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2>Rol wijzigen</h2>
+      <button class="modal-sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam">
+      <input type="hidden" id="rol-gebruiker-id">
+      <div class="formulier-groep">
+        <label for="nieuwe-rol-select">Nieuwe rol</label>
+        <select id="nieuwe-rol-select">
+          <option value="lesgever">Lesgever</option>
+          <option value="extra_hulp">Extra hulp</option>
+          <option value="coordinator">Coördinator</option>
+          <option value="admin">Beheerder</option>
+        </select>
+      </div>
+      <div class="modal-voetlijn" style="border:none;padding:0">
+        <button class="knop knop-omtrek" id="rol-annuleren">Annuleren</button>
+        <button class="knop knop-accent" id="rol-opslaan">Opslaan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+  import { supabase } from './js/supabase.js?v=1780304789425';
+  import { checkSessie, haalProfielOp, vulNavigatieIn, controleerToegang, initialiseerNotificatieBel } from './js/auth.js?v=1780304789425';
+  import {
+    haalAlleKampenOp, slaKampOp, haalKampLesgeversOp,
+    koppelLesgever, ontkoppelLesgever,
+    haalAlleGebruikersOp, werkRolBij, werkActiefStatusBij,
+    stuurUitnodiging, maakNieuwGebruikerAan,
+    zetBeschikbaarheidOpen, haalBeschikbaarhedenOverzichtOp, haalKoppelingenOverzichtOp,
+    genereerContractVoorLesgever, archiveerVerloopenKampen,
+    haalBeschikbaarhedenMatrixOp,
+    renderGebruikerRij, renderKampRij, kopieerKamp
+  } from './js/admin.js?v=1780304789425';
+  import { genereerKampDagen } from './js/planner.js?v=1780304789425';
+  import {
+    nieuweFilterState, filterKampen, renderFilterBalk, haalKoppelingsMapOp
+  } from './js/kampfilter.js?v=1780304789425';
+  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, datumNaarNL, bevestig, kopieerNaarKlembord } from './js/utils.js?v=1780304789425';
+  import {
+    haalOverzichtPerLesgeverOp, haalAlleContractenFinancieelOp,
+    haalLimietenOp, valideerContract, berekenContractTotaal,
+    haalJaarTotaalLesgeverOp, markeerBetaaldStatus,
+    formaatBedrag, contractStatusPil, slaContractBijwerkenOp,
+    berekenGewerkteDagen, HUIDIG_JAAR
+  } from './js/financieel.js?v=1780304789425';
+  import { openContractAfdrukken } from './js/contracten.js?v=1780304789425';
+
+  let huidigProfiel      = null;
+  let alleKampen         = [];
+  let alleGebruikers     = [];
+  let huidigBeheerKampID = null;
+
+  // ═══════════════════════════════════════════════════════════════
+  //  CONTRACTEN PER KAMP
+  // ═══════════════════════════════════════════════════════════════
+
+  let contrSorteerMode = 'kamp';
+  let contrGeladen = false;
+  let contrJaarCache = {};   // jaar => contracten[]
+  let contrJaarOpen = {};    // jaar => bool
+
+  // Jaren die we tonen (huidig + max 4 voorgaande, minimum 2023)
+  const contrJaren = Array.from({ length: 5 }, (_, i) => HUIDIG_JAAR - i).filter(j => j >= 2023);
+
+  async function laadContractenPerKamp() {
+    if (contrGeladen) return;
+    contrGeladen = true;
+
+    // Sort-toggle
+    document.getElementById('contr-sort-toggle').addEventListener('click', async (e) => {
+      const knop = e.target.closest('.contr-sort-knop');
+      if (!knop) return;
+      const mode = knop.dataset.mode;
+      if (mode === contrSorteerMode) return;
+      contrSorteerMode = mode;
+      document.querySelectorAll('.contr-sort-knop').forEach(b => {
+        const actief = b.dataset.mode === mode;
+        b.style.background = actief ? 'var(--kleur-donkergroen)' : 'transparent';
+        b.style.color = actief ? 'var(--kleur-limoen)' : 'var(--kleur-grijs)';
+        b.style.boxShadow = actief ? '0 2px 6px rgba(25,67,56,0.18)' : 'none';
+      });
+      renderContractenPerKamp();
+    });
+
+    // Open huidig jaar standaard
+    contrJaarOpen[HUIDIG_JAAR] = true;
+    await laadJaarData(HUIDIG_JAAR);
+    renderContractenPerKamp();
+  }
+
+  async function laadJaarData(jaar) {
+    if (contrJaarCache[jaar]) return;
+    contrJaarCache[jaar] = await haalAlleContractenFinancieelOp(jaar);
+  }
+
+  function renderContractenPerKamp() {
+    const container = document.getElementById('contracten-per-kamp-lijst');
+    container.innerHTML = contrJaren.map(jaar => {
+      const isOpen = !!contrJaarOpen[jaar];
+      const contracten = contrJaarCache[jaar];
+      const isHuidig = jaar === HUIDIG_JAAR;
+
+      const headerStijl = isHuidig
+        ? 'background:var(--kleur-donkergroen);color:white'
+        : 'background:var(--kleur-zand);color:var(--kleur-donkergroen);border:1.5px solid var(--kleur-lichtgrijs)';
+      const pijlKleur = isHuidig ? 'color:var(--kleur-limoen)' : 'color:var(--kleur-grijs)';
+
+      let inhoud = '';
+      if (isOpen) {
+        if (!contracten) {
+          inhoud = '<div style="text-align:center;padding:24px;color:var(--kleur-grijs)"><div class="laadindicator" style="margin:0 auto 8px"></div>Laden…</div>';
+        } else if (contracten.length === 0) {
+          inhoud = `<div style="text-align:center;padding:24px;color:var(--kleur-grijs)">Geen contracten voor ${jaar}.</div>`;
+        } else if (contrSorteerMode === 'kamp') {
+          inhoud = renderContractenPerKampGroep(contracten);
+        } else {
+          inhoud = renderContractenPerLesgevers(contracten);
+        }
+      }
+
+      const aantalBadge = contracten
+        ? `<span style="background:rgba(215,252,92,0.25);color:${isHuidig ? 'var(--kleur-limoen)' : 'var(--kleur-donkergroen)'};border-radius:20px;padding:1px 9px;font-size:0.72rem;font-weight:800">${contracten.length}</span>`
+        : '';
+
+      return `
+        <div style="margin-bottom:12px;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.07)">
+          <div style="padding:13px 18px;${headerStijl};display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-weight:800;font-size:1rem;user-select:none"
+               onclick="window._toggleContrJaar(${jaar})">
+            <span style="display:flex;align-items:center;gap:10px">
+              ${isHuidig ? '' : '📦 '}${jaar} ${aantalBadge}
+            </span>
+            <span style="${pijlKleur};transition:transform 0.2s;transform:${isOpen ? 'rotate(90deg)' : 'rotate(0deg)'}">▶</span>
+          </div>
+          ${isOpen ? `<div>${inhoud}</div>` : ''}
+        </div>`;
+    }).join('');
+  }
+
+  window._toggleContrJaar = async function(jaar) {
+    contrJaarOpen[jaar] = !contrJaarOpen[jaar];
+    if (contrJaarOpen[jaar] && !contrJaarCache[jaar]) {
+      renderContractenPerKamp(); // toon laad-indicator
+      await laadJaarData(jaar);
+    }
+    renderContractenPerKamp();
+  };
+
+  function renderContractenPerKampGroep(contracten) {
+    const perKamp = new Map();
+    for (const c of contracten) {
+      const kId = c.kamp_id ?? c.kampen?.id ?? 'onbekend';
+      if (!perKamp.has(kId)) perKamp.set(kId, { kamp: c.kampen, contracten: [] });
+      perKamp.get(kId).contracten.push(c);
+    }
+    const gesorteerd = [...perKamp.values()].sort((a, b) =>
+      (b.kamp?.startdatum ?? '').localeCompare(a.kamp?.startdatum ?? ''));
+
+    return gesorteerd.map(({ kamp, contracten: cts }) => {
+      const aantalOnd = cts.filter(c => c.ondertekend).length;
+      const aantalBetaald = cts.filter(c => c.betaald).length;
+      const totaalBedrag = cts.reduce((s, c) => s + (c.totaal_bedrag ?? 0), 0);
+      const rijen = cts.map(c => {
+        const vergoeding = +((c.vergoeding_per_dag ?? 0) * (c.aantal_dagen ?? 0)).toFixed(2);
+        const km = +((c.kilometers ?? 0) * (c.km_tarief ?? 0)).toFixed(2);
+        return `<tr style="cursor:pointer" onclick="window._bewerkContractEnHerlaad('${c.id}')">
+          <td><div class="vet">${c.profielen?.voornaam ?? ''} ${c.profielen?.achternaam ?? ''}</div>
+              <div class="font-klein kleur-grijs">${c.profielen?.email ?? ''}</div></td>
+          <td style="text-align:right">${c.aantal_dagen ?? 0}</td>
+          <td style="text-align:right">${formaatBedrag(vergoeding)}</td>
+          <td style="text-align:right">${formaatBedrag(km)}</td>
+          <td style="text-align:right;font-weight:800">${formaatBedrag(c.totaal_bedrag)}</td>
+          <td>${contractStatusPil(c)}</td>
+          <td><button class="knop knop-omtrek knop-klein">Bewerk</button></td>
+        </tr>`;
+      }).join('');
+      return `
+        <div style="border-bottom:1px solid var(--kleur-lichtgrijs)">
+          <div style="padding:12px 18px;background:var(--kleur-donkergroen);color:var(--kleur-wit);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <div>
+              <div style="font-weight:800;font-size:0.95rem">${kamp?.naam ?? 'Onbekend kamp'}</div>
+              <div style="font-size:0.76rem;color:rgba(215,252,92,0.8);margin-top:2px">
+                ${kamp?.startdatum ? datumNaarNL(kamp.startdatum) + ' – ' + datumNaarNL(kamp.einddatum) : ''}
+                ${kamp?.locatie ? ' · ' + kamp.locatie : ''}
+              </div>
+            </div>
+            <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+              <div style="font-size:0.76rem;text-align:right">
+                <div style="color:rgba(255,255,255,0.7)">Ondertekend</div>
+                <div style="font-weight:800;color:var(--kleur-limoen)">${aantalOnd}/${cts.length}</div>
+              </div>
+              <div style="font-size:0.76rem;text-align:right">
+                <div style="color:rgba(255,255,255,0.7)">Betaald</div>
+                <div style="font-weight:800;color:var(--kleur-limoen)">${aantalBetaald}/${cts.length}</div>
+              </div>
+              <div style="font-size:0.76rem;text-align:right">
+                <div style="color:rgba(255,255,255,0.7)">Totaal</div>
+                <div style="font-weight:800;color:var(--kleur-limoen)">${formaatBedrag(totaalBedrag)}</div>
+              </div>
+            </div>
+          </div>
+          <div class="tabel-wrapper" style="margin:0">
+            <table class="tabel" style="margin:0">
+              <thead><tr>
+                <th>Lesgever</th><th style="text-align:right">Dagen</th>
+                <th style="text-align:right">Vergoeding</th><th style="text-align:right">KM</th>
+                <th style="text-align:right">Totaal</th><th>Status</th><th></th>
+              </tr></thead>
+              <tbody>${rijen}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderContractenPerLesgevers(contracten) {
+    const perLg = new Map();
+    for (const c of contracten) {
+      const lgId = c.lesgever_id ?? 'onbekend';
+      if (!perLg.has(lgId)) perLg.set(lgId, { profiel: c.profielen, contracten: [] });
+      perLg.get(lgId).contracten.push(c);
+    }
+    const gesorteerd = [...perLg.values()].sort((a, b) => {
+      const na = `${a.profiel?.achternaam ?? ''} ${a.profiel?.voornaam ?? ''}`;
+      const nb = `${b.profiel?.achternaam ?? ''} ${b.profiel?.voornaam ?? ''}`;
+      return na.localeCompare(nb, 'nl');
+    });
+
+    return gesorteerd.map(({ profiel, contracten: cts }) => {
+      const totaalBedrag = cts.reduce((s, c) => s + (c.totaal_bedrag ?? 0), 0);
+      const aantalOnd = cts.filter(c => c.ondertekend).length;
+      const rijen = cts.sort((a, b) => (b.kampen?.startdatum ?? '').localeCompare(a.kampen?.startdatum ?? '')).map(c => {
+        const vergoeding = +((c.vergoeding_per_dag ?? 0) * (c.aantal_dagen ?? 0)).toFixed(2);
+        const km = +((c.kilometers ?? 0) * (c.km_tarief ?? 0)).toFixed(2);
+        return `<tr style="cursor:pointer" onclick="window._bewerkContractEnHerlaad('${c.id}')">
+          <td><div class="vet">${c.kampen?.naam ?? 'Onbekend kamp'}</div>
+              <div class="font-klein kleur-grijs">${c.kampen?.startdatum ? datumNaarNL(c.kampen.startdatum) : ''}${c.kampen?.locatie ? ' · ' + c.kampen.locatie : ''}</div></td>
+          <td style="text-align:right">${c.aantal_dagen ?? 0}</td>
+          <td style="text-align:right">${formaatBedrag(vergoeding)}</td>
+          <td style="text-align:right">${formaatBedrag(km)}</td>
+          <td style="text-align:right;font-weight:800">${formaatBedrag(c.totaal_bedrag)}</td>
+          <td>${contractStatusPil(c)}</td>
+          <td><button class="knop knop-omtrek knop-klein">Bewerk</button></td>
+        </tr>`;
+      }).join('');
+      return `
+        <div style="border-bottom:1px solid var(--kleur-lichtgrijs)">
+          <div style="padding:12px 18px;background:var(--kleur-middengroen);color:var(--kleur-wit);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <div>
+              <div style="font-weight:800;font-size:0.95rem">${profiel?.voornaam ?? ''} ${profiel?.achternaam ?? ''}</div>
+              <div style="font-size:0.76rem;color:rgba(255,255,255,0.75);margin-top:2px">${profiel?.email ?? ''}</div>
+            </div>
+            <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+              <div style="font-size:0.76rem;text-align:right">
+                <div style="color:rgba(255,255,255,0.7)">Kampen</div>
+                <div style="font-weight:800;color:var(--kleur-limoen)">${cts.length}</div>
+              </div>
+              <div style="font-size:0.76rem;text-align:right">
+                <div style="color:rgba(255,255,255,0.7)">Ondertekend</div>
+                <div style="font-weight:800;color:var(--kleur-limoen)">${aantalOnd}/${cts.length}</div>
+              </div>
+              <div style="font-size:0.76rem;text-align:right">
+                <div style="color:rgba(255,255,255,0.7)">Totaal</div>
+                <div style="font-weight:800;color:var(--kleur-limoen)">${formaatBedrag(totaalBedrag)}</div>
+              </div>
+            </div>
+          </div>
+          <div class="tabel-wrapper" style="margin:0">
+            <table class="tabel" style="margin:0">
+              <thead><tr>
+                <th>Kamp</th><th style="text-align:right">Dagen</th>
+                <th style="text-align:right">Vergoeding</th><th style="text-align:right">KM</th>
+                <th style="text-align:right">Totaal</th><th>Status</th><th></th>
+              </tr></thead>
+              <tbody>${rijen}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  window._bewerkContractEnHerlaad = (contractID) => window._bewerkContract(contractID);
+
+  // ═══════════════════════════════════════════════════════════════
+  //  CONTRACT BEWERKEN MODAL
+  // ═══════════════════════════════════════════════════════════════
+
+  let cbHuidigContract = null;
+
+  window._bewerkContract = async (contractID) => {
+    try {
+      const { data: contract, error } = await supabase
+        .from('contracten')
+        .select(`*, kampen(*), profielen!lesgever_id(*)`)
+        .eq('id', contractID).single();
+      if (error) throw error;
+      cbHuidigContract = contract;
+
+      const lg   = contract.profielen;
+      const kamp = contract.kampen;
+
+      // Status badges
+      document.getElementById('cb-status-badges').innerHTML = contractStatusPil(contract);
+
+      // Info
+      document.getElementById('cb-titel').textContent = `Contract bewerken — ${lg.voornaam} ${lg.achternaam}`;
+      document.getElementById('cb-id').value = contractID;
+      document.getElementById('cb-lesgever-naam').textContent = `${lg.voornaam} ${lg.achternaam}`;
+      document.getElementById('cb-lesgever-info').textContent =
+        `${lg.email}${lg.rekeningnummer ? ' · ' + lg.rekeningnummer : ''}`;
+      document.getElementById('cb-kamp-naam').textContent = kamp.naam;
+      document.getElementById('cb-kamp-info').textContent =
+        `${kamp.locatie} · ${datumNaarNL(kamp.startdatum)} – ${datumNaarNL(kamp.einddatum)}`;
+
+      // Vul velden
+      document.getElementById('cb-dagbedrag').value = contract.vergoeding_per_dag ?? 0;
+      document.getElementById('cb-km').value = contract.kilometers ?? 0;
+
+      // Andere prestaties inladen
+      const anderePrestatieDefs = [
+        { groepId: 'cb-voorbereidingsdag-knoppen', inputId: 'cb-voorbereidingsdag', veld: 'voorbereidingsdag_dagen' },
+        { groepId: 'cb-opruimdag-knoppen',         inputId: 'cb-opruimdag',         veld: 'opruimdag_dagen' },
+        { groepId: 'cb-opleidingsdag-knoppen',     inputId: 'cb-opleidingsdag',     veld: 'opleidingsdag_dagen' },
+        { groepId: 'cb-evaluatiemoment-knoppen',   inputId: 'cb-evaluatiemoment',   veld: 'evaluatiemoment_dagen' },
+      ];
+      let heeftAnderePrestaties = false;
+      anderePrestatieDefs.forEach(({ groepId, inputId, veld }) => {
+        const waarde = Number(contract[veld] ?? 0);
+        document.getElementById(inputId).value = waarde;
+        const groep = document.getElementById(groepId);
+        groep.querySelectorAll('.dag-breuk-knop').forEach(k => {
+          k.classList.toggle('actief', parseFloat(k.dataset.waarde) === waarde);
+        });
+        if (waarde > 0) heeftAnderePrestaties = true;
+      });
+      // Sectie auto-openen als er al waarden zijn
+      anderePrestatiesOpen = heeftAnderePrestaties;
+      anderePrestatiesInhoud.style.display = heeftAnderePrestaties ? 'block' : 'none';
+      anderePrestatiesPijl.style.transform = heeftAnderePrestaties ? 'rotate(180deg)' : '';
+      cbUpdateAnderePrestatiesPil();
+
+      // Bepaal vervoermiddel uit huidig tarief (fiets = 0.37, anders auto = 0.4449)
+      const huidigTarief = Number(contract.km_tarief ?? 0.4449);
+      const isFiets = Math.abs(huidigTarief - 0.37) < 0.005;
+      cbZetVervoermiddel(isFiets ? 'fiets' : 'auto');
+
+      document.getElementById('cb-opmerking').value = contract.opmerking ?? '';
+
+      // Render dagen-knoppen
+      const alleDagen = genereerKampDagen(kamp.startdatum, kamp.einddatum);
+      const geselecteerd = new Set(contract.gewerkte_dagen ?? alleDagen);
+
+      const dagContainer = document.getElementById('cb-dagen-knoppen');
+      dagContainer.innerHTML = alleDagen.map(d => {
+        const dd = new Date(d + 'T00:00:00');
+        const label = dd.toLocaleDateString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short' });
+        const actief = geselecteerd.has(d);
+        return `<button type="button" class="dag-toggle ${actief ? 'beschikbaar' : 'onbeschikbaar'}" data-datum="${d}">${label}</button>`;
+      }).join('');
+
+      dagContainer.querySelectorAll('.dag-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          btn.classList.toggle('beschikbaar');
+          btn.classList.toggle('onbeschikbaar');
+          cbUpdateTotaal();
+        });
+      });
+
+      // Wettelijk maximum tonen
+      const limiet = await haalLimietenOp(contrJaar);
+      document.getElementById('cb-dagbedrag').max = limiet.max_per_dag;
+      document.getElementById('cb-dagbedrag-hulp').textContent =
+        `Wettelijk maximum: €${limiet.max_per_dag.toFixed(2).replace('.', ',')} (${limiet.jaar})`;
+
+      // Jaartotaal-info
+      const jaarTot = await haalJaarTotaalLesgeverOp(lg.id, contrJaar, contractID);
+      const beschikbaar = limiet.max_per_jaar - jaarTot;
+      document.getElementById('cb-jaar-info').innerHTML = `
+        💡 Jaartotaal andere contracten: <strong style="color:white">${formaatBedrag(jaarTot)}</strong> &nbsp;·&nbsp;
+        Nog beschikbaar: <strong style="color:${beschikbaar > 0 ? 'var(--kleur-limoen)' : '#ffb0a0'}">${formaatBedrag(beschikbaar)}</strong>
+      `;
+
+      // Update totaal bij wijzigingen (removeEventListener + re-add om stacking te vermijden)
+      ['cb-dagbedrag', 'cb-km', 'cb-km-tarief'].forEach(id => {
+        const el = document.getElementById(id);
+        el.removeEventListener('input', cbUpdateTotaal);
+        el.addEventListener('input', cbUpdateTotaal);
+      });
+
+      // Betaald-knop status
+      const betaaldKnop = document.getElementById('cb-betaald-knop');
+      if (contract.betaald) {
+        betaaldKnop.classList.remove('knop-middengroen');
+        betaaldKnop.classList.add('knop-gevaar');
+        betaaldKnop.textContent = '↩ Terugzetten naar onbetaald';
+      } else {
+        betaaldKnop.classList.add('knop-middengroen');
+        betaaldKnop.classList.remove('knop-gevaar');
+        betaaldKnop.textContent = contract.ondertekend ? '💰 Markeer als betaald' : '⏳ Wacht op ondertekening';
+        betaaldKnop.disabled = !contract.ondertekend;
+      }
+
+      cbUpdateTotaal();
+      openModal('contract-bewerken-overlay');
+    } catch (fout) {
+      console.error('[contract] Bewerken openen mislukt:', fout?.message);
+      toonToast('Kon contract niet openen.', 'fout');
+    }
+  };
+
+  /**
+   * Activeer een vervoermiddel-knop en stel het bijhorende tarief in.
+   * @param {'auto'|'fiets'} type
+   */
+  function cbZetVervoermiddel(type) {
+    document.querySelectorAll('.vervoer-knop').forEach(k => k.classList.remove('actief'));
+    const knop = document.querySelector(`.vervoer-knop[data-vervoer="${type}"]`);
+    if (!knop) return;
+    knop.classList.add('actief');
+    const tarief = parseFloat(knop.dataset.tarief);
+    document.getElementById('cb-km-tarief').value = tarief;
+    const hulp = document.getElementById('cb-vervoer-hulp');
+    if (hulp) {
+      hulp.textContent = type === 'auto'
+        ? 'Auto-tarief: 1/7/2025 – 30/6/2026 — €0,4449/km'
+        : 'Fiets-tarief 2026 — €0,37/km';
+    }
+  }
+
+  // Koppel klik-handlers op vervoer-knoppen
+  document.querySelectorAll('.vervoer-knop').forEach(knop => {
+    knop.addEventListener('click', () => {
+      cbZetVervoermiddel(knop.dataset.vervoer);
+      cbUpdateTotaal();
+    });
+  });
+
+  // Toggle "Andere prestaties" sectie
+  const anderePrestatiesToggle = document.getElementById('cb-andere-prestaties-toggle');
+  const anderePrestatiesInhoud = document.getElementById('cb-andere-prestaties-inhoud');
+  const anderePrestatiesPijl   = document.getElementById('cb-andere-prestaties-pijl');
+  let anderePrestatiesOpen = false;
+
+  anderePrestatiesToggle.addEventListener('click', () => {
+    anderePrestatiesOpen = !anderePrestatiesOpen;
+    anderePrestatiesInhoud.style.display = anderePrestatiesOpen ? 'block' : 'none';
+    anderePrestatiesPijl.style.transform = anderePrestatiesOpen ? 'rotate(180deg)' : '';
+  });
+
+  function cbUpdateAnderePrestatiesPil() {
+    const pil = document.getElementById('cb-andere-prestaties-pil');
+    const actief = [
+      'cb-voorbereidingsdag', 'cb-opruimdag', 'cb-opleidingsdag', 'cb-evaluatiemoment',
+    ].filter(id => parseFloat(document.getElementById(id).value) > 0).length;
+    if (actief > 0) {
+      pil.textContent = actief === 1 ? '1 prestatie' : `${actief} prestaties`;
+      pil.style.display = 'inline-block';
+    } else {
+      pil.style.display = 'none';
+    }
+  }
+
+  // Koppel klik-handlers op dag-breuk knoppen (¼, ½, ¾, 1 dag per dagtype)
+  const extraDagTypen = [
+    { groepId: 'cb-voorbereidingsdag-knoppen', inputId: 'cb-voorbereidingsdag' },
+    { groepId: 'cb-opruimdag-knoppen',         inputId: 'cb-opruimdag' },
+    { groepId: 'cb-opleidingsdag-knoppen',     inputId: 'cb-opleidingsdag' },
+    { groepId: 'cb-evaluatiemoment-knoppen',   inputId: 'cb-evaluatiemoment' },
+  ];
+  extraDagTypen.forEach(({ groepId, inputId }) => {
+    document.getElementById(groepId).querySelectorAll('.dag-breuk-knop').forEach(knop => {
+      knop.addEventListener('click', () => {
+        document.getElementById(groepId).querySelectorAll('.dag-breuk-knop')
+          .forEach(k => k.classList.remove('actief'));
+        knop.classList.add('actief');
+        document.getElementById(inputId).value = knop.dataset.waarde;
+        cbUpdateTotaal();
+      });
+    });
+  });
+
+  function cbLeesExtraDagen() {
+    return {
+      voorbereidingsdag_dagen: parseFloat(document.getElementById('cb-voorbereidingsdag').value) || 0,
+      opruimdag_dagen:         parseFloat(document.getElementById('cb-opruimdag').value) || 0,
+      opleidingsdag_dagen:     parseFloat(document.getElementById('cb-opleidingsdag').value) || 0,
+      evaluatiemoment_dagen:   parseFloat(document.getElementById('cb-evaluatiemoment').value) || 0,
+    };
+  }
+
+  function cbUpdateTotaal() {
+    const dagbedrag   = parseFloat(document.getElementById('cb-dagbedrag').value) || 0;
+    const km          = parseFloat(document.getElementById('cb-km').value) || 0;
+    const tarief      = parseFloat(document.getElementById('cb-km-tarief').value) || 0;
+    const aantalDagen = document.querySelectorAll('#cb-dagen-knoppen .dag-toggle.beschikbaar').length;
+    document.getElementById('cb-dagen-display').textContent = aantalDagen;
+    const t = berekenContractTotaal({
+      vergoeding_per_dag: dagbedrag,
+      aantal_dagen: aantalDagen,
+      kilometers: km,
+      km_tarief: tarief,
+      ...cbLeesExtraDagen(),
+    });
+    document.getElementById('cb-totaal-vergoeding').textContent = formaatBedrag(t.vergoedingBedrag);
+    document.getElementById('cb-totaal-extra').textContent      = formaatBedrag(t.extraBedrag);
+    document.getElementById('cb-totaal-km').textContent         = formaatBedrag(t.kmBedrag);
+    document.getElementById('cb-totaal').textContent            = formaatBedrag(t.totaal);
+    cbUpdateAnderePrestatiesPil();
+  }
+
+  document.getElementById('cb-opslaan').addEventListener('click', async () => {
+    if (!cbHuidigContract) return;
+    const foutEl = document.getElementById('cb-fout');
+    foutEl.classList.add('verborgen');
+
+    const dagbedrag = parseFloat(document.getElementById('cb-dagbedrag').value) || 0;
+    const km        = parseFloat(document.getElementById('cb-km').value) || 0;
+    const tarief    = parseFloat(document.getElementById('cb-km-tarief').value) || 0;
+    const gewerkte  = Array.from(document.querySelectorAll('#cb-dagen-knoppen .dag-toggle.beschikbaar'))
+      .map(b => b.dataset.datum);
+
+    const data = {
+      id: cbHuidigContract.id,
+      vergoeding_per_dag: dagbedrag,
+      aantal_dagen: gewerkte.length,
+      kilometers: km,
+      km_tarief: tarief,
+      gewerkte_dagen: gewerkte,
+      opmerking: document.getElementById('cb-opmerking').value.trim() || null,
+      contract_inhoud: cbHuidigContract.contract_inhoud,
+      ...cbLeesExtraDagen(),
+    };
+
+    // Valideer
+    const val = await valideerContract(data, cbHuidigContract.lesgever_id, cbHuidigContract.id);
+    if (!val.geldig) {
+      foutEl.textContent = val.fout;
+      foutEl.classList.remove('verborgen');
+      return;
+    }
+
+    const opgeslagen = await slaContractBijwerkenOp(data);
+    if (opgeslagen) {
+      toonToast('Contract opgeslagen.', 'succes');
+      sluitModal('contract-bewerken-overlay');
+      contrGeladen = false;
+      lgFinDataCache = null;
+      await Promise.all([laadContractenPerKamp(), herlaadFinCache()]);
+      renderLesgeverFiches();
+    }
+  });
+
+  document.getElementById('cb-betaald-knop').addEventListener('click', async () => {
+    if (!cbHuidigContract) return;
+    const nieuw = !cbHuidigContract.betaald;
+    if (!await bevestig(nieuw ? 'Markeer contract als betaald?' : 'Status terugzetten naar onbetaald?')) return;
+    const ok = await markeerBetaaldStatus(cbHuidigContract.id, nieuw);
+    if (ok) {
+      sluitModal('contract-bewerken-overlay');
+      contrGeladen = false;
+      lgFinDataCache = null;
+      await Promise.all([laadContractenPerKamp(), herlaadFinCache()]);
+      renderLesgeverFiches();
+    }
+  });
+
+  document.getElementById('cb-annuleren').addEventListener('click', () => sluitModal('contract-bewerken-overlay'));
+
+  // ── SportFun handtekening: upload + preview ────────────────────────
+  const SF_HTK_PAD = 'sportfun/handtekening.png';
+
+  async function haalSportfunHandtekeningURL() {
+    try {
+      const { data } = await supabase.storage
+        .from('handtekeningen')
+        .createSignedUrl(SF_HTK_PAD, 3600);
+      return data?.signedUrl ?? null;
+    } catch { return null; }
+  }
+
+  async function laadSportfunHandtekeningPreview() {
+    const url = await haalSportfunHandtekeningURL();
+    if (url) {
+      document.getElementById('sf-handtekening-preview').src = url;
+      document.getElementById('sf-handtekening-preview-wrapper').style.display = 'block';
+    }
+  }
+
+  document.getElementById('sf-handtekening-input').addEventListener('change', async (e) => {
+    const bestand = e.target.files[0];
+    if (!bestand) return;
+    if (bestand.size > 2 * 1024 * 1024) {
+      toonToast('Bestand is te groot (max 2 MB).', 'fout'); return;
+    }
+    toonToast('Uploaden…', 'info');
+    const { error } = await supabase.storage
+      .from('handtekeningen')
+      .upload(SF_HTK_PAD, bestand, { upsert: true, contentType: bestand.type });
+    if (error) {
+      toonToast('Upload mislukt: ' + error.message, 'fout');
+    } else {
+      toonToast('Handtekening SportFun opgeslagen.', 'succes');
+      await laadSportfunHandtekeningPreview();
+    }
+    e.target.value = '';
+  });
+
+  document.getElementById('cb-print-knop').addEventListener('click', async () => {
+    if (!cbHuidigContract) return;
+    let handtekeningURL = null;
+    if (cbHuidigContract.profielen?.handtekening_url) {
+      try {
+        const { data } = await supabase.storage.from('handtekeningen')
+          .createSignedUrl(cbHuidigContract.profielen.handtekening_url, 3600);
+        handtekeningURL = data?.signedUrl;
+      } catch {}
+    }
+    const sportfunHandtekeningURL = await haalSportfunHandtekeningURL();
+    openContractAfdrukken(cbHuidigContract.profielen, cbHuidigContract.kampen, {
+      handtekeningURL,
+      sportfunHandtekeningURL,
+      ondertekendOp: cbHuidigContract.ondertekend_op,
+      contract: cbHuidigContract,
+    });
+  });
+
+  // ── Initialisatie ──
+  async function init() {
+    const gebruiker = await checkSessie();
+    if (!gebruiker) return;
+    huidigProfiel = await haalProfielOp(gebruiker.id);
+    if (!huidigProfiel) {
+      document.querySelector('.pagina-inhoud').innerHTML =
+        `<div style="padding:40px;text-align:center">
+           <p style="font-size:1.1rem;font-weight:700;margin-bottom:8px">⚠️ Profiel niet geladen</p>
+           <p style="color:#6B7280;margin-bottom:16px">Voer <strong>fix-rls.sql</strong> uit in de
+           <a href="https://supabase.com/dashboard/project/coiocqvopxgvdezuwqou/sql/new" target="_blank">SQL Editor</a>
+           en herlaad dan de pagina.</p>
+           <button onclick="location.reload()" style="padding:8px 16px;background:#194338;color:#D7FC5C;
+             border:none;border-radius:8px;font-weight:700;cursor:pointer">↺ Opnieuw proberen</button>
+         </div>`;
+      return;
+    }
+    if (!controleerToegang(huidigProfiel.rol)) return;
+
+    vulNavigatieIn(huidigProfiel);
+    await initialiseerNotificatieBel(huidigProfiel.id);
+    initialiseerHamburger();
+    initialiseerModals();
+    initialiseerTabs();
+
+    // Archiveer verlopen kampen vóór het laden zodat de lijst meteen klopt
+    const gearchiveerd = await archiveerVerloopenKampen();
+    if (gearchiveerd > 0) toonToast(`${gearchiveerd} verlopen kamp${gearchiveerd > 1 ? 'en' : ''} automatisch gearchiveerd.`, 'info');
+
+    await Promise.all([laadKampen(), laadGebruikers()]);
+  }
+
+  // ── Tabs ──
+  function initialiseerTabs() {
+    document.querySelectorAll('.tabs > .tab-knop[data-tab]').forEach(knop => {
+      knop.addEventListener('click', async () => {
+        // Wissel hoofd-tab — enkel hoofd-tabs (data-tab attribuut, niet data-fin-tab)
+        document.querySelectorAll('.tabs > .tab-knop[data-tab]').forEach(k => k.classList.remove('actief'));
+        document.querySelectorAll('.pagina-inhoud > .tab-inhoud').forEach(t => t.classList.remove('actief'));
+        knop.classList.add('actief');
+        document.getElementById('tab-' + knop.dataset.tab).classList.add('actief');
+
+        // Lazy-load contracten tab
+        if (knop.dataset.tab === 'contracten') {
+          await Promise.all([laadContractenPerKamp(), laadSportfunHandtekeningPreview()]);
+        }
+      });
+    });
+  }
+
+  // ── Kampen ──
+  let archiefKampenOpen  = false;
+  let periodeOpenState   = {};
+  let kampFilter         = nieuweFilterState();
+  let koppelingsMap     = new Map();
+  let kampFilterGerenderd = false;
+
+  /**
+   * Laad de kampen en render filter + tabel.
+   */
+  async function laadKampen() {
+    // Eerste keer: haal kampen en koppelingsmap op
+    if (alleKampen.length === 0) {
+      [alleKampen, koppelingsMap] = await Promise.all([
+        haalAlleKampenOp(),
+        haalKoppelingsMapOp(),
+      ]);
+    }
+
+    // Render filter (eenmalig)
+    if (!kampFilterGerenderd) {
+      const filterContainer = document.getElementById('kampfilter-container');
+      if (filterContainer) {
+        renderFilterBalk(
+          filterContainer, alleKampen, alleGebruikers, kampFilter,
+          () => renderKampenTabel(),
+          () => filterKampen(alleKampen, kampFilter, koppelingsMap).length
+        );
+        kampFilterGerenderd = true;
+      }
+    }
+
+    renderKampenTabel();
+    vulLocatieSuggesties();
+  }
+
+  function _gekoppeldenVoorKamp(kampID) {
+    const ids = koppelingsMap.get(kampID) ?? new Set();
+    return alleGebruikers.filter(u => ids.has(u.id));
+  }
+
+  function bepaalVakantiePeriode(startdatum) {
+    const d   = new Date(startdatum);
+    const m   = d.getMonth() + 1;
+    const j   = d.getFullYear();
+    if (m === 7)               return { key: `${j}-07`,    label: `Juli ${j}`,                 volgorde: j * 100 + 7  };
+    if (m === 8)               return { key: `${j}-08`,    label: `Augustus ${j}`,              volgorde: j * 100 + 8  };
+    if (m === 10 || m === 11)  return { key: `${j}-herfst`,label: `Herfstvakantie ${j}`,        volgorde: j * 100 + 10 };
+    if (m === 12)              return { key: `${j}-kerst`, label: `Kerstvakantie ${j}/${j+1}`,  volgorde: j * 100 + 12 };
+    if (m === 1)               return { key: `${j-1}-kerst`,label:`Kerstvakantie ${j-1}/${j}`,  volgorde: (j-1)*100+12 };
+    if (m === 2)               return { key: `${j}-kroks`, label: `Krokusvakantie ${j}`,        volgorde: j * 100 + 2  };
+    if (m === 3 || m === 4)    return { key: `${j}-paas`,  label: `Paasvakantie ${j}`,          volgorde: j * 100 + 4  };
+    return { key: `${j}-${String(m).padStart(2,'0')}`, label: d.toLocaleString('nl-BE',{month:'long',year:'numeric'}), volgorde: j*100+m };
+  }
+
+  window._togglePeriode = function(key) {
+    periodeOpenState[key] = !periodeOpenState[key];
+    renderKampenTabel();
+  };
+
+  /**
+   * Render enkel de tabel op basis van huidige filter-state.
+   */
+  function renderKampenTabel() {
+    const tbody = document.getElementById('kampen-tabel-body');
+
+    if (alleKampen.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--kleur-grijs)">Nog geen kampen aangemaakt.</td></tr>';
+      return;
+    }
+
+    const gefilterd = filterKampen(alleKampen, kampFilter, koppelingsMap);
+    const actieve   = gefilterd.filter(k => k.status !== 'afgelopen');
+    const archief   = gefilterd.filter(k => k.status === 'afgelopen');
+    const vandaag   = new Date().toISOString().split('T')[0];
+
+    // ── Groepeer actieve kampen per vakantieperiode ──────────────
+    const periodeMap = new Map();
+    for (const k of actieve) {
+      const p = bepaalVakantiePeriode(k.startdatum);
+      if (!periodeMap.has(p.key)) periodeMap.set(p.key, { ...p, kampen: [] });
+      periodeMap.get(p.key).kampen.push(k);
+    }
+    const periodes = [...periodeMap.values()].sort((a, b) => a.volgorde - b.volgorde);
+
+    // ── Initialiseer open-state: eerste komende periode open ──────
+    const eersteKomende = periodes.find(p => p.kampen.some(k => k.startdatum >= vandaag))
+                       ?? periodes[periodes.length - 1]; // fallback: laatste periode
+    for (const p of periodes) {
+      if (!(p.key in periodeOpenState)) {
+        periodeOpenState[p.key] = eersteKomende && p.key === eersteKomende.key;
+      }
+    }
+
+    // ── Render ────────────────────────────────────────────────────
+    let html = '';
+
+    if (gefilterd.length === 0) {
+      html = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--kleur-grijs)">Geen kampen gevonden voor deze filters.</td></tr>';
+    } else if (periodes.length === 0) {
+      html = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--kleur-grijs)">Geen actieve kampen.</td></tr>';
+    } else {
+      for (const p of periodes) {
+        const isOpen = !!periodeOpenState[p.key];
+        html += `
+          <tr class="periode-header-rij" onclick="window._togglePeriode('${p.key}')">
+            <td colspan="6">
+              <span style="display:inline-flex;align-items:center;gap:10px;width:100%">
+                ${p.label}
+                <span class="badge" style="background:rgba(255,255,255,0.2);color:white">${p.kampen.length}</span>
+                <span style="margin-left:auto;font-size:0.8rem">${isOpen ? '▲' : '▼'}</span>
+              </span>
+            </td>
+          </tr>`;
+        if (isOpen) {
+          // Groepeer per locatie, sorteer kampen per locatie op leeftijdsgroep
+          const locatieMap = new Map();
+          for (const k of p.kampen) {
+            const loc = k.locatie || '—';
+            if (!locatieMap.has(loc)) locatieMap.set(loc, []);
+            locatieMap.get(loc).push(k);
+          }
+          for (const [locatie, kampen] of locatieMap) {
+            html += `
+              <tr class="locatie-subheader-rij">
+                <td colspan="6">📍 ${locatie.replace(/</g,'&lt;')}</td>
+              </tr>`;
+            html += kampen
+              .sort((a, b) => (a.leeftijdsgroep ?? '').localeCompare(b.leeftijdsgroep ?? '', 'nl'))
+              .map(k => renderKampRij(k, _gekoppeldenVoorKamp(k.id)))
+              .join('');
+          }
+        }
+      }
+    }
+
+    // ── Archief onderaan ─────────────────────────────────────────
+    if (archief.length > 0) {
+      const toonOpen = archiefKampenOpen || kampFilter.archiefDoorzoeken;
+      html += `
+        <tr id="archief-toggle-rij" style="background:var(--kleur-zand);cursor:pointer">
+          <td colspan="6" style="padding:11px 16px;font-weight:700;color:var(--kleur-donkergroen)">
+            <span style="display:inline-flex;align-items:center;gap:10px;width:100%">
+              📦 Archief (afgelopen kampen)
+              <span class="badge badge-grijs">${archief.length}</span>
+              <span style="margin-left:auto;font-size:0.8rem">${toonOpen ? '▲' : '▼'}</span>
+            </span>
+          </td>
+        </tr>`;
+      if (toonOpen) {
+        html += archief.map(k => `<tr class="archief-rij">${renderKampRij(k, _gekoppeldenVoorKamp(k.id)).replace(/^<tr[^>]*>|<\/tr>$/g, '')}</tr>`).join('');
+      }
+    }
+
+    tbody.innerHTML = html;
+
+    const toggleRij = document.getElementById('archief-toggle-rij');
+    if (toggleRij) {
+      toggleRij.addEventListener('click', () => {
+        if (kampFilter.archiefDoorzoeken) return;
+        archiefKampenOpen = !archiefKampenOpen;
+        renderKampenTabel();
+      });
+    }
+  }
+
+  document.getElementById('nieuw-kamp-knop').addEventListener('click', () => {
+    document.getElementById('kamp-id').value = '';
+    document.getElementById('kamp-formulier').reset();
+    document.getElementById('kamp-modal-titel').textContent = 'Nieuw kamp';
+    document.getElementById('kamp-dagen-display').textContent = '—';
+    openModal('kamp-modal-overlay');
+  });
+
+  document.getElementById('kamp-start').addEventListener('change', bereken_dagen);
+  document.getElementById('kamp-eind').addEventListener('change', bereken_dagen);
+
+  function bereken_dagen() {
+    const start = document.getElementById('kamp-start').value;
+    const eind  = document.getElementById('kamp-eind').value;
+    if (start && eind) {
+      const diff = Math.round((new Date(eind) - new Date(start)) / 86400000) + 1;
+      document.getElementById('kamp-dagen-display').textContent = diff > 0 ? `${diff} dagen` : '—';
+    }
+  }
+
+  document.getElementById('kamp-formulier').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const kampID = document.getElementById('kamp-id').value || null;
+    const data = {
+      naam:           document.getElementById('kamp-naam').value.trim(),
+      locatie:        document.getElementById('kamp-locatie').value.trim(),
+      adres:          document.getElementById('kamp-adres').value.trim() || null,
+      startdatum:     document.getElementById('kamp-start').value,
+      einddatum:      document.getElementById('kamp-eind').value,
+      leeftijdsgroep: document.getElementById('kamp-leeftijd').value,
+      status:         document.getElementById('kamp-status').value,
+    };
+    if (!data.naam || !data.locatie || !data.startdatum || !data.einddatum || !data.leeftijdsgroep) {
+      toonToast('Vul alle verplichte velden in.', 'fout'); return;
+    }
+    const resultaat = await slaKampOp(data, kampID);
+    if (resultaat) {
+      sluitModal('kamp-modal-overlay');
+      alleKampen = [];          // cache leegmaken zodat laadKampen() herlaadt
+      kampFilterGerenderd = false; // filter herbouwen met nieuwe locaties
+      await laadKampen();
+      vulLocatieSuggesties();
+    }
+  });
+
+  document.getElementById('kamp-annuleren').addEventListener('click', () => sluitModal('kamp-modal-overlay'));
+
+  window._gaNaarLesgevers = () => {
+    document.querySelector('.tab-knop[data-tab="lesgevers"]')?.click();
+    setTimeout(() => document.getElementById('nieuw-account-knop')?.click(), 200);
+  };
+
+  // ── Kamp detail inline (lesgevers koppelen) ──────────────────────
+
+  window._toggleKampDetail = async (kampID) => {
+    const detailRij = document.getElementById('kamp-detail-rij-' + kampID);
+    if (!detailRij) return;
+    const wasOpen = !detailRij.classList.contains('verborgen');
+
+    document.querySelectorAll('.kamp-detail-rij').forEach(r => r.classList.add('verborgen'));
+    document.querySelectorAll('[id^="lesgever-knop-"]').forEach(k => {
+      k.classList.remove('knop-gevaar');
+      k.classList.add('knop-primair');
+      k.textContent = '👥 Lesgevers';
+    });
+
+    if (wasOpen) return;
+
+    detailRij.classList.remove('verborgen');
+    huidigBeheerKampID = kampID;
+
+    const actieveKnop = document.getElementById('lesgever-knop-' + kampID);
+    if (actieveKnop) {
+      actieveKnop.classList.remove('knop-primair');
+      actieveKnop.classList.add('knop-gevaar');
+      actieveKnop.textContent = '✕ Sluiten';
+    }
+
+    await laadKampDetailInline(kampID);
+  };
+
+  async function laadKampDetailInline(kampID) {
+    const container = document.getElementById('kamp-detail-' + kampID);
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--kleur-grijs)"><div class="laadindicator" style="margin:0 auto 8px"></div>Laden…</div>';
+
+    const kamp = alleKampen.find(k => k.id === kampID) ?? {};
+    const [beschikbaarheden, koppelingen] = await Promise.all([
+      haalBeschikbaarhedenOverzichtOp(kampID),
+      haalKoppelingenOverzichtOp(kampID),
+    ]);
+
+    const isOpen = kamp.beschikbaarheid_open ?? false;
+    const bevestigdIDs = new Set(
+      koppelingen.filter(k => k.status === 'bevestigd').map(k => k.profielen?.id).filter(Boolean)
+    );
+    const beschikbaarMap = new Map(beschikbaarheden.map(b => [b.lesgever_id, b]));
+    const gekoppeldLijst = koppelingen.filter(k => k.status === 'bevestigd');
+    const ongekoppeld = alleGebruikers.filter(u =>
+      u.actief && !bevestigdIDs.has(u.id) &&
+      ['lesgever', 'extra_hulp', 'coordinator', 'admin'].includes(u.rol)
+    );
+
+    const rolNaamMap  = { lesgever:'Lesgever', extra_hulp:'Extra hulp', coordinator:'Coördinator', admin:'Beheerder' };
+    const rolKleurMap = { lesgever:'badge-limoen', extra_hulp:'badge-zand', coordinator:'badge-groen', admin:'badge-donker' };
+
+    const huidigVerantw = kamp.verantwoordelijke ?? null;
+
+    const gekoppeldHTML = gekoppeldLijst.length === 0
+      ? '<p class="font-klein kleur-grijs" style="padding:8px 0">Nog niemand gekoppeld.</p>'
+      : gekoppeldLijst.map(k => {
+          const lg = k.profielen;
+          const naam = `${lg?.voornaam ?? ''} ${lg?.achternaam ?? ''}`.trim();
+          const isVerantw = lg?.id === huidigVerantw;
+          const telefoon = lg?.telefoon ?? null;
+          const telID = `tel-${kampID}-${lg?.id}`;
+          return `
+            <div style="padding:10px 0;border-bottom:1px solid var(--kleur-lichtgrijs)">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                <div style="cursor:pointer;flex:1" onclick="document.getElementById('${telID}').classList.toggle('verborgen')" title="Klik voor telefoonnummer">
+                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                    ${isVerantw ? '<span title="Verantwoordelijke" style="font-size:1rem">⭐</span>' : ''}
+                    <span class="vet">${naam}</span>
+                    <span class="badge ${rolKleurMap[lg?.rol] ?? 'badge-grijs'} font-klein">${rolNaamMap[lg?.rol] ?? lg?.rol}</span>
+                  </div>
+                  <div id="${telID}" class="verborgen font-klein" style="margin-top:4px;padding-left:2px;color:var(--kleur-donkergroen)">
+                    📞 ${telefoon ?? '<em style="color:var(--kleur-grijs)">geen telefoon ingevuld</em>'}
+                  </div>
+                </div>
+                <div class="flex-gap" style="flex-shrink:0">
+                  ${!isVerantw ? `<button class="knop knop-omtrek knop-klein" title="Aanduiden als verantwoordelijke"
+                          onclick="window._zetVerantwoordelijke('${kampID}','${lg?.id}')">⭐</button>` : ''}
+                  <button class="knop knop-gevaar knop-klein"
+                          onclick="window._ontkoppelInline('${kampID}','${lg?.id}','${naam.replace(/'/g,"\\'")}')">
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>`;
+        }).join('');
+
+    const ongekoppeldHTML = ongekoppeld.length === 0
+      ? '<p class="font-klein kleur-grijs">Alle actieve lesgevers zijn al gekoppeld.</p>'
+      : `<div style="max-height:360px;overflow-y:auto;border:1px solid var(--kleur-lichtgrijs);border-radius:8px;background:var(--kleur-wit)">
+          ${ongekoppeld.map(u => {
+            const bes = beschikbaarMap.get(u.id);
+            const dot = !bes
+              ? '<span style="font-size:1.1rem" title="Geen opgave">⚪</span>'
+              : bes.beschikbaar
+                ? '<span style="font-size:1.1rem" title="Beschikbaar">🟢</span>'
+                : '<span style="font-size:1.1rem" title="Niet beschikbaar">🔴</span>';
+            const naam = `${u.voornaam} ${u.achternaam}`;
+            return `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--kleur-lichtgrijs)">
+                <div style="min-width:0">
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    ${dot}
+                    <span class="vet">${naam}</span>
+                    <span class="badge ${rolKleurMap[u.rol] ?? 'badge-grijs'} font-klein">${rolNaamMap[u.rol] ?? u.rol}</span>
+                  </div>
+                  ${u.hobby_sporten ? `<div class="font-klein kleur-grijs" style="margin-top:3px;padding-left:26px">🏃 ${u.hobby_sporten}</div>` : ''}
+                </div>
+                <button class="knop knop-primair knop-klein" style="flex-shrink:0;margin-left:12px"
+                        onclick="window._koppelDirect('${u.id}','${kampID}','${naam.replace(/'/g,"\\'")}',this)">
+                  + Koppelen
+                </button>
+              </div>`;
+          }).join('')}
+         </div>`;
+
+    const geenLesgeversHint = alleGebruikers.filter(u =>
+      u.actief && ['lesgever','extra_hulp','coordinator','admin'].includes(u.rol)
+    ).length === 0
+      ? `<div class="font-klein" style="margin-top:10px;padding:10px 14px;background:rgba(255,193,7,0.08);border:1px solid rgba(255,193,7,0.3);border-radius:8px;color:#856404;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+           <span>💡 Maak eerst een lesgever-account aan.</span>
+           <button class="knop knop-primair knop-klein" onclick="window._gaNaarLesgevers()">→ Nieuw account</button>
+         </div>`
+      : '';
+
+    container.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
+                  background:${isOpen ? 'rgba(20,136,105,0.08)' : 'var(--kleur-wit)'};
+                  border-radius:8px;border:1px solid ${isOpen ? 'rgba(20,136,105,0.2)' : 'var(--kleur-lichtgrijs)'};
+                  margin-bottom:18px">
+        <div>
+          <div class="vet" style="font-size:0.88rem">${isOpen ? '🔓 Beschikbaarheid opengesteld' : '🔒 Beschikbaarheid gesloten'}</div>
+          <div class="font-klein kleur-grijs">${isOpen ? 'Lesgevers kunnen beschikbaarheid ingeven via de Beschikbaarheidspagina' : 'Zet open om lesgevers te herinneren dat ze beschikbaarheid kunnen ingeven'}</div>
+        </div>
+        <button class="knop ${isOpen ? 'knop-gevaar' : 'knop-middengroen'} knop-klein"
+                onclick="window._toggleBeschikbaarheid('${kampID}', ${!isOpen})">
+          ${isOpen ? 'Sluiten' : 'Openzetten'}
+        </button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1.6fr;gap:24px;align-items:start">
+        <div>
+          <h4 style="margin-bottom:10px;font-size:0.9rem;color:var(--kleur-donkergroen)">
+            ✓ Gekoppeld <span class="badge badge-grijs" style="margin-left:6px">${gekoppeldLijst.length}</span>
+          </h4>
+          ${gekoppeldHTML}
+        </div>
+        <div>
+          <h4 style="margin-bottom:8px;font-size:0.9rem;color:var(--kleur-donkergroen)">
+            Koppelen <span class="badge badge-grijs" style="margin-left:6px">${ongekoppeld.length}</span>
+          </h4>
+          <div style="display:flex;gap:14px;margin-bottom:8px;font-size:0.76rem;color:var(--kleur-grijs)">
+            <span>🟢 Beschikbaar</span><span>🔴 Niet beschikbaar</span><span>⚪ Geen opgave</span>
+          </div>
+          ${ongekoppeldHTML}
+          ${geenLesgeversHint}
+        </div>
+      </div>`;
+  }
+
+  window._koppelDirect = async (lgID, kampID, naam, knop) => {
+    knop.disabled = true; knop.textContent = '⏳';
+    const kamp = alleKampen.find(k => k.id === kampID);
+    try {
+      const succes = await koppelLesgever(kampID, lgID, kamp?.naam ?? '', true);
+      if (succes) await laadKampDetailInline(kampID);
+    } finally {
+      if (knop.isConnected) { knop.disabled = false; knop.textContent = '+ Koppelen'; }
+    }
+  };
+
+  window._ontkoppelInline = async (kampID, lgID, naam) => {
+    if (!await bevestig(`${naam} ontkoppelen van dit kamp?`)) return;
+    const succes = await ontkoppelLesgever(kampID, lgID);
+    if (succes) await laadKampDetailInline(kampID);
+  };
+
+  window._toggleBeschikbaarheid = async (kampID, open) => {
+    const ok = await zetBeschikbaarheidOpen(kampID, open);
+    if (ok) {
+      const kamp = alleKampen.find(k => k.id === kampID);
+      if (kamp) kamp.beschikbaarheid_open = open;
+      await laadKampDetailInline(kampID);
+    }
+  };
+
+  window._zetVerantwoordelijke = async (kampID, lgID) => {
+    const { error } = await supabase
+      .from('kampen')
+      .update({ verantwoordelijke: lgID })
+      .eq('id', kampID);
+    if (error) {
+      toonToast('Kon verantwoordelijke niet opslaan.', 'fout');
+      return;
+    }
+    // Update lokale cache — ook het profiel zodat de tabel de naam toont
+    const kamp = alleKampen.find(k => k.id === kampID);
+    const lg   = alleGebruikers.find(u => u.id === lgID);
+    if (kamp) {
+      kamp.verantwoordelijke = lgID;
+      kamp.verantwoordelijke_profiel = lg
+        ? { voornaam: lg.voornaam, achternaam: lg.achternaam }
+        : null;
+    }
+    toonToast('Verantwoordelijke opgeslagen.', 'succes');
+    renderKampenTabel();
+    await laadKampDetailInline(kampID);
+  };
+
+
+  window._bewerkKamp = (kampID) => {
+    const kamp = alleKampen.find(k => k.id === kampID);
+    if (!kamp) return;
+    document.getElementById('kamp-id').value         = kamp.id;
+    document.getElementById('kamp-naam').value       = kamp.naam;
+    document.getElementById('kamp-locatie').value    = kamp.locatie;
+    document.getElementById('kamp-adres').value      = kamp.adres ?? '';
+    document.getElementById('kamp-start').value      = kamp.startdatum;
+    document.getElementById('kamp-eind').value       = kamp.einddatum;
+    document.getElementById('kamp-leeftijd').value   = kamp.leeftijdsgroep;
+    document.getElementById('kamp-status').value     = kamp.status;
+    document.getElementById('kamp-modal-titel').textContent = 'Kamp bewerken';
+    bereken_dagen();
+    openModal('kamp-modal-overlay');
+  };
+
+  // ── Locatiesuggesties ──────────────────────────────────────────────
+
+  /** Bouw de datalist op met unieke locaties uit bestaande kampen. */
+  function vulLocatieSuggesties() {
+    const datalist = document.getElementById('locatie-suggesties');
+    if (!datalist) return;
+    // Map: locatienaam → meest recente adres (op startdatum gesorteerd)
+    const locMap = new Map();
+    [...alleKampen]
+      .sort((a, b) => (b.startdatum ?? '').localeCompare(a.startdatum ?? ''))
+      .forEach(k => {
+        if (k.locatie && !locMap.has(k.locatie)) {
+          locMap.set(k.locatie, k.adres ?? '');
+        }
+      });
+    datalist.innerHTML = [...locMap.entries()]
+      .map(([loc]) => `<option value="${loc.replace(/"/g, '&quot;')}">`)
+      .join('');
+  }
+
+  // Auto-fill adres bij locatiewijziging
+  document.getElementById('kamp-locatie').addEventListener('input', (e) => {
+    const getypt = e.target.value.trim().toLowerCase();
+    if (!getypt) return;
+    const gevonden = alleKampen
+      .filter(k => k.locatie?.toLowerCase() === getypt && k.adres)
+      .sort((a, b) => (b.startdatum ?? '').localeCompare(a.startdatum ?? ''))[0];
+    if (gevonden) {
+      const adresVeld = document.getElementById('kamp-adres');
+      if (!adresVeld.value) adresVeld.value = gevonden.adres;
+    }
+  });
+
+  // ── Lesgevers ──
+  // ─── LESGEVER-FICHES STATE ──────────────────────────────────
+  let lgFiltZoek   = '';
+  let lgFiltRol    = '';
+  let lgFiltStatus = '';
+  let lgFinJaar      = HUIDIG_JAAR;
+  let lgFinDataCache = null;
+  let lgOpenFicheID  = null;
+
+  async function laadGebruikers() {
+    alleGebruikers = await haalAlleGebruikersOp(true);
+    if (!lgFinDataCache) await herlaadFinCache();
+    renderLesgeverFiches();
+  }
+
+  async function herlaadFinCache() {
+    try {
+      const overzicht = await haalOverzichtPerLesgeverOp(lgFinJaar);
+      lgFinDataCache = new Map(overzicht.map(o => [o.lesgever_id, o]));
+    } catch { lgFinDataCache = new Map(); }
+  }
+
+  // Jaarfilter event
+  document.getElementById('lg-fin-jaar-filter')?.addEventListener('change', async (e) => {
+    lgFinJaar = parseInt(e.target.value);
+    lgFinDataCache = null;
+    lgOpenFicheID = null;
+    await herlaadFinCache();
+    renderLesgeverFiches();
+  });
+
+  function renderLesgeverFiches() {
+    const raster = document.getElementById('lg-fiches-raster');
+    if (!raster) return;
+
+    let gefilterd = alleGebruikers.slice();
+    if (lgFiltZoek) {
+      const z = lgFiltZoek.toLowerCase();
+      gefilterd = gefilterd.filter(u =>
+        `${u.voornaam} ${u.achternaam}`.toLowerCase().includes(z) ||
+        (u.email ?? '').toLowerCase().includes(z));
+    }
+    if (lgFiltRol)    gefilterd = gefilterd.filter(u => u.rol === lgFiltRol);
+    if (lgFiltStatus) gefilterd = gefilterd.filter(u =>
+      lgFiltStatus === 'actief' ? u.actief : !u.actief);
+
+    // Sorteer op rol: beheerder → coördinator → lesgever → extra hulp
+    const rolVolgorde = { admin: 0, coordinator: 1, lesgever: 2, extra_hulp: 3 };
+    gefilterd.sort((a, b) =>
+      (rolVolgorde[a.rol] ?? 9) - (rolVolgorde[b.rol] ?? 9) ||
+      (a.achternaam ?? '').localeCompare(b.achternaam ?? '', 'nl') ||
+      (a.voornaam  ?? '').localeCompare(b.voornaam  ?? '', 'nl'));
+
+    if (gefilterd.length === 0) {
+      raster.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--kleur-grijs)">
+        Geen lesgevers gevonden voor deze filters.
+      </div>`;
+      return;
+    }
+
+    raster.innerHTML = gefilterd.map(u => renderLesgeverFiche(u, u.id === lgOpenFicheID)).join('');
+  }
+
+  function renderLesgeverFiche(u, open = false) {
+    const initialen = ((u.voornaam?.[0] ?? '') + (u.achternaam?.[0] ?? '')).toUpperCase();
+    const rolLabels = { admin: 'Beheerder', coordinator: 'Coördinator', lesgever: 'Lesgever', extra_hulp: 'Extra hulp' };
+    const finData = lgFinDataCache?.get(u.id) ?? { totaal: 0, aantal: 0 };
+
+    return `
+      <div class="lg-fiche ${open ? 'open' : ''} ${u.actief ? '' : 'inactief'}" id="lg-fiche-${u.id}" data-id="${u.id}">
+        ${!u.actief ? '<span class="lg-inactief-tag">Inactief</span>' : ''}
+
+        <!-- Kop -->
+        <div class="lg-fiche-kop">
+          <div class="lg-avatar rol-${u.rol}">${initialen || '?'}</div>
+          <div class="lg-naam-blok">
+            <div class="lg-naam">${u.voornaam} ${u.achternaam}</div>
+            <span class="lg-rol-badge">${rolLabels[u.rol] ?? u.rol}</span>
+            ${!u.attest_url ? '<span class="lg-attest-ontbreekt">⚠ GGS</span>' : ''}
+          </div>
+          <button class="lg-oog-knop" onclick="window._toggleFiche('${u.id}')" title="${open ? 'Inklappen' : 'Detail bekijken'}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              ${open
+                ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+                : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'}
+            </svg>
+          </button>
+        </div>
+
+        <!-- Contact -->
+        <div class="lg-contact">
+          <div class="lg-contact-rij" title="${u.email ?? ''}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <span>${u.email ?? '—'}</span>
+          </div>
+          <div class="lg-contact-rij" title="${u.telefoon ?? ''}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <span>${u.telefoon ?? '—'}</span>
+          </div>
+        </div>
+
+        <!-- Financiële stats -->
+        <div class="lg-finstats">
+          <div class="lg-finstat-blok">
+            <div class="lg-finstat-label">Kampen ${lgFinJaar}</div>
+            <div class="lg-finstat-waarde">${finData.aantal ?? 0}</div>
+          </div>
+          <div class="lg-finstat-blok" style="text-align:right">
+            <div class="lg-finstat-label">Jaartotaal</div>
+            <div class="lg-finstat-waarde limoen">${formaatBedrag(finData.totaal ?? 0)}</div>
+          </div>
+        </div>
+
+        ${open ? renderLesgeverFicheDetail(u, finData) : ''}
+      </div>
+    `;
+  }
+
+  function renderLesgeverFicheDetail(u, finData) {
+    const initialen = ((u.voornaam?.[0] ?? '') + (u.achternaam?.[0] ?? '')).toUpperCase();
+    const kmMap = u.kilometers_per_locatie ?? {};
+    const kmKeys = Object.keys(kmMap);
+
+    return `
+      <div class="lg-detail" id="lg-detail-${u.id}">
+
+        <!-- Persoonsgegevens -->
+        <div class="lg-detail-blok">
+          <div class="lg-detail-titel">📋 Persoonsgegevens</div>
+          <div class="lg-veld"><span class="lg-veld-label">Voornaam</span><span class="lg-veld-waarde" data-veld="voornaam">${u.voornaam ?? '—'}</span></div>
+          <div class="lg-veld"><span class="lg-veld-label">Achternaam</span><span class="lg-veld-waarde" data-veld="achternaam">${u.achternaam ?? '—'}</span></div>
+          <div class="lg-veld"><span class="lg-veld-label">E-mail</span><span class="lg-veld-waarde">${u.email ?? '—'}</span></div>
+          <div class="lg-veld"><span class="lg-veld-label">Telefoon</span><span class="lg-veld-waarde ${u.telefoon ? '' : 'leeg'}" data-veld="telefoon">${u.telefoon ?? 'niet ingevuld'}</span></div>
+          <div class="lg-veld"><span class="lg-veld-label">Adres</span><span class="lg-veld-waarde ${u.adres ? '' : 'leeg'}" data-veld="adres">${u.adres ?? 'niet ingevuld'}</span></div>
+          <div class="lg-veld"><span class="lg-veld-label">Geboortedatum</span><span class="lg-veld-waarde ${u.geboortedatum ? '' : 'leeg'}" data-veld="geboortedatum">${u.geboortedatum ? datumNaarNL(u.geboortedatum) : 'niet ingevuld'}</span></div>
+          <div class="lg-veld"><span class="lg-veld-label">IBAN</span><span class="lg-veld-waarde ${u.rekeningnummer ? '' : 'leeg'}" data-veld="rekeningnummer" style="font-family:monospace">${u.rekeningnummer ?? 'niet ingevuld'}</span></div>
+          <div class="lg-veld"><span class="lg-veld-label">Hobby / Sporten</span><span class="lg-veld-waarde ${u.hobby_sporten ? '' : 'leeg'}" data-veld="hobby_sporten">${u.hobby_sporten ?? 'niet ingevuld'}</span></div>
+        </div>
+
+        <!-- Financieel jaaroverzicht -->
+        <div class="lg-detail-blok">
+          <div class="lg-detail-titel">💰 Financieel overzicht ${lgFinJaar}</div>
+          <div class="lg-veld"><span class="lg-veld-label">Aantal contracten</span><span class="lg-veld-waarde">${finData.aantal ?? 0}</span></div>
+          <div class="lg-veld">
+            <span class="lg-veld-label">Vrijwilligersvergoeding</span>
+            <span class="lg-veld-waarde">${formaatBedrag(finData.vergoeding ?? 0)}</span>
+          </div>
+          <div class="lg-veld">
+            <span class="lg-veld-label">Kilometervergoeding</span>
+            <span class="lg-veld-waarde">${formaatBedrag(finData.km_vergoeding ?? 0)}</span>
+          </div>
+          <div class="lg-veld" style="border-top:1px solid var(--kleur-lichtgrijs);padding-top:6px;margin-top:4px">
+            <span class="lg-veld-label" style="font-weight:700">Bruto totaal</span>
+            <span class="lg-veld-waarde" style="font-weight:800">${formaatBedrag(finData.totaal ?? 0)}</span>
+          </div>
+          <div class="lg-veld"><span class="lg-veld-label">Uitbetaald</span><span class="lg-veld-waarde" style="color:var(--kleur-middengroen)">${formaatBedrag(finData.uitbetaald ?? 0)}</span></div>
+          <div class="lg-veld"><span class="lg-veld-label">Openstaand</span><span class="lg-veld-waarde" style="color:#f0ad4e">${formaatBedrag(finData.openstaand ?? 0)}</span></div>
+        </div>
+
+        <!-- Handtekening + km -->
+        <div class="lg-detail-blok">
+          <div class="lg-detail-titel">✍️ Handtekening</div>
+          <div class="lg-handtekening" id="lg-hand-${u.id}">
+            ${u.handtekening_url
+              ? '<div class="font-klein">Aanwezig (laden…)</div>'
+              : '<em>Geen handtekening opgeladen</em>'}
+          </div>
+
+          <div class="lg-detail-titel mt-12">🚗 Kilometers per locatie</div>
+          ${kmKeys.length > 0 ? `
+            <table class="lg-km-tabel">
+              ${kmKeys.map(loc => `<tr><td>${loc}</td><td>${kmMap[loc]} km</td></tr>`).join('')}
+            </table>` : '<em class="font-klein kleur-grijs">Nog niets ingegeven</em>'}
+        </div>
+
+        <!-- Attest GGS type 2 -->
+        <div class="lg-detail-blok">
+          <div class="lg-detail-titel">📄 Attest GGS type 2</div>
+          ${u.attest_url ? `
+            <div class="lg-veld">
+              <span class="lg-veld-label">Uitgiftedatum</span>
+              <span class="lg-veld-waarde">${u.attest_datum ? datumNaarNL(u.attest_datum) : '—'}</span>
+            </div>
+            <div id="lg-attest-${u.id}" style="margin-top:8px">
+              <span class="font-klein kleur-grijs">Link wordt geladen…</span>
+            </div>
+          ` : `
+            <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;
+                        background:rgba(255,105,85,0.08);border:1.5px solid rgba(255,105,85,0.3);
+                        border-radius:6px">
+              ⚠️ <span style="font-size:0.82rem;color:#92400e;font-weight:600">
+                Geen attest opgeladen
+              </span>
+            </div>
+          `}
+        </div>
+
+        <!-- Acties balk -->
+        <div class="lg-acties-balk">
+          <button class="knop knop-primair knop-klein" onclick="window._bewerkLesgever('${u.id}')">✏️ Bewerken</button>
+          <button class="knop knop-omtrek knop-klein" onclick="window._wijzigRol('${u.id}','${u.rol}')">Rol wijzigen</button>
+          <button class="knop knop-omtrek knop-klein" onclick="window._wwReset('${u.id}','${(u.voornaam + ' ' + u.achternaam).replace(/'/g,'')}','${u.email ?? ''}')">🔑 Wachtwoord</button>
+          <button class="knop ${u.actief ? 'knop-gevaar' : 'knop-middengroen'} knop-klein" onclick="window._toggleActief('${u.id}', ${!u.actief})">
+            ${u.actief ? '⊘ Deactiveren' : '✓ Activeren'}
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // ─── Toggle fiche open/dicht ──────────────────────────────────
+  window._toggleFiche = async (id) => {
+    lgOpenFicheID = (lgOpenFicheID === id) ? null : id;
+    renderLesgeverFiches();
+
+    // Bij openklappen: laad handtekening async
+    if (lgOpenFicheID === id) {
+      await laadHandtekeningVoorFiche(id);
+      await laadAttestVoorFiche(id);
+    }
+  };
+
+  async function laadAttestVoorFiche(id) {
+    const u  = alleGebruikers.find(g => g.id === id);
+    const el = document.getElementById('lg-attest-' + id);
+    if (!u?.attest_url || !el) return;
+    try {
+      const { data } = await supabase.storage.from('attesten')
+        .createSignedUrl(u.attest_url, 3600);
+      if (data?.signedUrl) {
+        el.innerHTML = `<a href="${data.signedUrl}" target="_blank" rel="noopener"
+                          class="knop knop-omtrek knop-klein"
+                          style="display:inline-flex;align-items:center;gap:6px">
+                          📄 Attest bekijken / downloaden
+                        </a>`;
+      } else {
+        el.innerHTML = '<em class="font-klein kleur-grijs">Link niet beschikbaar</em>';
+      }
+    } catch {
+      el.innerHTML = '<em class="font-klein kleur-grijs">Niet beschikbaar</em>';
+    }
+  }
+
+  async function laadHandtekeningVoorFiche(id) {
+    const u = alleGebruikers.find(g => g.id === id);
+    const el = document.getElementById('lg-hand-' + id);
+    if (!u?.handtekening_url || !el) return;
+    try {
+      const { data } = await supabase.storage.from('handtekeningen')
+        .createSignedUrl(u.handtekening_url, 3600);
+      if (data?.signedUrl) {
+        el.innerHTML = `<img src="${data.signedUrl}" alt="Handtekening">`;
+      }
+    } catch {
+      el.innerHTML = '<em class="font-klein kleur-grijs">Niet beschikbaar</em>';
+    }
+  }
+
+  // ─── Bewerken — hele fiche wordt invulbaar ────────────────────
+  window._bewerkLesgever = (id) => {
+    const u = alleGebruikers.find(g => g.id === id);
+    if (!u) return;
+    const detail = document.getElementById('lg-detail-' + id);
+    if (!detail) return;
+
+    detail.querySelectorAll('.lg-veld-waarde[data-veld]').forEach(el => {
+      const veld = el.dataset.veld;
+      const huidig = u[veld] ?? '';
+      const type = veld === 'geboortedatum' ? 'date' : 'text';
+      el.outerHTML = `<input type="${type}" value="${huidig}" data-veld="${veld}"
+        style="max-width:200px;text-align:right;padding:5px 9px;border:1.5px solid var(--kleur-lichtgrijs);border-radius:6px;font-family:var(--font);font-size:0.83rem">`;
+    });
+
+    // Vervang actieknoppen
+    const actiesBalk = detail.querySelector('.lg-acties-balk');
+    actiesBalk.innerHTML = `
+      <button class="knop knop-accent knop-klein" onclick="window._bewerkOpslaan('${id}')">💾 Opslaan</button>
+      <button class="knop knop-omtrek knop-klein" onclick="window._bewerkAnnuleren('${id}')">Annuleren</button>
+    `;
+  };
+
+  window._bewerkAnnuleren = (id) => {
+    lgOpenFicheID = id;
+    renderLesgeverFiches();
+    laadHandtekeningVoorFiche(id);
+  };
+
+  window._bewerkOpslaan = async (id) => {
+    const detail = document.getElementById('lg-detail-' + id);
+    if (!detail) return;
+    const updates = {};
+    detail.querySelectorAll('input[data-veld]').forEach(inp => {
+      const veld = inp.dataset.veld;
+      let v = inp.value.trim();
+      if (veld === 'geboortedatum') v = v || null;
+      else if (['telefoon','adres','rekeningnummer','hobby_sporten'].includes(veld)) v = v || null;
+      updates[veld] = v;
+    });
+
+    try {
+      const { error } = await supabase.from('profielen').update(updates).eq('id', id);
+      if (error) throw error;
+      // Update lokale data
+      const u = alleGebruikers.find(g => g.id === id);
+      Object.assign(u, updates);
+      toonToast('Gegevens opgeslagen.', 'succes');
+      renderLesgeverFiches();
+      laadHandtekeningVoorFiche(id);
+    } catch (fout) {
+      toonToast('Kon niet opslaan: ' + (fout?.message ?? fout), 'fout');
+    }
+  };
+
+  // ─── Wachtwoord reset ─────────────────────────────────────────
+  window._wwReset = (id, naam, email) => {
+    document.getElementById('ww-reset-id').value = id;
+    document.getElementById('ww-reset-email').value = email;
+    document.getElementById('ww-reset-naam').textContent = naam;
+    document.getElementById('ww-nieuw').value = '';
+    document.getElementById('ww-fout').classList.add('verborgen');
+    document.getElementById('ww-succes').classList.add('verborgen');
+    document.getElementById('ww-opt-direct').checked = true;
+    document.getElementById('ww-direct-veld').style.display = 'block';
+    openModal('ww-reset-overlay');
+  };
+
+  document.getElementById('ww-opt-direct').addEventListener('change', () => {
+    document.getElementById('ww-direct-veld').style.display = 'block';
+  });
+  document.getElementById('ww-opt-mail').addEventListener('change', () => {
+    document.getElementById('ww-direct-veld').style.display = 'none';
+  });
+
+  document.getElementById('ww-genereer-knop').addEventListener('click', () => {
+    const tekens = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    let ww = '';
+    const arr = new Uint8Array(12);
+    crypto.getRandomValues(arr);
+    arr.forEach(b => { ww += tekens[b % tekens.length]; });
+    document.getElementById('ww-nieuw').value = ww;
+  });
+
+  document.getElementById('ww-annuleren').addEventListener('click', () => sluitModal('ww-reset-overlay'));
+
+  document.getElementById('ww-uitvoeren').addEventListener('click', async () => {
+    const id    = document.getElementById('ww-reset-id').value;
+    const email = document.getElementById('ww-reset-email').value;
+    const direct = document.getElementById('ww-opt-direct').checked;
+    const foutEl = document.getElementById('ww-fout');
+    const succEl = document.getElementById('ww-succes');
+    foutEl.classList.add('verborgen');
+    succEl.classList.add('verborgen');
+
+    const knop = document.getElementById('ww-uitvoeren');
+    knop.disabled = true; knop.textContent = '⏳ Bezig…';
+
+    try {
+      if (direct) {
+        const ww = document.getElementById('ww-nieuw').value;
+        if (!ww || ww.length < 8) {
+          foutEl.textContent = 'Wachtwoord moet minimaal 8 tekens bevatten.';
+          foutEl.classList.remove('verborgen');
+          return;
+        }
+        // Probeer Edge Function (admin-reset-password)
+        try {
+          const { data, error } = await supabase.functions.invoke('admin-reset-password', {
+            body: { gebruiker_id: id, nieuw_wachtwoord: ww },
+          });
+          // Edge Function-fouten komen vaak in data.error i.p.v. error
+          if (error) throw new Error(error.message ?? 'Edge Function fout');
+          if (data?.error) throw new Error(data.error);
+          if (!data?.succes) throw new Error('Onverwacht antwoord van server');
+
+          succEl.innerHTML = `
+            ✅ <strong>Wachtwoord ingesteld</strong> voor deze lesgever.<br>
+            Login-gegevens:<br>
+            <strong style="font-family:monospace;font-size:1.05em;display:inline-block;background:#fff;padding:4px 8px;border-radius:4px;margin-top:6px">
+              📧 ${email}<br>
+              🔑 ${ww}
+            </strong>
+            <br><span class="font-klein kleur-grijs" style="margin-top:6px;display:block">
+              Geef deze gegevens door aan de lesgever.
+            </span>`;
+          succEl.classList.remove('verborgen');
+        } catch (e) {
+          // Specifieke melding op basis van fouttype
+          let extra = '';
+          const msg = e?.message ?? '';
+          if (msg.includes('Function not found') || msg.includes('404') || msg.includes('non-2xx')) {
+            extra = `<br><br>⚠️ De Edge Function <code>admin-reset-password</code> is nog niet gedeployed.<br>
+              Volg de instructies in <strong>DEPLOY-EDGE-FUNCTION.md</strong> of voer ondertussen handmatig deze SQL uit:`;
+          } else {
+            extra = '<br>' + msg;
+          }
+          foutEl.innerHTML = `Wachtwoord-reset mislukt.${extra}<br>
+            <a href="https://supabase.com/dashboard/project/coiocqvopxgvdezuwqou/sql/new" target="_blank"
+               style="color:var(--kleur-koraal);text-decoration:underline;font-weight:700">
+              → SQL Editor openen
+            </a>
+            <code style="display:block;background:#fff;padding:8px;border-radius:4px;margin-top:8px;font-size:0.72rem;color:#194338;word-break:break-all">UPDATE auth.users SET encrypted_password = crypt('${ww}', gen_salt('bf')), email_confirmed_at = COALESCE(email_confirmed_at, now()), updated_at = now() WHERE id = '${id}';</code>`;
+          foutEl.classList.remove('verborgen');
+        }
+      } else {
+        // Stuur reset-mail via standaard auth API
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + '/index.html',
+        });
+        if (error) throw error;
+        succEl.textContent = `✓ Reset-mail verstuurd naar ${email}.`;
+        succEl.classList.remove('verborgen');
+      }
+    } catch (fout) {
+      foutEl.textContent = 'Fout: ' + (fout?.message ?? fout);
+      foutEl.classList.remove('verborgen');
+    } finally {
+      knop.disabled = false; knop.textContent = 'Uitvoeren';
+    }
+  });
+
+  // ─── Filterbalk listeners ─────────────────────────────────────
+  document.getElementById('lg-zoek')?.addEventListener('input', (e) => {
+    lgFiltZoek = e.target.value.trim();
+    renderLesgeverFiches();
+  });
+  document.getElementById('lg-rol-filter')?.addEventListener('change', (e) => {
+    lgFiltRol = e.target.value;
+    renderLesgeverFiches();
+  });
+  document.getElementById('lg-status-filter')?.addEventListener('change', (e) => {
+    lgFiltStatus = e.target.value;
+    renderLesgeverFiches();
+  });
+
+  window._wijzigRol = (id, huidig) => {
+    document.getElementById('rol-gebruiker-id').value = id;
+    document.getElementById('nieuwe-rol-select').value = huidig;
+    openModal('rol-modal-overlay');
+  };
+
+  document.getElementById('rol-opslaan').addEventListener('click', async () => {
+    const id  = document.getElementById('rol-gebruiker-id').value;
+    const rol = document.getElementById('nieuwe-rol-select').value;
+    const succes = await werkRolBij(id, rol);
+    if (succes) { sluitModal('rol-modal-overlay'); await laadGebruikers(); }
+  });
+  document.getElementById('rol-annuleren').addEventListener('click', () => sluitModal('rol-modal-overlay'));
+
+  window._toggleActief = async (id, actief) => {
+    if (!await bevestig(actief ? 'Account activeren?' : 'Account deactiveren?')) return;
+    const succes = await werkActiefStatusBij(id, actief);
+    if (succes) await laadGebruikers();
+  };
+
+  // ── Nieuw account aanmaken ──────────────────────────────────────
+
+  document.getElementById('nieuw-account-knop').addEventListener('click', () => {
+    // Reset formulier
+    ['na-voornaam','na-achternaam','na-email','na-telefoon','na-wachtwoord'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('na-rol').value = 'lesgever';
+    document.getElementById('na-fout').classList.add('verborgen');
+    document.getElementById('na-succes').classList.add('verborgen');
+    document.getElementById('ww-gegenereerd').classList.add('verborgen');
+    document.getElementById('na-opslaan').disabled = false;
+    document.getElementById('na-opslaan').textContent = 'Account aanmaken';
+    openModal('nieuw-account-overlay');
+  });
+
+  // Willekeurig wachtwoord genereren
+  document.getElementById('ww-genereer').addEventListener('click', () => {
+    const tekens = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#';
+    let ww = '';
+    const arr = new Uint8Array(12);
+    crypto.getRandomValues(arr);
+    arr.forEach(b => { ww += tekens[b % tekens.length]; });
+    document.getElementById('na-wachtwoord').value = ww;
+    document.getElementById('na-wachtwoord').type = 'text';
+    document.getElementById('ww-gegenereerd-waarde').textContent = ww;
+    document.getElementById('ww-gegenereerd').classList.remove('verborgen');
+  });
+
+  document.getElementById('kopieer-ww').addEventListener('click', () => {
+    kopieerNaarKlembord(document.getElementById('ww-gegenereerd-waarde').textContent);
+  });
+
+  document.getElementById('na-annuleren').addEventListener('click', () => {
+    sluitModal('nieuw-account-overlay');
+  });
+
+  document.getElementById('na-opslaan').addEventListener('click', async () => {
+    const foutEl   = document.getElementById('na-fout');
+    const succesEl = document.getElementById('na-succes');
+    foutEl.classList.add('verborgen');
+    succesEl.classList.add('verborgen');
+
+    const gegevens = {
+      voornaam:   document.getElementById('na-voornaam').value.trim(),
+      achternaam: document.getElementById('na-achternaam').value.trim(),
+      email:      document.getElementById('na-email').value.trim(),
+      wachtwoord: document.getElementById('na-wachtwoord').value,
+      rol:        document.getElementById('na-rol').value,
+      telefoon:   document.getElementById('na-telefoon').value.trim(),
+    };
+
+    // Validatie
+    if (!gegevens.voornaam || !gegevens.achternaam) {
+      foutEl.textContent = 'Vul voor- en achternaam in.';
+      foutEl.classList.remove('verborgen'); return;
+    }
+    if (!gegevens.email) {
+      foutEl.textContent = 'Vul een e-mailadres in.';
+      foutEl.classList.remove('verborgen'); return;
+    }
+    if (!gegevens.wachtwoord || gegevens.wachtwoord.length < 8) {
+      foutEl.textContent = 'Wachtwoord moet minimaal 8 tekens bevatten.';
+      foutEl.classList.remove('verborgen'); return;
+    }
+
+    const knop = document.getElementById('na-opslaan');
+    knop.disabled = true;
+    knop.textContent = 'Bezig…';
+
+    const { succes, fout } = await maakNieuwGebruikerAan(gegevens, huidigProfiel.id);
+
+    if (!succes) {
+      foutEl.textContent = fout;
+      foutEl.classList.remove('verborgen');
+      knop.disabled = false;
+      knop.textContent = 'Account aanmaken';
+      return;
+    }
+
+    const rolLabels = { lesgever:'Lesgever', extra_hulp:'Extra hulp', coordinator:'Coördinator', admin:'Beheerder' };
+    succesEl.innerHTML = `
+      ✅ <strong>${gegevens.voornaam} ${gegevens.achternaam}</strong> is aangemaakt als
+      <strong>${rolLabels[gegevens.rol] ?? gegevens.rol}</strong>.<br>
+      <span style="font-size:0.8rem;color:var(--kleur-grijs)">
+        E-mail: ${gegevens.email}
+      </span>
+    `;
+    succesEl.classList.remove('verborgen');
+    knop.textContent = '✓ Aangemaakt';
+
+    // Herlaad lesgeverlijst
+    await laadGebruikers();
+  });
+
+  // Beschikbaarheidsmatrix
+  let _matrixGeladen = false;
+  document.getElementById('beschikbaarheid-matrix-knop').addEventListener('click', async () => {
+    const sectie = document.getElementById('beschikbaarheid-matrix-sectie');
+    if (!sectie.classList.contains('verborgen')) {
+      sectie.classList.add('verborgen');
+      return;
+    }
+    sectie.classList.remove('verborgen');
+    sectie.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (_matrixGeladen) return;
+    _matrixGeladen = true;
+    const { kampen, lesgevers, beschikbaarheden } = await haalBeschikbaarhedenMatrixOp();
+    _renderBeschikbaarheidMatrix(kampen, lesgevers, beschikbaarheden);
+  });
+
+  document.getElementById('beschikbaarheid-matrix-sluiten').addEventListener('click', () => {
+    document.getElementById('beschikbaarheid-matrix-sectie').classList.add('verborgen');
+  });
+
+  function _renderBeschikbaarheidMatrix(kampen, lesgevers, beschikbaarheden) {
+    const inhoud = document.getElementById('beschikbaarheid-matrix-inhoud');
+    if (!kampen.length || !lesgevers.length) {
+      inhoud.innerHTML = '<p style="text-align:center;color:var(--kleur-grijs);padding:24px 0">Geen gegevens beschikbaar.</p>';
+      return;
+    }
+
+    // Index beschikbaarheden: lesgever_id → kamp_id → {beschikbaar, onbeschikbare_dagen}
+    const idx = {};
+    for (const b of beschikbaarheden) {
+      if (!idx[b.lesgever_id]) idx[b.lesgever_id] = {};
+      idx[b.lesgever_id][b.kamp_id] = b;
+    }
+
+    const datumFmt = iso => {
+      const [, m, d] = iso.split('-');
+      return `${d}/${m}`;
+    };
+
+    const kolommen = kampen.map(k =>
+      `<th style="min-width:90px;max-width:120px;padding:6px 8px;text-align:center;white-space:normal;word-break:break-word;border-bottom:2px solid var(--kleur-lichtgrijs);font-weight:700;font-size:0.75rem;color:var(--kleur-donkergroen);vertical-align:bottom">
+        <div>${k.naam}</div>
+        <div style="font-weight:400;color:var(--kleur-grijs);font-size:0.68rem">${datumFmt(k.startdatum)}–${datumFmt(k.einddatum)}</div>
+      </th>`
+    ).join('');
+
+    const rolLabel = { lesgever: 'Lesgever', extra_hulp: 'Extra hulp', coordinator: 'Coördinator', admin: 'Beheerder' };
+
+    const rijen = lesgevers.map(lg => {
+      const cellen = kampen.map(k => {
+        const b = idx[lg.id]?.[k.id];
+        let icoon, titel, kleur;
+        if (!b) {
+          icoon = '⚪'; titel = 'Geen opgave'; kleur = 'transparent';
+        } else if (b.beschikbaar === false) {
+          icoon = '🔴'; titel = 'Niet beschikbaar'; kleur = '#fff0f0';
+        } else {
+          const deels = b.onbeschikbare_dagen?.length > 0;
+          icoon = deels ? '🟡' : '🟢';
+          titel = deels ? `Deels beschikbaar (${b.onbeschikbare_dagen.length} dag(en) niet)` : 'Beschikbaar';
+          kleur = deels ? '#fffbea' : '#f0fff4';
+        }
+        return `<td style="text-align:center;padding:5px 8px;font-size:1rem;background:${kleur};border-bottom:1px solid var(--kleur-lichtgrijs)" title="${titel}">${icoon}</td>`;
+      }).join('');
+
+      return `<tr>
+        <td style="padding:6px 12px;white-space:nowrap;border-bottom:1px solid var(--kleur-lichtgrijs);min-width:140px;position:sticky;left:0;background:var(--kleur-wit);z-index:1">
+          <div style="font-weight:700;font-size:0.82rem">${lg.voornaam} ${lg.achternaam}</div>
+          <div style="font-size:0.7rem;color:var(--kleur-grijs)">${rolLabel[lg.rol] ?? lg.rol}</div>
+        </td>
+        ${cellen}
+      </tr>`;
+    }).join('');
+
+    inhoud.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:6px 12px;border-bottom:2px solid var(--kleur-lichtgrijs);position:sticky;left:0;background:var(--kleur-wit);z-index:2;white-space:nowrap;font-size:0.82rem">Lesgever</th>
+            ${kolommen}
+          </tr>
+        </thead>
+        <tbody>${rijen}</tbody>
+      </table>
+      <div style="margin-top:10px;font-size:0.72rem;color:var(--kleur-grijs);display:flex;gap:14px;flex-wrap:wrap">
+        <span>🟢 Beschikbaar</span>
+        <span>🟡 Deels beschikbaar</span>
+        <span>🔴 Niet beschikbaar</span>
+        <span>⚪ Geen opgave</span>
+      </div>`;
+  }
+
+  // Uitnodiging
+  document.getElementById('uitnodiging-knop').addEventListener('click', () => {
+    document.getElementById('uitnodiging-resultaat').classList.add('verborgen');
+    document.getElementById('uitnodiging-email').value = '';
+    openModal('uitnodiging-modal-overlay');
+  });
+
+  document.getElementById('genereer-uitnodiging-knop').addEventListener('click', async () => {
+    const email = document.getElementById('uitnodiging-email').value.trim();
+    const rol   = document.getElementById('uitnodiging-rol').value;
+    if (!email) { toonToast('Voer een e-mailadres in.', 'fout'); return; }
+    const link = await stuurUitnodiging(email, rol, huidigProfiel.id);
+    if (link) {
+      document.getElementById('uitnodiging-link').textContent = link;
+      document.getElementById('uitnodiging-resultaat').classList.remove('verborgen');
+    }
+  });
+
+  document.getElementById('kopieer-link-knop').addEventListener('click', () => {
+    kopieerNaarKlembord(document.getElementById('uitnodiging-link').textContent);
+  });
+
+  // ── Kamp kopiëren ───────────────────────────────────────────────────
+  window._kopieerKamp = async (kampIDJson) => {
+    const kampID = JSON.parse(kampIDJson);
+    try {
+      const nieuwKamp = await kopieerKamp(kampID);
+      toonToast(`Kamp gekopieerd als "${nieuwKamp.naam}".`, 'succes');
+      await laadKampen();
+    } catch (e) {
+      console.error('[admin] kopieerKamp:', e.message);
+      toonToast('Kopiëren mislukt.', 'fout');
+    }
+  };
+
+  init();
+</script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inloggen — SportFun Portaal</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body class="login-pagina">
+
+  <div class="login-kaart">
+    <!-- Logo -->
+    <div class="login-logo">
+      <img src="sportfun-logo2.svg" alt="SportFun"
+           style="max-width:220px;height:auto;display:block;margin:0 auto 6px">
+      <div class="logo-sub">Lesgeversportaal</div>
+    </div>
+
+    <!-- Loginformulier -->
+    <form id="login-formulier" novalidate>
+      <div class="formulier-groep">
+        <label for="email">E-mailadres</label>
+        <input type="email" id="email" name="email"
+               placeholder="jouw@email.be" required autocomplete="email">
+        <div class="fout-tekst verborgen" id="email-fout"></div>
+      </div>
+
+      <div class="formulier-groep">
+        <label for="wachtwoord">Wachtwoord</label>
+        <input type="password" id="wachtwoord" name="wachtwoord"
+               placeholder="••••••••" required autocomplete="current-password">
+        <div class="fout-tekst verborgen" id="wachtwoord-fout"></div>
+      </div>
+
+      <!-- Algemene foutmelding -->
+      <div id="login-fout" class="verborgen" style="
+        background: rgba(255,105,85,0.1);
+        border: 1px solid rgba(255,105,85,0.3);
+        border-radius: var(--border-radius-sm);
+        padding: 10px 14px;
+        font-size: 0.85rem;
+        color: var(--kleur-koraal);
+        margin-bottom: 16px;
+      "></div>
+
+      <button type="submit" class="knop knop-primair w-100 knop-groot" id="login-knop">
+        Aanmelden
+      </button>
+    </form>
+
+    <!-- Wachtwoord vergeten -->
+    <div style="text-align:center;margin-top:20px">
+      <button id="reset-knop" style="
+        background: none;
+        border: none;
+        color: var(--kleur-middengroen);
+        font-family: var(--font);
+        font-size: 0.85rem;
+        cursor: pointer;
+        text-decoration: underline;
+      ">Wachtwoord vergeten?</button>
+    </div>
+
+    <!-- Reset-formulier (verborgen) -->
+    <div id="reset-sectie" class="verborgen" style="margin-top:20px;padding-top:20px;border-top:1px solid var(--kleur-lichtgrijs)">
+      <p style="font-size:0.83rem;color:var(--kleur-grijs);margin-bottom:12px">
+        Voer je e-mailadres in om een resetlink te ontvangen.
+      </p>
+      <div class="formulier-groep">
+        <input type="email" id="reset-email" placeholder="jouw@email.be">
+      </div>
+      <button class="knop knop-middengroen w-100" id="reset-versturen">
+        Resetlink sturen
+      </button>
+      <div id="reset-bevestiging" class="verborgen" style="
+        margin-top:10px;font-size:0.83rem;color:var(--kleur-middengroen);
+        text-align:center
+      ">
+        ✓ Resetlink verstuurd. Controleer je inbox.
+      </div>
+    </div>
+
+    <!-- Info: geen zelfregistratie -->
+    <p style="text-align:center;font-size:0.75rem;color:var(--kleur-grijs);margin-top:24px">
+      Nog geen account? Vraag een uitnodiging aan bij jouw coördinator.
+    </p>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script type="module">
+    import { supabase } from './js/supabase.js?v=1780304789425';
+    import { login, stuurWachtwoordReset, haalRolOp, stuurDoorOpRol } from './js/auth.js?v=1780304789425';
+    import { toonToast } from './js/utils.js?v=1780304789425';
+
+    // Controleer of er al een actieve sessie is
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const rol = await haalRolOp(session.user.id);
+        if (rol) stuurDoorOpRol(rol);
+      }
+    })();
+
+    // Loginformulier
+    const formulier = document.getElementById('login-formulier');
+    const loginKnop = document.getElementById('login-knop');
+    const loginFout = document.getElementById('login-fout');
+
+    formulier.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginFout.classList.add('verborgen');
+
+      const email = document.getElementById('email').value.trim();
+      const wachtwoord = document.getElementById('wachtwoord').value;
+
+      if (!email || !wachtwoord) {
+        loginFout.textContent = 'Vul je e-mailadres en wachtwoord in.';
+        loginFout.classList.remove('verborgen');
+        return;
+      }
+
+      loginKnop.disabled = true;
+      loginKnop.textContent = 'Aanmelden…';
+
+      const { gebruiker, fout } = await login(email, wachtwoord);
+
+      if (fout) {
+        loginFout.textContent = fout;
+        loginFout.classList.remove('verborgen');
+        loginKnop.disabled = false;
+        loginKnop.textContent = 'Aanmelden';
+        return;
+      }
+
+      // Controleer of het profiel bestaat
+      const rol = await haalRolOp(gebruiker.id);
+
+      if (!rol) {
+        // Auth geslaagd maar geen profiel in de database
+        loginFout.textContent = 'Inloggen gelukt, maar jouw profiel ontbreekt nog. Contacteer de beheerder.';
+        loginFout.classList.remove('verborgen');
+        loginKnop.disabled = false;
+        loginKnop.textContent = 'Aanmelden';
+        return;
+      }
+
+      stuurDoorOpRol(rol);
+    });
+
+    // Wachtwoord vergeten
+    document.getElementById('reset-knop').addEventListener('click', () => {
+      document.getElementById('reset-sectie').classList.toggle('verborgen');
+    });
+
+    document.getElementById('reset-versturen').addEventListener('click', async () => {
+      const email = document.getElementById('reset-email').value.trim();
+      if (!email) {
+        toonToast('Voer een e-mailadres in.', 'fout');
+        return;
+      }
+      const { succes, fout } = await stuurWachtwoordReset(email);
+      if (succes) {
+        document.getElementById('reset-bevestiging').classList.remove('verborgen');
+      } else {
+        toonToast(fout, 'fout');
+      }
+    });
+  </script>
+</body>
+</html>

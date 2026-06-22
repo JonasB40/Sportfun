@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activiteitenfiches — SportFun Portaal</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<div class="portaal-wrapper">
+
+  <!-- Zijbalk -->
+  <nav class="zijbalk" id="zijbalk">
+    <div class="zijbalk-logo">
+      <img src="sportfun-logo-wit.svg" alt="SportFun"
+           style="max-width:170px;height:auto;display:block;margin-bottom:4px">
+      <div class="logo-sub">Lesgeversportaal</div>
+    </div>
+    <div class="zijbalk-nav">
+      <ul>
+        <li><a href="dashboard.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          Dashboard
+        </a></li>
+        <li><a href="planner.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Kampplanning
+        </a></li>
+        <li class="verberg-admin"><a href="beschikbaarheid.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+            <polyline points="9 15 11 17 15 13"/>
+          </svg>Beschikbaarheid
+        </a></li>
+        <li><a href="fiches.html" class="actief">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          Activiteiten
+        </a></li>
+        <li><a href="materiaal.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+          Materiaal
+        </a></li>
+        <li class="enkel-admin"><a href="admin.html">
+          <svg class="nav-icoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          Beheer
+        </a></li>
+      </ul>
+    </div>
+    <div class="zijbalk-footer">
+      <div class="gebruiker-info">
+        <a href="profiel.html" class="gebruiker-avatar" id="nav-avatar" title="Profiel & contracten">?</a>
+        <div>
+          <div class="gebruiker-naam" id="nav-naam">Laden…</div>
+          <div class="gebruiker-rol" id="nav-rol"></div>
+        </div>
+      </div>
+      <button class="uitloggen-knop" id="nav-uitloggen">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Uitloggen
+      </button>
+    </div>
+  </nav>
+  <div class="overlay-nav" id="overlay-nav"></div>
+
+  <!-- Hoofdinhoud -->
+  <main class="hoofdinhoud">
+    <header class="pagina-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger geen-print" id="hamburger">
+          <span></span><span></span><span></span>
+        </button>
+        <h1>Activiteitenfiches</h1>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="notificatie-wrapper geen-print">
+          <div class="notificatie-bel" id="notif-bel">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span class="notificatie-badge verborgen" id="notif-badge">0</span>
+          </div>
+          <div class="notificatie-dropdown verborgen" id="notif-dropdown">
+            <div class="notificatie-dropdown-header">
+              <span>Notificaties</span>
+              <button id="notif-alles-gelezen" style="background:none;border:none;font-size:0.75rem;color:var(--kleur-middengroen);cursor:pointer">Alles gelezen</button>
+            </div>
+            <div id="notif-lijst"></div>
+          </div>
+        </div>
+        <button class="knop knop-accent geen-print" id="nieuwe-fiche-knop">
+          + Fiche toevoegen
+        </button>
+      </div>
+    </header>
+
+    <div class="pagina-inhoud">
+      <!-- Filter- en zoekbalk -->
+      <div class="filterbalk geen-print">
+        <div class="zoek-invoer">
+          <svg class="zoek-icoon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="search" id="zoek-invoer" placeholder="Zoeken op naam of sleutelwoord…">
+        </div>
+        <select class="filter-select" id="filter-thema">
+          <option value="">Alle thema's</option>
+          <option value="waterspelen">💧 Waterspelen</option>
+          <option value="balspelen">⚽ Balspelen</option>
+          <option value="tikspellen">🏃 Tikspellen</option>
+          <option value="estafettes">🏁 Estafettes</option>
+          <option value="rustig_concentratie">🧩 Rustig / Concentratie</option>
+        </select>
+        <select class="filter-select" id="filter-categorie">
+          <option value="">Alle rollen</option>
+          <option value="warming-up">Warming-up</option>
+          <option value="hoofdspel">Hoofdspel</option>
+          <option value="rustig_spel">Rustig spel</option>
+          <option value="afsluiter">Afsluiter</option>
+          <option value="teamspel">Teamspel</option>
+          <option value="vrij_spel">Vrij spel</option>
+        </select>
+        <select class="filter-select" id="filter-leeftijd">
+          <option value="">Alle leeftijden</option>
+          <option value="2.5-5j">2,5 – 5 jaar</option>
+          <option value="6-9j">6 – 9 jaar</option>
+          <option value="10-12j">10 – 12 jaar</option>
+          <option value="alle">Alle leeftijden</option>
+        </select>
+        <select class="filter-select" id="filter-locatie">
+          <option value="">Binnen &amp; buiten</option>
+          <option value="binnen">Enkel binnen</option>
+          <option value="buiten">Enkel buiten</option>
+        </select>
+        <select class="filter-select" id="filter-moeilijkheid">
+          <option value="">Alle moeilijkheden</option>
+          <option value="eenvoudig">Eenvoudig</option>
+          <option value="gemiddeld">Gemiddeld</option>
+          <option value="uitdagend">Uitdagend</option>
+        </select>
+      </div>
+
+      <!-- Tabs: Alle fiches / Goed te keuren (enkel voor admins) -->
+      <div class="tabs verborgen geen-print" id="fiche-tabs" style="margin-bottom:14px">
+        <button class="tab-knop actief" data-fiche-tab="alle">Alle fiches</button>
+        <button class="tab-knop" data-fiche-tab="voorstel">
+          Goed te keuren <span class="notificatie-badge" id="voorstel-badge" style="position:static;display:inline-flex;margin-left:4px;font-size:0.68rem;min-width:18px;height:18px">0</span>
+        </button>
+      </div>
+
+      <!-- Resultaatteller -->
+      <div style="font-size:0.82rem;color:var(--kleur-grijs);margin-bottom:12px" id="resultaat-teller"></div>
+
+      <!-- Laadtoestand -->
+      <div id="laad-fiches" style="text-align:center;padding:60px;color:var(--kleur-grijs)">
+        <div class="laadindicator" style="margin:0 auto 10px"></div>
+        <div>Fiches worden geladen…</div>
+      </div>
+
+      <!-- Lege toestand -->
+      <div class="leeg-toestand verborgen" id="geen-fiches">
+        <div class="leeg-icoon">🎯</div>
+        <p>Geen fiches gevonden voor jouw zoekopdracht.</p>
+        <button class="knop knop-omtrek" id="wis-filters">Filters wissen</button>
+      </div>
+
+      <!-- Fiches raster -->
+      <div class="fiches-raster" id="fiches-raster"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal: Fiche detail -->
+<div class="modal-overlay verborgen" id="fiche-detail-overlay">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="fiche-detail-titel">Activiteitsfiche</h2>
+      <button class="modal-sluiten" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam" id="fiche-detail-inhoud"></div>
+  </div>
+</div>
+
+<!-- Modal: Nieuwe fiche aanmaken -->
+<div class="modal-overlay verborgen" id="nieuwe-fiche-overlay">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="nieuwe-fiche-titel">Nieuwe fiche aanmaken</h2>
+      <button class="modal-sluiten" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-lichaam">
+      <div id="nieuwe-fiche-info" style="border-radius:8px;padding:10px 14px;font-size:0.82rem;margin-bottom:20px"></div>
+      <form id="fiche-formulier" novalidate>
+        <div id="fiche-formulier-inhoud"></div>
+        <div class="modal-voetlijn" style="border:none;padding:0;margin-top:8px">
+          <button type="button" class="knop knop-omtrek" id="fiche-annuleren">Annuleren</button>
+          <button type="submit" class="knop knop-accent" id="fiche-indienen-knop">Fiche toevoegen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+  import { supabase } from './js/supabase.js?v=1780304789425';
+  import { checkSessie, haalProfielOp, vulNavigatieIn, initialiseerNotificatieBel, initialiseerContractBadge } from './js/auth.js?v=1780304789425';
+  import {
+    haalFichesOp, haalFicheOp, filterFiches,
+    renderFicheKaart, renderFicheDetail,
+    slaFicheVoorstelOp, werkFicheStatusBij, werkFicheBij, verwijderFiche,
+    bouwFicheFormulier, leesFormulierWaarden, vulFormulierMetFiche,
+    initialiseerTagInvoer, laadMateriaalTags,
+    uploadFichesFoto, verwijderFichesFoto, renderFotosRaster
+  } from './js/fiches.js?v=1780304789425';
+  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast } from './js/utils.js?v=1780304789425';
+
+  let huidigProfiel  = null;
+  let alleFiches     = [];
+  let isBeheerder    = false;
+  let isAdmin        = false;
+  let actiefFicheTab = 'alle'; // 'alle' | 'voorstel'
+  let bewerkFicheID  = null;   // ID van fiche die bewerkt wordt (null = nieuw)
+
+  async function init() {
+    const gebruiker = await checkSessie();
+    if (!gebruiker) return;
+
+    huidigProfiel = await haalProfielOp(gebruiker.id);
+    if (!huidigProfiel) return;
+
+    isBeheerder = ['admin', 'coordinator'].includes(huidigProfiel.rol);
+    isAdmin     = huidigProfiel.rol === 'admin';
+
+    vulNavigatieIn(huidigProfiel);
+    await initialiseerNotificatieBel(huidigProfiel.id);
+    initialiseerContractBadge(huidigProfiel.id);
+    initialiseerHamburger();
+    initialiseerModals();
+
+    // Bouw nieuw-fiche formulier
+    document.getElementById('fiche-formulier-inhoud').innerHTML = bouwFicheFormulier();
+    initialiseerTagInvoer();
+
+    // Modal-tekst aanpassen op basis van rol
+    if (isBeheerder) {
+      document.getElementById('nieuwe-fiche-info').style.cssText =
+        'background:rgba(20,136,105,0.08);border:1px solid rgba(20,136,105,0.2);color:var(--kleur-middengroen)';
+      document.getElementById('nieuwe-fiche-info').textContent =
+        '✓ Jouw fiche wordt meteen goedgekeurd en zichtbaar voor iedereen.';
+    } else {
+      document.getElementById('nieuwe-fiche-info').style.cssText =
+        'background:rgba(20,136,105,0.08);border:1px solid rgba(20,136,105,0.2);color:var(--kleur-middengroen)';
+      document.getElementById('nieuwe-fiche-info').textContent =
+        'ℹ️ Je fiche wordt ingediend ter goedkeuring bij een coördinator of beheerder.';
+      document.getElementById('fiche-indienen-knop').textContent = 'Fiche indienen';
+    }
+
+    // Toon "Goed te keuren" tab enkel voor beheerders
+    if (isBeheerder) {
+      document.getElementById('fiche-tabs').classList.remove('verborgen');
+      initialiseerFicheTabs();
+    }
+
+    await laadFiches();
+    initialiseerFilters();
+    initialiseerFormulier();
+  }
+
+  function initialiseerFicheTabs() {
+    document.querySelectorAll('[data-fiche-tab]').forEach(knop => {
+      knop.addEventListener('click', () => {
+        document.querySelectorAll('[data-fiche-tab]').forEach(k => k.classList.remove('actief'));
+        knop.classList.add('actief');
+        actiefFicheTab = knop.dataset.ficheTab;
+        renderFiches(alleFiches);
+      });
+    });
+  }
+
+  // ── Fiches laden ──
+  async function laadFiches() {
+    document.getElementById('laad-fiches').classList.remove('verborgen');
+    document.getElementById('fiches-raster').innerHTML = '';
+
+    alleFiches = await haalFichesOp(isBeheerder, huidigProfiel.id);
+    document.getElementById('laad-fiches').classList.add('verborgen');
+
+    renderFiches(alleFiches);
+  }
+
+  // Thema-volgorde en labels
+  const THEMA_VOLGORDE = ['waterspelen', 'balspelen', 'tikspellen', 'estafettes', 'rustig_concentratie'];
+  const THEMA_ICOON    = { waterspelen: '💧', balspelen: '⚽', tikspellen: '🏃', estafettes: '🏁', rustig_concentratie: '🧩' };
+  const THEMA_NAAM     = { waterspelen: 'Waterspelen', balspelen: 'Balspelen', tikspellen: 'Tikspellen', estafettes: 'Estafettes', rustig_concentratie: 'Rustig & Concentratie' };
+
+  function renderFiches(fiches) {
+    const container = document.getElementById('fiches-raster');
+    const geen      = document.getElementById('geen-fiches');
+    const teller    = document.getElementById('resultaat-teller');
+
+    // Bijwerk badge voor "Goed te keuren"
+    if (isBeheerder) {
+      const aantalVoorstel = alleFiches.filter(f => f.status === 'voorstel').length;
+      const badge = document.getElementById('voorstel-badge');
+      if (badge) badge.textContent = aantalVoorstel;
+    }
+
+    // Pas tab-filter toe
+    let getoond = fiches;
+    if (actiefFicheTab === 'voorstel') {
+      getoond = fiches.filter(f => f.status === 'voorstel');
+    }
+
+    teller.textContent = `${getoond.length} fiche${getoond.length !== 1 ? 's' : ''} gevonden`;
+
+    if (getoond.length === 0) {
+      container.innerHTML = '';
+      geen.classList.remove('verborgen');
+      return;
+    }
+
+    geen.classList.add('verborgen');
+
+    // Groepeer per thema
+    const perThema = new Map();
+    THEMA_VOLGORDE.forEach(t => perThema.set(t, []));
+    perThema.set('__geen__', []);
+
+    for (const f of getoond) {
+      const t = THEMA_VOLGORDE.includes(f.thema) ? f.thema : '__geen__';
+      perThema.get(t).push(f);
+    }
+
+    let html = '';
+    for (const [thema, lijst] of perThema) {
+      if (lijst.length === 0) continue;
+      const isGeen  = thema === '__geen__';
+      const icoon   = isGeen ? '📋' : THEMA_ICOON[thema];
+      const naam    = isGeen ? 'Overige fiches' : THEMA_NAAM[thema];
+      html += `
+        <div class="thema-sectie">
+          <div class="thema-sectie-header">
+            <span>${icoon} ${naam}</span>
+            <span class="thema-sectie-count">${lijst.length} fiche${lijst.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="fiches-raster-grid">
+            ${lijst.map(f => renderFicheKaart(f, isBeheerder)).join('')}
+          </div>
+        </div>`;
+    }
+
+    container.innerHTML = html;
+
+    container.querySelectorAll('.fiche-kaart').forEach(kaart => {
+      kaart.addEventListener('click', () => openFicheDetail(kaart.dataset.id));
+      kaart.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') openFicheDetail(kaart.dataset.id);
+      });
+    });
+  }
+
+  // ── Fiche detail ──
+  async function openFicheDetail(ficheID) {
+    const fiche = await haalFicheOp(ficheID);
+    if (!fiche) { toonToast('Fiche niet gevonden.', 'fout'); return; }
+
+    document.getElementById('fiche-detail-titel').textContent = fiche.naam;
+    document.getElementById('fiche-detail-inhoud').innerHTML  = renderFicheDetail(fiche, isBeheerder, isAdmin);
+    openModal('fiche-detail-overlay');
+
+    // Goedkeuren / afwijzen
+    document.getElementById('keur-goed-knop')?.addEventListener('click', async () => {
+      const succes = await werkFicheStatusBij(ficheID, 'goedgekeurd');
+      if (succes) { sluitModal('fiche-detail-overlay'); await laadFiches(); }
+    });
+    document.getElementById('keur-af-knop')?.addEventListener('click', async () => {
+      const succes = await werkFicheStatusBij(ficheID, 'afgekeurd');
+      if (succes) { sluitModal('fiche-detail-overlay'); await laadFiches(); }
+    });
+
+    // Bewerken (enkel voor beheerders)
+    document.getElementById('bewerk-fiche-knop')?.addEventListener('click', () => {
+      sluitModal('fiche-detail-overlay');
+      openFicheFormulierBewerkModus(fiche);
+    });
+
+    // Verwijderen (enkel voor beheerders)
+    document.getElementById('verwijder-fiche-knop')?.addEventListener('click', async () => {
+      if (!confirm(`Fiche "${fiche.naam}" permanent verwijderen? Dit kan niet ongedaan worden.`)) return;
+      const succes = await verwijderFiche(ficheID);
+      if (succes) { sluitModal('fiche-detail-overlay'); await laadFiches(); }
+    });
+  }
+
+  function openFicheFormulierBewerkModus(fiche) {
+    bewerkFicheID = fiche.id;
+    document.getElementById('nieuwe-fiche-titel').textContent = 'Fiche bewerken';
+    document.getElementById('nieuwe-fiche-info').style.cssText =
+      'background:rgba(20,136,105,0.08);border:1px solid rgba(20,136,105,0.2);color:var(--kleur-middengroen)';
+    document.getElementById('nieuwe-fiche-info').textContent =
+      '✏️ Je bewerkt een bestaande fiche. Wijzigingen zijn meteen zichtbaar.';
+    document.getElementById('fiche-indienen-knop').textContent = 'Opslaan';
+    vulFormulierMetFiche(fiche);
+    openModal('nieuwe-fiche-overlay');
+  }
+
+  // ── Filters ──
+  function initialiseerFilters() {
+    const zoek      = document.getElementById('zoek-invoer');
+    const thema     = document.getElementById('filter-thema');
+    const categorie = document.getElementById('filter-categorie');
+    const leeftijd  = document.getElementById('filter-leeftijd');
+    const locatie   = document.getElementById('filter-locatie');
+    const moeilijk  = document.getElementById('filter-moeilijkheid');
+
+    function pas_filters_toe() {
+      const gefilterd = filterFiches(alleFiches, zoek.value, {
+        thema:          thema.value || undefined,
+        categorie:      categorie.value || undefined,
+        leeftijdsgroep: leeftijd.value || undefined,
+        locatie:        locatie.value || undefined,
+        moeilijkheid:   moeilijk.value || undefined,
+      });
+      renderFiches(gefilterd);
+    }
+
+    zoek.addEventListener('input', pas_filters_toe);
+    thema.addEventListener('change', pas_filters_toe);
+    categorie.addEventListener('change', pas_filters_toe);
+    leeftijd.addEventListener('change', pas_filters_toe);
+    locatie.addEventListener('change', pas_filters_toe);
+    moeilijk.addEventListener('change', pas_filters_toe);
+
+    document.getElementById('wis-filters')?.addEventListener('click', () => {
+      zoek.value = '';
+      thema.value = '';
+      categorie.value = '';
+      leeftijd.value = '';
+      locatie.value = '';
+      moeilijk.value = '';
+      renderFiches(alleFiches);
+    });
+  }
+
+  // ── Nieuw fiche formulier ──
+  function initialiseerFormulier() {
+    document.getElementById('nieuwe-fiche-knop').addEventListener('click', () => {
+      bewerkFicheID = null;
+      document.getElementById('fiche-formulier').reset();
+      document.getElementById('nieuwe-fiche-titel').textContent = 'Nieuwe fiche aanmaken';
+      document.getElementById('fiche-indienen-knop').textContent =
+        isBeheerder ? 'Fiche toevoegen' : 'Fiche indienen';
+      openModal('nieuwe-fiche-overlay');
+    });
+
+    document.getElementById('fiche-annuleren').addEventListener('click', () => {
+      bewerkFicheID = null;
+      sluitModal('nieuwe-fiche-overlay');
+    });
+
+    document.getElementById('fiche-formulier').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = leesFormulierWaarden();
+      if (!data) return;
+
+      let succes;
+      if (bewerkFicheID) {
+        // Bewerk-modus: update bestaande fiche
+        succes = await werkFicheBij(bewerkFicheID, data);
+      } else {
+        // Nieuw: voorstel of meteen goedgekeurd
+        succes = await slaFicheVoorstelOp(data, huidigProfiel.id, isBeheerder);
+      }
+
+      if (succes) {
+        sluitModal('nieuwe-fiche-overlay');
+        document.getElementById('fiche-formulier').reset();
+        bewerkFicheID = null;
+        await laadFiches();
+      }
+    });
+  }
+
+  // ── Foto upload / verwijder handlers ───────────────────────────────
+  window._handleFotoUpload = async (input, ficheIDJson) => {
+    const ficheID = JSON.parse(ficheIDJson);
+    const bestand = input.files?.[0];
+    if (!bestand) return;
+    input.disabled = true;
+    try {
+      const url = await uploadFichesFoto(ficheID, bestand);
+      if (url) {
+        toonToast('Foto geüpload.', 'succes');
+        const fiche  = await haalFicheOp(ficheID);
+        const raster = document.getElementById(`fotos-raster-${ficheID}`);
+        // innerHTML i.p.v. outerHTML: zo blijft het element met zijn id in de DOM
+        if (raster && fiche) raster.innerHTML = renderFotosRaster(fiche.fotos ?? [], ficheID, isBeheerder);
+      }
+    } catch (e) {
+      console.error('[fiches] upload:', e.message);
+      toonToast('Upload mislukt: ' + e.message, 'fout');
+    } finally {
+      input.value    = '';
+      input.disabled = false;
+    }
+  };
+
+  window._verwijderFichesFoto = async (ficheIDJson, publicUrlJson) => {
+    const ficheID   = JSON.parse(ficheIDJson);
+    const publicUrl = JSON.parse(publicUrlJson);
+    try {
+      await verwijderFichesFoto(ficheID, publicUrl);
+      // Geen toonToast hier — verwijderFichesFoto toont zelf al de melding
+      const fiche  = await haalFicheOp(ficheID);
+      const raster = document.getElementById(`fotos-raster-${ficheID}`);
+      // innerHTML i.p.v. outerHTML: zo blijft het element met zijn id in de DOM
+      if (raster && fiche) raster.innerHTML = renderFotosRaster(fiche.fotos ?? [], ficheID, isBeheerder);
+    } catch (e) {
+      console.error('[fiches] verwijderFoto:', e.message);
+      toonToast('Verwijderen mislukt.', 'fout');
+    }
+  };
+
+  init();
+</script>
+</body>
+</html>
