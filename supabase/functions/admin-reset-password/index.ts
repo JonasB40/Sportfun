@@ -16,6 +16,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 // Toegestane origins — stel SITE_URL in via Supabase Edge Function secrets
 const ALLOWED_ORIGINS = new Set([
+  "http://localhost:8181",
   "http://localhost:8080",
   Deno.env.get("SITE_URL") ?? "",
 ].filter(Boolean));

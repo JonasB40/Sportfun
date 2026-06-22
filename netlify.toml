@@ -1,0 +1,23 @@
+# Netlify-configuratie voor het SportFun Lesgeversportaal
+#
+# Dit is een statische site (HTML/CSS/JS) met Supabase als backend.
+# Er is geen build-stap nodig: Netlify serveert de bestanden uit de hoofdmap.
+
+[build]
+  publish = "."
+  command = ""
+
+# Beveiligingsheaders voor alle pagina's
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Blokkeer rechtstreekse toegang tot database- en configuratiebestanden
+# (ze staan in de repo voor versiebeheer, maar horen niet publiek geserveerd te worden)
+[[headers]]
+  for = "/*.sql"
+  [headers.values]
+    X-Robots-Tag = "noindex"
