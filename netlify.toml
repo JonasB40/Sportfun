@@ -14,9 +14,15 @@
     X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    # Forceer HTTPS gedurende 1 jaar (site bevat logins)
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Permissions-Policy = "geolocation=(), camera=(), microphone=()"
 
-# Blokkeer rechtstreekse toegang tot database- en configuratiebestanden
-# (ze staan in de repo voor versiebeheer, maar horen niet publiek geserveerd te worden)
+# Houd .sql-bestanden uit zoekmachines. Let op: dit BLOKKEERT geen
+# toegang — het de-indexeert alleen. Echte blokkering per extensie kan
+# Netlify niet betrouwbaar (een '*' mag enkel aan het einde van een pad
+# staan, niet als '/*.sql'). Deze bestanden staan toch al publiek op
+# GitHub; de echte beveiliging zit in RLS op de database.
 [[headers]]
   for = "/*.sql"
   [headers.values]

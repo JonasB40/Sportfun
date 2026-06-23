@@ -1020,7 +1020,7 @@
   import {
     nieuweFilterState, filterKampen, renderFilterBalk, haalKoppelingsMapOp
   } from './js/kampfilter.js?v=1780304789425';
-  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, datumNaarNL, bevestig, kopieerNaarKlembord } from './js/utils.js?v=1780304789425';
+  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, datumNaarNL, bevestig, kopieerNaarKlembord, lokaleISO } from './js/utils.js?v=1780304789425';
   import {
     haalOverzichtPerLesgeverOp, haalAlleContractenFinancieelOp,
     haalLimietenOp, valideerContract, berekenContractTotaal,
@@ -1732,7 +1732,7 @@
     const gefilterd = filterKampen(alleKampen, kampFilter, koppelingsMap);
     const actieve   = gefilterd.filter(k => k.status !== 'afgelopen');
     const archief   = gefilterd.filter(k => k.status === 'afgelopen');
-    const vandaag   = new Date().toISOString().split('T')[0];
+    const vandaag   = lokaleISO(new Date());
 
     // ── Groepeer actieve kampen per vakantieperiode ──────────────
     const periodeMap = new Map();

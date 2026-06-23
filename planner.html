@@ -1217,7 +1217,7 @@
       const periodes = [...periodeMap.values()].sort((a, b) => a.volgorde - b.volgorde);
 
       // Eerste komende periode standaard open
-      const vandaag = new Date().toISOString().slice(0, 10);
+      const vandaag = lokaleISO(new Date());
       const eersteKomende = periodes.find(p =>
         p.kampen.some(k => k.startdatum >= vandaag)
       ) ?? periodes[0];

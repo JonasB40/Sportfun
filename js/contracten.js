@@ -8,7 +8,7 @@
  */
 
 import { supabase } from './supabase.js?v=1780304789425';
-import { toonToast, datumNaarNL, ontsnap } from './utils.js?v=1780304789425';
+import { toonToast, datumNaarNL, ontsnap, lokaleISO } from './utils.js?v=1780304789425';
 import { maakNotificatie } from './auth.js?v=1780304789425';
 import {
   haalLimietenOp, haalStandaardVergoedingOp,
@@ -175,7 +175,7 @@ export async function haalKampContractenOp(kampID) {
  */
 export function genereerContractTekst(lesgever, kamp) {
   const rolLabel = lesgever.rol === 'extra_hulp' ? 'Extra hulp' : 'Lesgever';
-  const vandaag = datumNaarNL(new Date().toISOString().split('T')[0]);
+  const vandaag = datumNaarNL(lokaleISO(new Date()));
 
   return `VRIJWILLIGERSOVEREENKOMST — SPORTKAMP
 ${'─'.repeat(50)}
@@ -277,7 +277,7 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
     admin:       'Administratieve ondersteuning van sportkampen',
   }[lesgever.rol] ?? 'Vrijwilligersactiviteiten in het kader van de sportkampen';
 
-  const vandaag     = datumNaarNL(new Date().toISOString().split('T')[0]);
+  const vandaag     = datumNaarNL(lokaleISO(new Date()));
   const ondertekend = opties.ondertekendOp
     ? datumNaarNL(opties.ondertekendOp.split('T')[0]) : null;
 
