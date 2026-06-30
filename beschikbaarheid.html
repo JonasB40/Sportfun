@@ -269,7 +269,7 @@
   } from './js/planner.js?v=1780304789500';
   import {
     initialiseerModals, initialiseerHamburger,
-    toonToast, datumNaarNL, lokaleISO,
+    toonToast, datumNaarNL, lokaleISO, ontsnap,
   } from './js/utils.js?v=1780304789500';
 
   let huidigProfiel = null;
@@ -380,12 +380,12 @@
       <div class="besch-kaart" id="besch-kaart-${kamp.id}">
         <div class="besch-kaart-kop" id="besch-kop-${kamp.id}">
           <div class="besch-kaart-kop-links">
-            <div class="besch-kamp-naam">${kamp.naam}</div>
+            <div class="besch-kamp-naam">${ontsnap(kamp.naam)}</div>
             <div class="besch-kamp-meta">
-              📍 ${kamp.locatie ?? '—'} &nbsp;·&nbsp;
+              📍 ${ontsnap(kamp.locatie ?? '—')} &nbsp;·&nbsp;
               📅 ${datumNaarNL(kamp.startdatum)} – ${datumNaarNL(kamp.einddatum)}
               &nbsp;·&nbsp; ${dagen.length} dag${dagen.length !== 1 ? 'en' : ''}
-              ${kamp.leeftijdsgroep ? `&nbsp;·&nbsp; <span class="badge badge-limoen">${kamp.leeftijdsgroep}</span>` : ''}
+              ${kamp.leeftijdsgroep ? `&nbsp;·&nbsp; <span class="badge badge-limoen">${ontsnap(kamp.leeftijdsgroep)}</span>` : ''}
             </div>
           </div>
           <div class="besch-kaart-kop-rechts">
@@ -420,7 +420,7 @@
               Opmerking (optioneel)
             </label>
             <textarea class="besch-opmerking" id="opmerking-${kamp.id}" rows="2"
-                      placeholder="Bv. 'Woensdag kom ik iets later'">${besch?.opmerking ?? ''}</textarea>
+                      placeholder="Bv. 'Woensdag kom ik iets later'">${ontsnap(besch?.opmerking ?? '')}</textarea>
           </div>
 
           <div class="besch-opslaan-rij">

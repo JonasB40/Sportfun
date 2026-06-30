@@ -320,16 +320,16 @@ export function renderFicheKaart(fiche, toonStatus = false) {
 
   return `
     <div class="fiche-kaart" data-id="${fiche.id}" role="button" tabindex="0">
-      <div class="fiche-kaart-naam">${fiche.naam}</div>
+      <div class="fiche-kaart-naam">${ontsnap(fiche.naam)}</div>
       <div class="fiche-kaart-badges">
-        ${fiche.thema ? `<span class="badge badge-blauw">${themaLabel(fiche.thema)}</span>` : ''}
-        ${fiche.categorie ? `<span class="badge badge-groen">${categorieLabel(fiche.categorie)}</span>` : ''}
-        ${fiche.leeftijdsgroep ? `<span class="badge badge-limoen">${fiche.leeftijdsgroep}</span>` : ''}
+        ${fiche.thema ? `<span class="badge badge-blauw">${ontsnap(themaLabel(fiche.thema))}</span>` : ''}
+        ${fiche.categorie ? `<span class="badge badge-groen">${ontsnap(categorieLabel(fiche.categorie))}</span>` : ''}
+        ${fiche.leeftijdsgroep ? `<span class="badge badge-limoen">${ontsnap(fiche.leeftijdsgroep)}</span>` : ''}
         ${toonStatus && fiche.status === 'voorstel' ? `<span class="badge badge-koraal">Goed te keuren</span>` : ''}
         ${toonStatus && fiche.status === 'afgekeurd' ? `<span class="badge badge-grijs">Afgekeurd</span>` : ''}
       </div>
       <div class="fiche-kaart-meta">
-        <span>${locatieIcoon} ${fiche.locatie ?? ''}</span>
+        <span>${locatieIcoon} ${ontsnap(fiche.locatie ?? '')}</span>
         ${fiche.duur_minuten ? `<span>⏱ ${fiche.duur_minuten} min</span>` : ''}
         ${moeilijkheidLabel ? `<span>★ ${moeilijkheidLabel}</span>` : ''}
         ${fiche.max_deelnemers ? `<span>👥 max ${fiche.max_deelnemers}</span>` : ''}

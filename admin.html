@@ -1946,11 +1946,11 @@
                 <div style="cursor:pointer;flex:1" onclick="document.getElementById('${telID}').classList.toggle('verborgen')" title="Klik voor telefoonnummer">
                   <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
                     ${isVerantw ? '<span title="Verantwoordelijke" style="font-size:1rem">⭐</span>' : ''}
-                    <span class="vet">${naam}</span>
+                    <span class="vet">${ontsnap(naam)}</span>
                     <span class="badge ${rolKleurMap[lg?.rol] ?? 'badge-grijs'} font-klein">${rolNaamMap[lg?.rol] ?? lg?.rol}</span>
                   </div>
                   <div id="${telID}" class="verborgen font-klein" style="margin-top:4px;padding-left:2px;color:var(--kleur-donkergroen)">
-                    📞 ${telefoon ?? '<em style="color:var(--kleur-grijs)">geen telefoon ingevuld</em>'}
+                    📞 ${telefoon != null ? ontsnap(telefoon) : '<em style="color:var(--kleur-grijs)">geen telefoon ingevuld</em>'}
                   </div>
                 </div>
                 <div class="flex-gap" style="flex-shrink:0">
@@ -1981,10 +1981,10 @@
                 <div style="min-width:0">
                   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                     ${dot}
-                    <span class="vet">${naam}</span>
+                    <span class="vet">${ontsnap(naam)}</span>
                     <span class="badge ${rolKleurMap[u.rol] ?? 'badge-grijs'} font-klein">${rolNaamMap[u.rol] ?? u.rol}</span>
                   </div>
-                  ${u.hobby_sporten ? `<div class="font-klein kleur-grijs" style="margin-top:3px;padding-left:26px">🏃 ${u.hobby_sporten}</div>` : ''}
+                  ${u.hobby_sporten ? `<div class="font-klein kleur-grijs" style="margin-top:3px;padding-left:26px">🏃 ${ontsnap(u.hobby_sporten)}</div>` : ''}
                 </div>
                 <button class="knop knop-primair knop-klein" style="flex-shrink:0;margin-left:12px"
                         onclick="window._koppelDirect('${u.id}','${kampID}','${naam.replace(/'/g,"\\'")}',this)">
@@ -2212,7 +2212,7 @@
         <div class="lg-fiche-kop">
           <div class="lg-avatar rol-${u.rol}">${initialen || '?'}</div>
           <div class="lg-naam-blok">
-            <div class="lg-naam">${u.voornaam} ${u.achternaam}</div>
+            <div class="lg-naam">${ontsnap(u.voornaam)} ${ontsnap(u.achternaam)}</div>
             <span class="lg-rol-badge">${rolLabels[u.rol] ?? u.rol}</span>
             ${!u.attest_url ? '<span class="lg-attest-ontbreekt">⚠ GGS</span>' : ''}
           </div>
@@ -2227,9 +2227,9 @@
 
         <!-- Contact -->
         <div class="lg-contact">
-          <div class="lg-contact-rij" title="${u.email ?? ''}">
+          <div class="lg-contact-rij" title="${ontsnap(u.email ?? '')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            <span>${u.email ?? '—'}</span>
+            <span>${ontsnap(u.email ?? '—')}</span>
           </div>
           <div class="lg-contact-rij" title="${u.telefoon ?? ''}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
@@ -2265,14 +2265,14 @@
         <!-- Persoonsgegevens -->
         <div class="lg-detail-blok">
           <div class="lg-detail-titel">📋 Persoonsgegevens</div>
-          <div class="lg-veld"><span class="lg-veld-label">Voornaam</span><span class="lg-veld-waarde" data-veld="voornaam">${u.voornaam ?? '—'}</span></div>
-          <div class="lg-veld"><span class="lg-veld-label">Achternaam</span><span class="lg-veld-waarde" data-veld="achternaam">${u.achternaam ?? '—'}</span></div>
-          <div class="lg-veld"><span class="lg-veld-label">E-mail</span><span class="lg-veld-waarde">${u.email ?? '—'}</span></div>
+          <div class="lg-veld"><span class="lg-veld-label">Voornaam</span><span class="lg-veld-waarde" data-veld="voornaam">${ontsnap(u.voornaam ?? '—')}</span></div>
+          <div class="lg-veld"><span class="lg-veld-label">Achternaam</span><span class="lg-veld-waarde" data-veld="achternaam">${ontsnap(u.achternaam ?? '—')}</span></div>
+          <div class="lg-veld"><span class="lg-veld-label">E-mail</span><span class="lg-veld-waarde">${ontsnap(u.email ?? '—')}</span></div>
           <div class="lg-veld"><span class="lg-veld-label">Telefoon</span><span class="lg-veld-waarde ${u.telefoon ? '' : 'leeg'}" data-veld="telefoon">${u.telefoon ?? 'niet ingevuld'}</span></div>
-          <div class="lg-veld"><span class="lg-veld-label">Adres</span><span class="lg-veld-waarde ${u.adres ? '' : 'leeg'}" data-veld="adres">${u.adres ?? 'niet ingevuld'}</span></div>
+          <div class="lg-veld"><span class="lg-veld-label">Adres</span><span class="lg-veld-waarde ${u.adres ? '' : 'leeg'}" data-veld="adres">${ontsnap(u.adres ?? 'niet ingevuld')}</span></div>
           <div class="lg-veld"><span class="lg-veld-label">Geboortedatum</span><span class="lg-veld-waarde ${u.geboortedatum ? '' : 'leeg'}" data-veld="geboortedatum">${u.geboortedatum ? datumNaarNL(u.geboortedatum) : 'niet ingevuld'}</span></div>
           <div class="lg-veld"><span class="lg-veld-label">IBAN</span><span class="lg-veld-waarde ${u.rekeningnummer ? '' : 'leeg'}" data-veld="rekeningnummer" style="font-family:monospace">${u.rekeningnummer ?? 'niet ingevuld'}</span></div>
-          <div class="lg-veld"><span class="lg-veld-label">Hobby / Sporten</span><span class="lg-veld-waarde ${u.hobby_sporten ? '' : 'leeg'}" data-veld="hobby_sporten">${u.hobby_sporten ?? 'niet ingevuld'}</span></div>
+          <div class="lg-veld"><span class="lg-veld-label">Hobby / Sporten</span><span class="lg-veld-waarde ${u.hobby_sporten ? '' : 'leeg'}" data-veld="hobby_sporten">${ontsnap(u.hobby_sporten ?? 'niet ingevuld')}</span></div>
         </div>
 
         <!-- Financieel jaaroverzicht -->
@@ -2672,10 +2672,10 @@
 
     const rolLabels = { lesgever:'Lesgever', extra_hulp:'Extra hulp', coordinator:'Coördinator', admin:'Beheerder' };
     succesEl.innerHTML = `
-      ✅ <strong>${gegevens.voornaam} ${gegevens.achternaam}</strong> is aangemaakt als
+      ✅ <strong>${ontsnap(gegevens.voornaam)} ${ontsnap(gegevens.achternaam)}</strong> is aangemaakt als
       <strong>${rolLabels[gegevens.rol] ?? gegevens.rol}</strong>.<br>
       <span style="font-size:0.8rem;color:var(--kleur-grijs)">
-        E-mail: ${gegevens.email}
+        E-mail: ${ontsnap(gegevens.email)}
       </span>
     `;
     succesEl.classList.remove('verborgen');
@@ -2726,7 +2726,7 @@
 
     const kolommen = kampen.map(k =>
       `<th style="min-width:90px;max-width:120px;padding:6px 8px;text-align:center;white-space:normal;word-break:break-word;border-bottom:2px solid var(--kleur-lichtgrijs);font-weight:700;font-size:0.75rem;color:var(--kleur-donkergroen);vertical-align:bottom">
-        <div>${k.naam}</div>
+        <div>${ontsnap(k.naam)}</div>
         <div style="font-weight:400;color:var(--kleur-grijs);font-size:0.68rem">${datumFmt(k.startdatum)}–${datumFmt(k.einddatum)}</div>
       </th>`
     ).join('');
@@ -2752,7 +2752,7 @@
 
       return `<tr>
         <td style="padding:6px 12px;white-space:nowrap;border-bottom:1px solid var(--kleur-lichtgrijs);min-width:140px;position:sticky;left:0;background:var(--kleur-wit);z-index:1">
-          <div style="font-weight:700;font-size:0.82rem">${lg.voornaam} ${lg.achternaam}</div>
+          <div style="font-weight:700;font-size:0.82rem">${ontsnap(lg.voornaam)} ${ontsnap(lg.achternaam)}</div>
           <div style="font-size:0.7rem;color:var(--kleur-grijs)">${rolLabel[lg.rol] ?? lg.rol}</div>
         </td>
         ${cellen}

@@ -1201,10 +1201,10 @@ export function renderContractItem(contract) {
     <div class="kaart" style="margin-bottom:12px">
       <div class="kaart-header">
         <div style="flex:1;min-width:0">
-          <div class="kaart-titel">${kamp?.naam ?? 'Onbekend kamp'}</div>
+          <div class="kaart-titel">${ontsnap(kamp?.naam ?? 'Onbekend kamp')}</div>
           <div class="kamp-meta mt-8">
             📅 ${kamp ? `${datumNaarNL(kamp.startdatum)} – ${datumNaarNL(kamp.einddatum)}` : ''} &nbsp;·&nbsp;
-            📍 ${kamp?.locatie ?? ''}
+            📍 ${ontsnap(kamp?.locatie ?? '')}
           </div>
           <div class="mt-8 flex-gap" style="flex-wrap:wrap">
             ${statusBadge}

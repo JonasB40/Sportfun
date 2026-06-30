@@ -11,7 +11,7 @@
  */
 
 import { supabase } from './supabase.js?v=1780304789425';
-import { toonToast, formateerDatum, datumNaarNL, dagNaam, lokaleISO } from './utils.js?v=1780304789425';
+import { toonToast, formateerDatum, datumNaarNL, dagNaam, lokaleISO, ontsnap } from './utils.js?v=1780304789425';
 import { maakNotificatie } from './auth.js?v=1780304789425';
 
 // ── Alle toekomstige kampen met beschikbaarheidsstatus ──────────────
@@ -415,7 +415,7 @@ function renderTeamStrook(teamInfo) {
   const coordChip = coordinator
     ? `<span class="team-chip coord" title="Verantwoordelijke">
          <span class="team-rol">👤 Coördinator</span>
-         <span>${coordinator.voornaam} ${coordinator.achternaam}</span>
+         <span>${ontsnap(coordinator.voornaam)} ${ontsnap(coordinator.achternaam)}</span>
        </span>`
     : `<span class="team-chip leeg">
          <span class="team-rol">👤 Coördinator</span>
@@ -443,7 +443,7 @@ function renderTeamStrook(teamInfo) {
         <span class="team-chip lg ${isAanvraag ? 'wacht' : heeftBeschik ? 'ok' : 'mist'}"
               title="${rolLabel}${isAanvraag ? ' — wacht op antwoord' : heeftBeschik ? ' — beschikbaarheid ingediend' : ' — beschikbaarheid niet ingediend'}">
           ${indicator}
-          <span>${l.voornaam} ${l.achternaam}</span>
+          <span>${ontsnap(l.voornaam)} ${ontsnap(l.achternaam)}</span>
         </span>
       `;
     }).join('');
@@ -487,14 +487,14 @@ export function renderAdminKampKaart(kamp, dagprogrammas, teamInfo = null) {
   kaart.innerHTML = `
     <div class="kamp-kaart-header">
       <div>
-        <div class="kamp-naam">${kamp.naam}</div>
+        <div class="kamp-naam">${ontsnap(kamp.naam)}</div>
         <div class="kamp-meta">
-          📍 ${kamp.locatie} &nbsp;·&nbsp;
+          📍 ${ontsnap(kamp.locatie)} &nbsp;·&nbsp;
           📅 ${datumNaarNL(kamp.startdatum)} – ${datumNaarNL(kamp.einddatum)} &nbsp;·&nbsp;
           ${dagDatums.length} dagen
         </div>
         <div class="flex-gap mt-8">
-          <span class="badge badge-limoen">${kamp.leeftijdsgroep ?? ''}</span>
+          <span class="badge badge-limoen">${ontsnap(kamp.leeftijdsgroep ?? '')}</span>
           <span class="badge ${statusKleur}">${statusNaam}</span>
           ${openBadge}
         </div>
@@ -527,14 +527,14 @@ export function renderUitnodigingKaart(koppeling) {
          id="uitnodiging-${koppeling.id}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
         <div>
-          <div class="vet" style="font-size:1rem">${kamp.naam}</div>
+          <div class="vet" style="font-size:1rem">${ontsnap(kamp.naam)}</div>
           <div class="kamp-meta mt-8">
-            📍 ${kamp.locatie} &nbsp;·&nbsp;
+            📍 ${ontsnap(kamp.locatie)} &nbsp;·&nbsp;
             📅 ${datumNaarNL(kamp.startdatum)} – ${datumNaarNL(kamp.einddatum)}
             &nbsp;·&nbsp; ${dagen.length} dagen
           </div>
           <div class="mt-8 flex-gap">
-            <span class="badge badge-limoen">${kamp.leeftijdsgroep}</span>
+            <span class="badge badge-limoen">${ontsnap(kamp.leeftijdsgroep)}</span>
             <span class="badge badge-geel">⏳ Uitnodiging ontvangen</span>
           </div>
           <div class="font-klein kleur-grijs mt-8">
@@ -586,14 +586,14 @@ export function renderBevestigdKampKaart(koppeling, dagprogrammas, beschikbaarhe
   kaart.innerHTML = `
     <div class="kamp-kaart-header">
       <div>
-        <div class="kamp-naam">${kamp.naam}</div>
+        <div class="kamp-naam">${ontsnap(kamp.naam)}</div>
         <div class="kamp-meta">
-          📍 ${kamp.locatie} &nbsp;·&nbsp;
+          📍 ${ontsnap(kamp.locatie)} &nbsp;·&nbsp;
           📅 ${datumNaarNL(kamp.startdatum)} – ${datumNaarNL(kamp.einddatum)} &nbsp;·&nbsp;
           ${dagDatums.length} dagen
         </div>
         <div class="flex-gap mt-8">
-          <span class="badge badge-limoen">${kamp.leeftijdsgroep}</span>
+          <span class="badge badge-limoen">${ontsnap(kamp.leeftijdsgroep)}</span>
           <span class="badge badge-goedgekeurd">✓ Bevestigd</span>
           ${beschBadge}
         </div>
@@ -630,7 +630,7 @@ function renderDagKolom(datum, dagprogrammas, kampID = '', isBeheerder = false) 
     ? fiches.map(f => `
         <div class="dag-fiche-item" data-fiche="${f.fiche_id ?? f.id}" style="position:relative">
           ${verwijderKnop(f)}
-          <div class="fiche-naam">${f.naam}</div>
+          <div class="fiche-naam">${ontsnap(f.naam)}</div>
           <div class="fiche-duur">
             ${f.tijdstip ? f.tijdstip.slice(0,5) + ' · ' : ''}${f.duur_minuten ?? '?'} min
           </div>
@@ -665,9 +665,9 @@ export function printDagprogramma(kampNaam, datum, fiches) {
   const venster = window.open('', '_blank');
   const inhoud  = fiches.map((f, i) => `
     <div style="margin-bottom:16px;padding:12px;border:1px solid #e5e7eb;border-radius:8px;page-break-inside:avoid">
-      <strong>${i + 1}. ${f.naam}</strong>
+      <strong>${i + 1}. ${ontsnap(f.naam)}</strong>
       ${f.tijdstip ? `<span style="margin-left:12px;color:#6b7280">${f.tijdstip.slice(0,5)}</span>` : ''}
-      <br><small style="color:#6b7280">${f.categorie ?? ''} · ${f.duur_minuten ?? '?'} min</small>
+      <br><small style="color:#6b7280">${ontsnap(f.categorie ?? '')} · ${f.duur_minuten ?? '?'} min</small>
       ${f.notitie ? `<p style="margin-top:6px;font-size:0.85rem">${f.notitie}</p>` : ''}
     </div>`).join('');
   venster.document.write(`<!DOCTYPE html><html lang="nl"><head>
@@ -1100,8 +1100,8 @@ export function renderPlanningTimeline(kampID, datum, blokken, echteGroepen, isE
     if (isActiviteit) {
       inhoud = fiche
         ? `<div class="schema-fiche-info">
-             <span class="schema-fiche-naam">${fiche.naam}</span>
-             <span class="schema-fiche-meta">${fiche.categorie ?? ''}${fiche.duur_minuten ? ' · ' + fiche.duur_minuten + ' min' : ''}</span>
+             <span class="schema-fiche-naam">${ontsnap(fiche.naam)}</span>
+             <span class="schema-fiche-meta">${ontsnap(fiche.categorie ?? '')}${fiche.duur_minuten ? ' · ' + fiche.duur_minuten + ' min' : ''}</span>
            </div>`
         : `<span class="schema-geen-fiche">Geen activiteit gepland</span>`;
     } else if (isVast) {
@@ -1156,10 +1156,10 @@ export function renderPlanningTimeline(kampID, datum, blokken, echteGroepen, isE
       const f  = gb?.activiteiten_fiches;
       return `
         <div class="schema-groep-rij">
-          <span class="schema-groep-naam">${g.naam}</span>
+          <span class="schema-groep-naam">${ontsnap(g.naam)}</span>
           <div class="schema-groep-inhoud">
             ${f
-              ? `<span class="schema-fiche-naam">${f.naam}</span>`
+              ? `<span class="schema-fiche-naam">${ontsnap(f.naam)}</span>`
               : `<span class="schema-geen-fiche">Geen activiteit</span>`}
           </div>
           ${isEditeerbaar && gb

@@ -1312,7 +1312,7 @@
           : (kamp.verantwoordelijke_profiel
               ? `${kamp.verantwoordelijke_profiel.voornaam} ${kamp.verantwoordelijke_profiel.achternaam}`
               : 'Coördinator');
-        badges.push(`<span class="badge badge-grijs">⭐ ${naam}</span>`);
+        badges.push(`<span class="badge badge-grijs">⭐ ${ontsnap(naam)}</span>`);
       } else {
         badges.push(`<span class="badge badge-grijs" style="opacity:0.6">Niet toegewezen</span>`);
       }
@@ -1321,7 +1321,7 @@
         if (id === coordID) continue;
         const profiel = alleGebruikers.find(u => u.id === id);
         if (!profiel) continue;
-        badges.push(`<span class="badge badge-grijs">👤 ${profiel.voornaam} ${profiel.achternaam}</span>`);
+        badges.push(`<span class="badge badge-grijs">👤 ${ontsnap(profiel.voornaam)} ${ontsnap(profiel.achternaam)}</span>`);
       }
       return badges.join('');
     })();
@@ -1330,16 +1330,16 @@
       <div class="plankaart" id="plankaart-${kamp.id}">
         <div class="plankaart-kop" onclick="window._togglePlanKaart('${kamp.id}')">
           <div class="plankaart-info">
-            <div class="plankaart-naam">${kamp.naam}</div>
+            <div class="plankaart-naam">${ontsnap(kamp.naam)}</div>
             <div class="plankaart-meta">
-              📍 ${kamp.locatie ?? '—'} &nbsp;·&nbsp;
+              📍 ${ontsnap(kamp.locatie ?? '—')} &nbsp;·&nbsp;
               📅 ${datumNaarNL(kamp.startdatum)} – ${datumNaarNL(kamp.einddatum)} &nbsp;·&nbsp;
               ${dagen.length} dag${dagen.length !== 1 ? 'en' : ''}
             </div>
             <div class="plankaart-team">
               <span class="badge ${statusKleur}">${statusNaam}</span>
               ${teamBadges}
-              ${kamp.leeftijdsgroep ? `<span class="badge badge-limoen">${kamp.leeftijdsgroep}</span>` : ''}
+              ${kamp.leeftijdsgroep ? `<span class="badge badge-limoen">${ontsnap(kamp.leeftijdsgroep)}</span>` : ''}
             </div>
           </div>
           <span class="plankaart-pijl" id="pijl-${kamp.id}">▶</span>
@@ -1423,13 +1423,13 @@
         kaartEl.innerHTML = `
           <div class="kamp-kaart-header">
             <div>
-              <div class="kamp-naam">${kamp.naam}</div>
+              <div class="kamp-naam">${ontsnap(kamp.naam)}</div>
               <div class="kamp-meta">
-                📍 ${kamp.locatie ?? '—'} &nbsp;·&nbsp;
+                📍 ${ontsnap(kamp.locatie ?? '—')} &nbsp;·&nbsp;
                 📅 ${datumNaarNL(kamp.startdatum)} – ${datumNaarNL(kamp.einddatum)}
               </div>
               <div class="flex-gap mt-8">
-                <span class="badge badge-limoen">${kamp.leeftijdsgroep ?? ''}</span>
+                <span class="badge badge-limoen">${ontsnap(kamp.leeftijdsgroep ?? '')}</span>
                 <span class="badge badge-goedgekeurd">✓ Bevestigd</span>
               </div>
             </div>
@@ -1457,7 +1457,7 @@
     const coordChip = coordinator
       ? `<span class="team-chip coord" title="Verantwoordelijke">
            <span class="team-rol">👤 Coördinator</span>
-           <span>${coordinator.voornaam} ${coordinator.achternaam}</span>
+           <span>${ontsnap(coordinator.voornaam)} ${ontsnap(coordinator.achternaam)}</span>
          </span>`
       : '';
 
@@ -1466,7 +1466,7 @@
     const collegaChips = collega.map(l => {
       const rolLabel = { lesgever: 'Lesgever', extra_hulp: 'Extra hulp', coordinator: 'Coördinator', admin: 'Beheerder' }[l.rol] ?? l.rol;
       return `<span class="team-chip lg ok" title="${rolLabel}">
-                <span>${l.voornaam} ${l.achternaam}</span>
+                <span>${ontsnap(l.voornaam)} ${ontsnap(l.achternaam)}</span>
               </span>`;
     }).join('');
 
@@ -1489,14 +1489,14 @@
            id="uitnodiging-${koppeling.id}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
           <div>
-            <div class="vet" style="font-size:1rem">${kamp.naam}</div>
+            <div class="vet" style="font-size:1rem">${ontsnap(kamp.naam)}</div>
             <div class="kamp-meta mt-8">
-              📍 ${kamp.locatie ?? '—'} &nbsp;·&nbsp;
+              📍 ${ontsnap(kamp.locatie ?? '—')} &nbsp;·&nbsp;
               📅 ${datumNaarNL(kamp.startdatum)} – ${datumNaarNL(kamp.einddatum)}
               &nbsp;·&nbsp; ${dagen.length} dagen
             </div>
             <div class="mt-8 flex-gap">
-              <span class="badge badge-limoen">${kamp.leeftijdsgroep ?? ''}</span>
+              <span class="badge badge-limoen">${ontsnap(kamp.leeftijdsgroep ?? '')}</span>
               <span class="badge badge-geel">⏳ Uitnodiging ontvangen</span>
             </div>
           </div>
@@ -2045,7 +2045,7 @@
         <div class="fiche-zoek-item" data-id="${f.id}"
              onclick="window._selecteerActiviteitFiche('${f.id}','${f.naam.replace(/'/g,"\\'")}')">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <span class="vet" style="font-size:0.88rem">${f.naam}</span>
+            <span class="vet" style="font-size:0.88rem">${ontsnap(f.naam)}</span>
             ${themalabel}
           </div>
           <div style="display:flex;gap:8px;margin-top:2px;flex-wrap:wrap">
@@ -2202,7 +2202,7 @@
     opties.innerHTML = (state?.lesgevers ?? []).map(lg => `
       <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer">
         <input type="checkbox" class="gedeeld-lg-check" value="${lg.id}">
-        ${lg.voornaam} ${lg.achternaam}
+        ${ontsnap(lg.voornaam)} ${ontsnap(lg.achternaam)}
       </label>`).join('');
     document.getElementById('gedeeld-lesgevers-wrap').style.display =
       (state?.lesgevers?.length > 0 || isVastType) ? 'block' : 'none';
@@ -2401,7 +2401,7 @@
           <label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:0.85rem;cursor:pointer">
             <input type="checkbox" class="blok-lg-check" value="${lg.id}"
                    ${(blok.lesgevers ?? []).includes(lg.id) ? 'checked' : ''}>
-            ${lg.voornaam} ${lg.achternaam}
+            ${ontsnap(lg.voornaam)} ${ontsnap(lg.achternaam)}
           </label>`).join('');
       }
     } else {
@@ -2449,7 +2449,7 @@
         <div class="fiche-zoek-item" data-id="${f.id}"
              onclick="window._selecteerBlokFiche('${f.id}','${f.naam.replace(/'/g,"\\'")}')">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <span class="vet" style="font-size:0.85rem">${f.naam}</span>
+            <span class="vet" style="font-size:0.85rem">${ontsnap(f.naam)}</span>
             ${themalabel}
           </div>
           <div style="display:flex;gap:8px;margin-top:2px;flex-wrap:wrap">
