@@ -1031,7 +1031,7 @@
     haalUitnodigingenOp, haalKampTeamOp
   } from './js/planner.js?v=1780304789500';
   import { haalFichesOp, haalFicheOp, renderFicheDetail, haalMateriaaloVerzichtVoorKamp, genereerMateriaaloVerzichtHTML } from './js/fiches.js?v=1780304789500';
-  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, formateerDatum, datumNaarNL, dagNaam, lokaleISO } from './js/utils.js?v=1780304789500';
+  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, formateerDatum, datumNaarNL, dagNaam, lokaleISO, ontsnap } from './js/utils.js?v=1780304789500';
   import {
     nieuweFilterState, filterKampen, renderFilterBalk, haalKoppelingsMapOp
   } from './js/kampfilter.js?v=1780304789500';
@@ -1247,7 +1247,7 @@
               <div style="margin:8px 0 4px;padding:6px 16px 5px;background:rgba(215,252,92,0.10);
                           border-left:3px solid var(--kleur-limoen);font-size:0.8rem;
                           font-weight:700;color:var(--kleur-donkergroen)">
-                📍 ${loc}
+                📍 ${ontsnap(loc)}
               </div>
               ${gesorteerd.map(k => renderPlanKaart(k)).join('')}`;
           }).join('');

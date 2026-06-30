@@ -1020,7 +1020,7 @@
   import {
     nieuweFilterState, filterKampen, renderFilterBalk, haalKoppelingsMapOp
   } from './js/kampfilter.js?v=1780304789425';
-  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, datumNaarNL, bevestig, kopieerNaarKlembord, lokaleISO } from './js/utils.js?v=1780304789425';
+  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, datumNaarNL, bevestig, kopieerNaarKlembord, lokaleISO, ontsnap } from './js/utils.js?v=1780304789425';
   import {
     haalOverzichtPerLesgeverOp, haalAlleContractenFinancieelOp,
     haalLimietenOp, valideerContract, berekenContractTotaal,
@@ -1148,8 +1148,8 @@
         const vergoeding = +((c.vergoeding_per_dag ?? 0) * (c.aantal_dagen ?? 0)).toFixed(2);
         const km = +((c.kilometers ?? 0) * (c.km_tarief ?? 0)).toFixed(2);
         return `<tr style="cursor:pointer" onclick="window._bewerkContractEnHerlaad('${c.id}')">
-          <td><div class="vet">${c.profielen?.voornaam ?? ''} ${c.profielen?.achternaam ?? ''}</div>
-              <div class="font-klein kleur-grijs">${c.profielen?.email ?? ''}</div></td>
+          <td><div class="vet">${ontsnap(c.profielen?.voornaam ?? '')} ${ontsnap(c.profielen?.achternaam ?? '')}</div>
+              <div class="font-klein kleur-grijs">${ontsnap(c.profielen?.email ?? '')}</div></td>
           <td style="text-align:right">${c.aantal_dagen ?? 0}</td>
           <td style="text-align:right">${formaatBedrag(vergoeding)}</td>
           <td style="text-align:right">${formaatBedrag(km)}</td>
@@ -1162,10 +1162,10 @@
         <div style="border-bottom:1px solid var(--kleur-lichtgrijs)">
           <div style="padding:12px 18px;background:var(--kleur-donkergroen);color:var(--kleur-wit);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
             <div>
-              <div style="font-weight:800;font-size:0.95rem">${kamp?.naam ?? 'Onbekend kamp'}</div>
+              <div style="font-weight:800;font-size:0.95rem">${ontsnap(kamp?.naam ?? 'Onbekend kamp')}</div>
               <div style="font-size:0.76rem;color:rgba(215,252,92,0.8);margin-top:2px">
                 ${kamp?.startdatum ? datumNaarNL(kamp.startdatum) + ' – ' + datumNaarNL(kamp.einddatum) : ''}
-                ${kamp?.locatie ? ' · ' + kamp.locatie : ''}
+                ${kamp?.locatie ? ' · ' + ontsnap(kamp.locatie) : ''}
               </div>
             </div>
             <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
@@ -1217,8 +1217,8 @@
         const vergoeding = +((c.vergoeding_per_dag ?? 0) * (c.aantal_dagen ?? 0)).toFixed(2);
         const km = +((c.kilometers ?? 0) * (c.km_tarief ?? 0)).toFixed(2);
         return `<tr style="cursor:pointer" onclick="window._bewerkContractEnHerlaad('${c.id}')">
-          <td><div class="vet">${c.kampen?.naam ?? 'Onbekend kamp'}</div>
-              <div class="font-klein kleur-grijs">${c.kampen?.startdatum ? datumNaarNL(c.kampen.startdatum) : ''}${c.kampen?.locatie ? ' · ' + c.kampen.locatie : ''}</div></td>
+          <td><div class="vet">${ontsnap(c.kampen?.naam ?? 'Onbekend kamp')}</div>
+              <div class="font-klein kleur-grijs">${c.kampen?.startdatum ? datumNaarNL(c.kampen.startdatum) : ''}${c.kampen?.locatie ? ' · ' + ontsnap(c.kampen.locatie) : ''}</div></td>
           <td style="text-align:right">${c.aantal_dagen ?? 0}</td>
           <td style="text-align:right">${formaatBedrag(vergoeding)}</td>
           <td style="text-align:right">${formaatBedrag(km)}</td>
@@ -1231,8 +1231,8 @@
         <div style="border-bottom:1px solid var(--kleur-lichtgrijs)">
           <div style="padding:12px 18px;background:var(--kleur-middengroen);color:var(--kleur-wit);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
             <div>
-              <div style="font-weight:800;font-size:0.95rem">${profiel?.voornaam ?? ''} ${profiel?.achternaam ?? ''}</div>
-              <div style="font-size:0.76rem;color:rgba(255,255,255,0.75);margin-top:2px">${profiel?.email ?? ''}</div>
+              <div style="font-weight:800;font-size:0.95rem">${ontsnap(profiel?.voornaam ?? '')} ${ontsnap(profiel?.achternaam ?? '')}</div>
+              <div style="font-size:0.76rem;color:rgba(255,255,255,0.75);margin-top:2px">${ontsnap(profiel?.email ?? '')}</div>
             </div>
             <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
               <div style="font-size:0.76rem;text-align:right">
