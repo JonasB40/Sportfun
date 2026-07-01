@@ -600,6 +600,30 @@
   margin-top: 12px;
 }
 
+/* ── Navigatie-tooltip (uitleg per menu-item) ──────────────────── */
+.nav-tooltip {
+  position: fixed;
+  z-index: 9999;
+  max-width: 240px;
+  padding: 9px 13px;
+  background: var(--kleur-donkergroen);
+  color: #fff;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-4px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+.nav-tooltip.zichtbaar {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
 .dag-kolom {
   background: var(--kleur-zand);
   border-radius: var(--border-radius-sm);

@@ -248,7 +248,77 @@ export function initialiseerModals() {
 /**
  * Initialiseer de hamburger navigatie voor mobiel.
  */
+// Korte uitleg per navigatie-item, getoond als tooltip (title) bij het
+// zweven over een menulink. Sleutel = bestandsnaam in de href.
+const NAV_TOOLTIPS = {
+  'dashboard.html':      'Je persoonlijke overzicht: aankomende kampen, uitnodigingen, contracten en meldingen',
+  'planner.html':        'Kampplanning: bekijk en stel het dagprogramma per kamp samen',
+  'beschikbaarheid.html':'Geef door op welke kampen en dagen je beschikbaar bent',
+  'fiches.html':         'Activiteitenfiches: spelregels, materiaal en ideeën voor activiteiten',
+  'materiaal.html':      'Overzicht van het benodigde materiaal per activiteit en per kamp',
+  'admin.html':          'Beheer: gebruikers, kampen, koppelingen, contracten en uitnodigingen',
+  'profiel.html':        'Je profiel, rekeningnummer, handtekening en contracten',
+};
+
+/**
+ * Toon een gestileerde uitleg-tooltip bij het zweven over een navigatielink.
+ * Eén gedeeld tooltip-element wordt aan <body> gehangen (buiten de zijbalk,
+ * zodat het niet afgekapt wordt) en zweeft naast het item. Verschijnt met
+ * een korte vertraging, net als een klassieke tooltip.
+ */
+export function zetNavTooltips() {
+  const links = document.querySelectorAll('.zijbalk-nav a, .gebruiker-avatar[href]');
+  if (!links.length) return;
+
+  // Eén gedeeld tooltip-element (hergebruik indien al aanwezig)
+  let tip = document.getElementById('nav-tooltip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'nav-tooltip';
+    tip.className = 'nav-tooltip';
+    tip.setAttribute('role', 'tooltip');
+    document.body.appendChild(tip);
+  }
+
+  let timer = null;
+  const verberg = () => { clearTimeout(timer); tip.classList.remove('zichtbaar'); };
+  const toon = (link) => {
+    const tekst = link.dataset.navTip;
+    if (!tekst) return;
+    tip.textContent = tekst;
+    tip.classList.add('zichtbaar');            // eerst tonen zodat we kunnen meten
+    const r = link.getBoundingClientRect();
+    const t = tip.getBoundingClientRect();
+    // Standaard: rechts van het item, verticaal gecentreerd
+    let left = r.right + 12;
+    let top  = r.top + (r.height - t.height) / 2;
+    // Past niet rechts? Toon eronder, uitgelijnd op het item
+    if (left + t.width > window.innerWidth - 8) {
+      left = Math.min(r.left, window.innerWidth - t.width - 8);
+      top  = r.bottom + 8;
+    }
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top  = Math.max(8, Math.min(top, window.innerHeight - t.height - 8)) + 'px';
+  };
+
+  links.forEach(link => {
+    const href = (link.getAttribute('href') || '').split('/').pop();
+    const uitleg = NAV_TOOLTIPS[href];
+    if (!uitleg) return;
+    link.dataset.navTip = uitleg;
+    link.removeAttribute('title');             // geen dubbele native tooltip
+    if (link.dataset.tipGebonden) return;      // handlers slechts één keer koppelen
+    link.dataset.tipGebonden = '1';
+    link.addEventListener('mouseenter', () => { timer = setTimeout(() => toon(link), 400); });
+    link.addEventListener('mouseleave', verberg);
+    link.addEventListener('click', verberg);
+  });
+}
+
 export function initialiseerHamburger() {
+  // Tooltips onafhankelijk van de hamburger zetten (werkt op elke pagina)
+  zetNavTooltips();
+
   const hamburger = document.getElementById('hamburger');
   const zijbalk   = document.querySelector('.zijbalk');
   const overlay   = document.querySelector('.overlay-nav');

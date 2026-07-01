@@ -75,7 +75,12 @@ export async function genereerContractAutomatisch(lesgeverID, kampID) {
     // 6. Genereer contracttekst (mag niet falen — fallback naar minimale tekst)
     let inhoud;
     try {
-      inhoud = genereerContractTekst(lesgever, kamp);
+      inhoud = genereerContractTekst(lesgever, kamp, {
+        vergoeding_per_dag: dagvergoeding,
+        aantal_dagen:       gewerkteDagen.length,
+        kilometers:         totaleKM,
+        km_tarief:          Number(limieten?.km_tarief ?? 0.4361),
+      });
     } catch (e) {
       console.warn('[contracten] Contracttekst-fout, gebruik fallback:', e?.message);
       inhoud = `Vrijwilligersovereenkomst — ${kamp.naam}\n${lesgever.voornaam} ${lesgever.achternaam}`;
@@ -173,9 +178,66 @@ export async function haalKampContractenOp(kampID) {
  * @param {object} kamp - Kamp-object.
  * @returns {string} De volledige contracttekst.
  */
-export function genereerContractTekst(lesgever, kamp) {
+export function genereerContractTekst(lesgever, kamp, contract = {}) {
   const rolLabel = lesgever.rol === 'extra_hulp' ? 'Extra hulp' : 'Lesgever';
   const vandaag = datumNaarNL(lokaleISO(new Date()));
+
+  // ── Financiële opbouw ─────────────────────────────────────────────
+  // Als er financiële gegevens zijn (na invullen/bewerken door de admin),
+  // tonen we een volledige uitsplitsing INCLUSIEF voorbereidings-, opruim-,
+  // opleidings- en evaluatiedagen. Die dagen worden immers vergoed en
+  // tellen mee voor het wettelijke dag-/jaarmaximum, dus horen ze
+  // zichtbaar in het contract dat de vrijwilliger ondertekent.
+  const dagBedrag = Number(contract.vergoeding_per_dag ?? 0);
+  const dagen     = Number(contract.aantal_dagen ?? 0);
+  const km        = Number(contract.kilometers ?? 0);
+  const tarief    = Number(contract.km_tarief ?? 0.4361);
+  const extraDagTypes = [
+    { veld: 'voorbereidingsdag_dagen', label: 'Voorbereidingsdag' },
+    { veld: 'opruimdag_dagen',         label: 'Opruimdag' },
+    { veld: 'opleidingsdag_dagen',     label: 'Opleidingsdag' },
+    { veld: 'evaluatiemoment_dagen',   label: 'Evaluatiemoment' },
+  ];
+  const eur = n => `€ ${Number(n ?? 0).toFixed(2).replace('.', ',')}`;
+  const brk = v => ({ 0.25: '¼', 0.5: '½', 0.75: '¾', 1: '1' }[v] ?? String(v));
+  const rij = (label, aantal, bedrag) =>
+    `  ${label.padEnd(22)}${String(aantal).padStart(9)}   ${eur(bedrag).padStart(11)}`;
+
+  const dagTot = +(dagBedrag * dagen).toFixed(2);
+  const kmTot  = +(km * tarief).toFixed(2);
+  let extraTot = 0;
+  const extraRijen = extraDagTypes.map(({ veld, label }) => {
+    const d = Number(contract[veld] ?? 0);
+    if (d <= 0) return null;
+    const bedrag = +(dagBedrag * d).toFixed(2);
+    extraTot += bedrag;
+    return rij(label, `${brk(d)} dag`, bedrag);
+  }).filter(Boolean);
+  const totaal   = +(dagTot + extraTot + kmTot).toFixed(2);
+  const heeftFin = dagen > 0 || km > 0 || extraTot > 0;
+
+  const vergoedingSectie = heeftFin
+    ? `VERGOEDING (forfaitaire onkostenvergoeding vrijwilligerswerk)
+
+  ${'Omschrijving'.padEnd(22)}${'Aantal'.padStart(9)}${'Bedrag'.padStart(14)}
+  ${'─'.repeat(46)}
+${[
+    dagen > 0 ? rij('Kampdagen', `${dagen} ${dagen === 1 ? 'dag' : 'dagen'}`, dagTot) : null,
+    ...extraRijen,
+    km > 0 ? rij('Kilometervergoeding', `${km.toFixed(1)} km`, kmTot) : null,
+  ].filter(Boolean).join('\n')}
+  ${'─'.repeat(46)}
+  ${'TOTAAL'.padEnd(22)}${''.padStart(9)}   ${eur(totaal).padStart(11)}
+
+  Alle vergoede dagen worden toegekend aan het vaste dagtarief van
+  ${eur(dagBedrag)}. Voorbereidings-, opruim-, opleidings- en
+  evaluatiedagen tellen mee als vergoede prestaties en vallen, samen
+  met de kampdagen, binnen de wettelijke grenzen voor vrijwilligers-
+  vergoedingen (dag- en jaarmaximum).`
+    : `VERGOEDING
+  Deze overeenkomst betreft vrijwilligerswerk. Er wordt geen
+  loon betaald. Eventuele onkostenvergoedingen worden apart
+  afgesproken conform de wetgeving op vrijwilligerswerk.`;
 
   return `VRIJWILLIGERSOVEREENKOMST — SPORTKAMP
 ${'─'.repeat(50)}
@@ -225,10 +287,7 @@ De vrijwilliger verbindt zich ertoe:
 
 ${'─'.repeat(50)}
 
-VERGOEDING
-  Deze overeenkomst betreft vrijwilligerswerk. Er wordt geen
-  loon betaald. Eventuele onkostenvergoedingen worden apart
-  afgesproken conform de wetgeving op vrijwilligerswerk.
+${vergoedingSectie}
 
 ${'─'.repeat(50)}
 

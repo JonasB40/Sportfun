@@ -1028,7 +1028,7 @@
     formaatBedrag, contractStatusPil, slaContractBijwerkenOp,
     berekenGewerkteDagen, HUIDIG_JAAR
   } from './js/financieel.js?v=1780304789425';
-  import { openContractAfdrukken } from './js/contracten.js?v=1780304789425';
+  import { openContractAfdrukken, genereerContractTekst } from './js/contracten.js?v=1780304789425';
 
   let huidigProfiel      = null;
   let alleKampen         = [];
@@ -1282,6 +1282,9 @@
 
       const lg   = contract.profielen;
       const kamp = contract.kampen;
+      // Jaar van het contract = jaar van de kampstartdatum (zo berekent de
+      // database ook het jaartotaal). slice(0,4) op 'JJJJ-MM-DD' is tijdzone-veilig.
+      const contrJaar = Number(kamp.startdatum?.slice(0, 4)) || new Date().getFullYear();
 
       // Status badges
       document.getElementById('cb-status-badges').innerHTML = contractStatusPil(contract);
@@ -1511,9 +1514,19 @@
       km_tarief: tarief,
       gewerkte_dagen: gewerkte,
       opmerking: document.getElementById('cb-opmerking').value.trim() || null,
-      contract_inhoud: cbHuidigContract.contract_inhoud,
       ...cbLeesExtraDagen(),
     };
+
+    // Hergenereer de contracttekst zodat de vrijwilliger de bijgewerkte
+    // financiële opbouw ziet — inclusief voorbereidings-, opruim-,
+    // opleidings- en evaluatiedagen (die anders niet in het contract stonden).
+    try {
+      data.contract_inhoud = genereerContractTekst(
+        cbHuidigContract.profielen, cbHuidigContract.kampen, data
+      );
+    } catch {
+      data.contract_inhoud = cbHuidigContract.contract_inhoud; // val terug op bestaande tekst
+    }
 
     // Valideer
     const val = await valideerContract(data, cbHuidigContract.lesgever_id, cbHuidigContract.id);
@@ -2405,7 +2418,7 @@
       const veld = el.dataset.veld;
       const huidig = u[veld] ?? '';
       const type = veld === 'geboortedatum' ? 'date' : 'text';
-      el.outerHTML = `<input type="${type}" value="${huidig}" data-veld="${veld}"
+      el.outerHTML = `<input type="${type}" value="${ontsnap(huidig)}" data-veld="${veld}"
         style="max-width:200px;text-align:right;padding:5px 9px;border:1.5px solid var(--kleur-lichtgrijs);border-radius:6px;font-family:var(--font);font-size:0.83rem">`;
     });
 
