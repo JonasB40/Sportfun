@@ -171,11 +171,30 @@ export async function haalKampContractenOp(kampID) {
 
 // ── Contract genereren ──────────────────────────────────────────────
 
+// Vaste organisatie- en verzekeringsgegevens. Eén bron voor zowel de
+// ondertekende tekstversie als de afdrukbare PDF, zodat ze niet uiteenlopen.
+const ORG_VERZEKERAAR = 'VITAS GROEP';
+const ORG_POLISNR     = 'WD/379360530000';
+
+// Rol → korte activiteitsomschrijving (gebruikt in artikel 1).
+const ACTIVITEIT_LABELS = {
+  lesgever:    'Voorbereiden en geven van sportinitiaties als lesgever',
+  extra_hulp:  'Ondersteunen van sportinitiaties als extra hulp',
+  coordinator: 'Coördineren en begeleiden van sportkampen',
+  admin:       'Administratieve ondersteuning van sportkampen',
+};
+const activiteitVoorRol = rol =>
+  ACTIVITEIT_LABELS[rol] ?? 'Vrijwilligersactiviteiten in het kader van de sportkampen';
+
 /**
  * Genereer de tekst van een vrijwilligersovereenkomst.
+ * Bevat dezelfde juridische bepalingen als de afdrukbare PDF-versie
+ * (aansprakelijkheid, verzekering, geheimhouding, meldingsplicht …),
+ * zodat de vrijwilliger het volledige contract ondertekent.
  *
  * @param {object} lesgever - Profiel van de lesgever.
  * @param {object} kamp - Kamp-object.
+ * @param {object} [contract] - Financiële contractgegevens (optioneel).
  * @returns {string} De volledige contracttekst.
  */
 export function genereerContractTekst(lesgever, kamp, contract = {}) {
@@ -216,8 +235,10 @@ export function genereerContractTekst(lesgever, kamp, contract = {}) {
   const totaal   = +(dagTot + extraTot + kmTot).toFixed(2);
   const heeftFin = dagen > 0 || km > 0 || extraTot > 0;
 
-  const vergoedingSectie = heeftFin
-    ? `VERGOEDING (forfaitaire onkostenvergoeding vrijwilligerswerk)
+  // Artikel 6 — vergoeding: met financiële opbouw indien beschikbaar
+  const vergoedingArt = heeftFin
+    ? `  De sportclub betaalt een forfaitaire onkostenvergoeding voor de taken
+  opgesomd in artikel 1. Onderstaand overzicht geldt als detail ervan:
 
   ${'Omschrijving'.padEnd(22)}${'Aantal'.padStart(9)}${'Bedrag'.padStart(14)}
   ${'─'.repeat(46)}
@@ -231,84 +252,130 @@ ${[
 
   Alle vergoede dagen worden toegekend aan het vaste dagtarief van
   ${eur(dagBedrag)}. Voorbereidings-, opruim-, opleidings- en
-  evaluatiedagen tellen mee als vergoede prestaties en vallen, samen
-  met de kampdagen, binnen de wettelijke grenzen voor vrijwilligers-
-  vergoedingen (dag- en jaarmaximum).`
-    : `VERGOEDING
-  Deze overeenkomst betreft vrijwilligerswerk. Er wordt geen
-  loon betaald. Eventuele onkostenvergoedingen worden apart
-  afgesproken conform de wetgeving op vrijwilligerswerk.`;
+  evaluatiedagen tellen mee als vergoede prestaties en vallen, samen met
+  de kampdagen, binnen de wettelijke grenzen voor vrijwilligersvergoedingen
+  (dag- en jaarmaximum).${km > 0 ? `\n\n  Daarnaast wordt een verplaatsingsonkostenvergoeding van ${eur(tarief)}/km
+  uitbetaald, met een maximum van 2.000 km per jaar.` : ''}
+
+  De vrijwilliger verklaart op eer dat hij/zij in de loop van het
+  kalenderjaar nooit een forfaitaire onkostenvergoeding voor
+  vrijwilligerswerk zal ontvangen die in totaal hoger is dan de wettelijk
+  toegestane maxima (Wet van 3 juli 2005 betreffende de rechten van
+  vrijwilligers).`
+    : `  Deze overeenkomst betreft vrijwilligerswerk. Er wordt geen loon betaald.
+  Eventuele forfaitaire onkostenvergoedingen worden toegekend conform de
+  Wet van 3 juli 2005 betreffende de rechten van vrijwilligers en blijven
+  binnen de wettelijke maxima.`;
+
+  const streep = '═'.repeat(58);
 
   return `VRIJWILLIGERSOVEREENKOMST — SPORTKAMP
-${'─'.repeat(50)}
+${streep}
 
-Tussen:
-  SportFun vzw
-  Erkend als vrijwilligersorganisatie
+TUSSEN:
+  SportFun vzw — erkend als vrijwilligersorganisatie
+  Heimolenstraat 157, 9100 Sint-Niklaas
 
-En:
+EN DE VRIJWILLIGER:
   ${lesgever.voornaam} ${lesgever.achternaam}
-  E-mail: ${lesgever.email}
-  ${lesgever.telefoon ? `Telefoon: ${lesgever.telefoon}` : ''}
-  ${lesgever.adres ? `Adres: ${lesgever.adres}` : ''}
-
-${'─'.repeat(50)}
+  E-mail: ${lesgever.email}${lesgever.telefoon ? `\n  Telefoon: ${lesgever.telefoon}` : ''}${lesgever.adres ? `\n  Adres: ${lesgever.adres}` : ''}
 
 KAMPGEGEVENS
-  Kamp:      ${kamp.naam}
-  Periode:   ${datumNaarNL(kamp.startdatum)} t.e.m. ${datumNaarNL(kamp.einddatum)}
-  Locatie:   ${kamp.locatie}${kamp.adres ? ` — ${kamp.adres}` : ''}
-  Leeftijdsgroep: ${kamp.leeftijdsgroep}
-  Rol:       ${rolLabel}
+  Kamp:            ${kamp.naam}
+  Periode:         ${datumNaarNL(kamp.startdatum)} t.e.m. ${datumNaarNL(kamp.einddatum)}
+  Locatie:         ${kamp.locatie}${kamp.adres ? ` — ${kamp.adres}` : ''}
+  Leeftijdsgroep:  ${kamp.leeftijdsgroep}
+  Rol:             ${rolLabel}
 
-${'─'.repeat(50)}
+${streep}
+BEPALINGEN
+${streep}
 
-VERBINTENISSEN VAN DE VRIJWILLIGER
+ARTIKEL 1 — ACTIVITEITEN
+  De sportclub is akkoord dat de vrijwilliger volgende activiteiten op
+  zich neemt in het kader van vrijwilligerswerk: ${activiteitVoorRol(lesgever.rol)}.
+  Deze activiteiten worden belangeloos en zonder enige verplichting
+  uitgevoerd, in samenspraak met de sportclub.
 
-De vrijwilliger verbindt zich ertoe:
+ARTIKEL 2 — GEEN BEZOLDIGING
+  De uitvoering van de activiteiten kan geen aanleiding geven tot enige
+  bezoldiging. Het vrijwilligerswerk kan op geen enkel ogenblik
+  stilzwijgend omgevormd worden tot arbeid in het kader van een
+  arbeidsovereenkomst. De sportclub heeft bijgevolg geen enkele
+  verplichting inzake sociale zekerheid of fiscale regelgeving.
 
-  1. Aanwezig te zijn op de afgesproken dagen gedurende de
-     volledige kampperiode, tenzij vooraf gemeld bij de
-     verantwoordelijke.
+ARTIKEL 3 — DUUR VAN DE OVEREENKOMST
+  Het vrijwilligerswerk vangt aan op ${datumNaarNL(kamp.startdatum)} en loopt
+  tot ${datumNaarNL(kamp.einddatum)}. De overeenkomst kan steeds eindigen in
+  onderling akkoord of door schriftelijke mededeling van één van beide
+  partijen.
 
-  2. De SportFun-gedragscode te respecteren en een positieve,
-     veilige omgeving te creëren voor alle deelnemers.
+ARTIKEL 4 — AANSPRAKELIJKHEID
+  De vrijwilliger kan slechts aansprakelijk gesteld worden voor schade
+  veroorzaakt aan derden tijdens de vrijwilligersactiviteit in geval van
+  opzet, zware fout of vaak voorkomende lichte fout.
 
-  3. De fysieke en emotionele veiligheid van de deelnemers
-     (kinderen) te bewaken en in te grijpen bij risicosituaties.
+ARTIKEL 5 — VERZEKERING
+  De sportclub sluit een verzekering burgerrechtelijke aansprakelijkheid
+  af (met uitzondering van de contractuele aansprakelijkheid) die de
+  schade dekt die door de vrijwilliger zou veroorzaakt worden tijdens het
+  uitoefenen van de vrijwilligersactiviteit.
+  Verzekeringsmaatschappij: ${ORG_VERZEKERAAR} — Polisnummer: ${ORG_POLISNR}
 
-  4. Vertrouwelijk om te gaan met persoonsgegevens van kinderen
-     en ouders, conform de AVG/GDPR-wetgeving.
+ARTIKEL 6 — VERGOEDING
+${vergoedingArt}
 
-  5. Geen beelden van deelnemers te delen op sociale media zonder
-     uitdrukkelijke toestemming van SportFun vzw.
+ARTIKEL 7 — GEHEIMHOUDING
+  Indien de vrijwilliger kennis krijgt van geheimen die hem/haar zijn
+  toevertrouwd in het kader van het vrijwilligerswerk, mag hij/zij deze,
+  overeenkomstig artikel 458 van het Strafwetboek, niet bekendmaken tenzij
+  de wet hem/haar hiertoe dwingt of indien hij/zij een getuigenis moet
+  afleggen. Overtreding kan gestraft worden met gevangenisstraf en boete.
 
-  6. Materialen en locatie met zorg te behandelen.
+ARTIKEL 8 — GEDRAGSCODE EN VEILIGHEID VAN DE DEELNEMERS
+  De vrijwilliger verbindt zich ertoe:
+    - de SportFun-gedragscode te respecteren en een positieve, veilige
+      omgeving te creëren voor alle deelnemers;
+    - de fysieke en emotionele veiligheid van de deelnemers (kinderen) te
+      bewaken en in te grijpen bij risicosituaties;
+    - geen beelden van deelnemers te delen op sociale media zonder
+      uitdrukkelijke toestemming van SportFun vzw.
 
-${'─'.repeat(50)}
+ARTIKEL 9 — AANWEZIGHEID EN AFWEZIGHEID
+  De vrijwilliger waarschuwt de sportclub zo snel mogelijk indien hij/zij
+  niet aanwezig kan zijn op de afgesproken momenten, zodat de continuïteit
+  van de activiteiten gewaarborgd blijft.
 
-${vergoedingSectie}
+ARTIKEL 10 — DOCUMENTATIE EN UITRUSTING
+  De sportclub verbindt zich ertoe de nodige documentatie en uitrusting
+  ter beschikking te stellen voor het goed uitvoeren van de activiteiten.
 
-${'─'.repeat(50)}
+ARTIKEL 11 — MELDINGSPLICHT AAN DERDEN
+  De vrijwilliger brengt volgende instanties op de hoogte en verkrijgt zo
+  nodig vooraf toestemming voor het verrichten van vrijwilligerswerk:
+    - de RVA in geval van werkloosheid of brugpensioen;
+    - het ziekenfonds in geval van arbeidsongeschiktheid;
+    - het OCMW indien de vrijwilliger een leefloon of andere tussenkomst
+      ontvangt.
 
-PRIVACYVERKLARING
-  Uw persoonsgegevens worden verwerkt conform de AVG/GDPR-
-  wetgeving, uitsluitend voor de organisatie van het kamp en
-  de administratie van vrijwilligers. Ze worden niet gedeeld
-  met derden.
+ARTIKEL 12 — GEGEVENSBESCHERMING (AVG/GDPR)
+  De persoonsgegevens van de vrijwilliger worden verwerkt conform de
+  Algemene Verordening Gegevensbescherming (EU 2016/679), uitsluitend voor
+  de organisatie van de kampen en de administratie van vrijwilligers. Ze
+  worden niet aan derden doorgegeven, tenzij wettelijk verplicht. De
+  vrijwilliger heeft recht op inzage, verbetering en verwijdering van zijn
+  gegevens.
 
-${'─'.repeat(50)}
+${streep}
 
-Opgesteld op: ${vandaag}
+Opgemaakt te ${kamp.locatie} op ${vandaag}, in twee exemplaren.
+Elke partij erkent een ondertekend exemplaar te hebben ontvangen.
 
-Handtekening vrijwilliger: ___________________________
+De vrijwilliger                        Namens SportFun vzw
 
-Naam: ${lesgever.voornaam} ${lesgever.achternaam}
-Datum ondertekening: ___________________________
-
-${'─'.repeat(50)}
-Namens SportFun vzw:
-Handtekening: ___________________________
+_____________________________          _____________________________
+${`${lesgever.voornaam} ${lesgever.achternaam}`.padEnd(38)}Christoph Draps, voorzitter
+Datum: _______________                 Datum: _______________
 `;
 }
 
@@ -778,8 +845,8 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
       de vrijwilliger zou veroorzaakt worden tijdens het uitoefenen van de vrijwilligersactiviteit.
     </p>
     <p class="artikel-inhoud" style="margin-top:4px">
-      Verzekeringsmaatschappij: <strong>VITAS GROEP</strong> &nbsp;&middot;&nbsp;
-      Polisnummer: <strong style="font-family:monospace">WD/379360530000</strong>
+      Verzekeringsmaatschappij: <strong>${ORG_VERZEKERAAR}</strong> &nbsp;&middot;&nbsp;
+      Polisnummer: <strong style="font-family:monospace">${ORG_POLISNR}</strong>
     </p>
   </div>
 </div>
