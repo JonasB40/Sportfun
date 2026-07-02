@@ -520,6 +520,12 @@
             </button>
           </div>
         </div>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+          <button class="knop knop-omtrek knop-klein" id="hergenereer-contracten-knop"
+                  title="Werk de tekst van alle bestaande contracten bij naar de nieuwste juridische versie (handtekeningen blijven behouden)">
+            🔄 Contractteksten bijwerken
+          </button>
+        </div>
         <div id="contracten-per-kamp-lijst">
           <div style="text-align:center;padding:40px;color:var(--kleur-grijs)">
             <div class="laadindicator" style="margin:0 auto 8px"></div>Laden…
@@ -1028,7 +1034,7 @@
     formaatBedrag, contractStatusPil, slaContractBijwerkenOp,
     berekenGewerkteDagen, HUIDIG_JAAR
   } from './js/financieel.js?v=1780304789425';
-  import { openContractAfdrukken, genereerContractTekst } from './js/contracten.js?v=1780304789425';
+  import { openContractAfdrukken, genereerContractTekst, hergenereerContractTeksten } from './js/contracten.js?v=1780304789425';
 
   let huidigProfiel      = null;
   let alleKampen         = [];
@@ -1065,6 +1071,27 @@
         b.style.boxShadow = actief ? '0 2px 6px rgba(25,67,56,0.18)' : 'none';
       });
       renderContractenPerKamp();
+    });
+
+    // Knop: alle contractteksten bijwerken naar de nieuwste juridische versie
+    const hergenKnop = document.getElementById('hergenereer-contracten-knop');
+    hergenKnop?.addEventListener('click', async () => {
+      const ok = await bevestig(
+        'Alle contractteksten bijwerken naar de nieuwste juridische versie? '
+        + 'Handtekeningen en bedragen blijven behouden.',
+        'Bijwerken', 'Annuleren'
+      );
+      if (!ok) return;
+      const origineel = hergenKnop.textContent;
+      hergenKnop.disabled = true;
+      hergenKnop.textContent = 'Bezig met bijwerken…';
+      const r = await hergenereerContractTeksten();
+      hergenKnop.disabled = false;
+      hergenKnop.textContent = origineel;
+      toonToast(
+        `${r.bijgewerkt} van ${r.totaal} contracten bijgewerkt${r.mislukt ? `, ${r.mislukt} mislukt` : ''}.`,
+        r.mislukt ? 'info' : 'succes'
+      );
     });
 
     // Open huidig jaar standaard
@@ -1529,7 +1556,8 @@
     }
 
     // Valideer
-    const val = await valideerContract(data, cbHuidigContract.lesgever_id, cbHuidigContract.id);
+    const kampJaar = Number(cbHuidigContract.kampen?.startdatum?.slice(0, 4)) || undefined;
+    const val = await valideerContract(data, cbHuidigContract.lesgever_id, cbHuidigContract.id, kampJaar);
     if (!val.geldig) {
       foutEl.textContent = val.fout;
       foutEl.classList.remove('verborgen');

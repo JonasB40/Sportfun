@@ -132,10 +132,12 @@ export function berekenContractTotaal(contract) {
  * @param {object} contract - Te valideren contract.
  * @param {string} lesgeverID
  * @param {string|null} contractIDNegeren - Bestaand contract dat genegeerd moet worden (bij update).
+ * @param {number} [jaar=HUIDIG_JAAR] - Kalenderjaar waartegen het jaarmax gecontroleerd wordt
+ *   (jaar van de kampstartdatum — het legale plafond geldt per kalenderjaar).
  * @returns {Promise<{geldig: boolean, fout: string|null, jaarTotaal: number, limiet: object}>}
  */
-export async function valideerContract(contract, lesgeverID, contractIDNegeren = null) {
-  const limiet = await haalLimietenOp();
+export async function valideerContract(contract, lesgeverID, contractIDNegeren = null, jaar = HUIDIG_JAAR) {
+  const limiet = await haalLimietenOp(jaar);
 
   // 1. Daglimiet
   const dagBedrag = Number(contract.vergoeding_per_dag ?? 0);
@@ -149,7 +151,7 @@ export async function valideerContract(contract, lesgeverID, contractIDNegeren =
 
   // 2. Jaarmax
   const { totaal } = berekenContractTotaal(contract);
-  const jaarTotaal = await haalJaarTotaalLesgeverOp(lesgeverID, HUIDIG_JAAR, contractIDNegeren);
+  const jaarTotaal = await haalJaarTotaalLesgeverOp(lesgeverID, jaar, contractIDNegeren);
   const nieuwTotaal = jaarTotaal + totaal;
 
   if (nieuwTotaal > limiet.max_per_jaar) {

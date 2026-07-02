@@ -169,6 +169,58 @@ export async function haalKampContractenOp(kampID) {
   }
 }
 
+/**
+ * Hergenereer de contracttekst (contract_inhoud) van ALLE bestaande contracten
+ * met de huidige, juridisch volledige sjabloon. Handtekeningen en financiële
+ * gegevens blijven ongewijzigd — enkel de opgeslagen tekst wordt vernieuwd.
+ *
+ * Bedoeld als eenmalige onderhoudsactie na een sjabloonwijziging.
+ *
+ * @returns {Promise<{bijgewerkt: number, mislukt: number, totaal: number}>}
+ */
+export async function hergenereerContractTeksten() {
+  const resultaat = { bijgewerkt: 0, mislukt: 0, totaal: 0 };
+  try {
+    const { data, error } = await supabase
+      .from('contracten')
+      .select(`
+        id, vergoeding_per_dag, aantal_dagen, kilometers, km_tarief,
+        voorbereidingsdag_dagen, opruimdag_dagen, opleidingsdag_dagen, evaluatiemoment_dagen,
+        profielen!lesgever_id (voornaam, achternaam, email, telefoon, adres, rol),
+        kampen (naam, locatie, adres, startdatum, einddatum, leeftijdsgroep)
+      `);
+    if (error) throw error;
+    resultaat.totaal = (data ?? []).length;
+
+    for (const c of (data ?? [])) {
+      if (!c.profielen || !c.kampen) { resultaat.mislukt++; continue; }
+      try {
+        const tekst = genereerContractTekst(c.profielen, c.kampen, {
+          vergoeding_per_dag:      c.vergoeding_per_dag,
+          aantal_dagen:            c.aantal_dagen,
+          kilometers:              c.kilometers,
+          km_tarief:               c.km_tarief,
+          voorbereidingsdag_dagen: c.voorbereidingsdag_dagen,
+          opruimdag_dagen:         c.opruimdag_dagen,
+          opleidingsdag_dagen:     c.opleidingsdag_dagen,
+          evaluatiemoment_dagen:   c.evaluatiemoment_dagen,
+        });
+        const { error: upErr } = await supabase
+          .from('contracten').update({ contract_inhoud: tekst }).eq('id', c.id);
+        if (upErr) throw upErr;
+        resultaat.bijgewerkt++;
+      } catch (e) {
+        console.warn('[contracten] Hergenereren mislukt voor contract', c.id, e?.message);
+        resultaat.mislukt++;
+      }
+    }
+    return resultaat;
+  } catch (fout) {
+    console.error('[contracten] Hergenereren van alle contracten mislukt:', fout?.message);
+    return resultaat;
+  }
+}
+
 // ── Contract genereren ──────────────────────────────────────────────
 
 // Vaste organisatie- en verzekeringsgegevens. Eén bron voor zowel de
