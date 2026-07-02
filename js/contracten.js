@@ -200,6 +200,18 @@ export async function haalKampContractenOp(kampID) {
 const ORG_VERZEKERAAR = 'VITAS GROEP';
 const ORG_POLISNR     = 'WD/379360530000';
 
+// Kilometertarieven verplaatsingsonkosten (moeten overeenkomen met de
+// vervoerknoppen in het contract-bewerkscherm van admin.html).
+const AUTO_KM_TARIEF  = 0.4449; // auto — periode 1/7/2025 – 30/6/2026
+const FIETS_KM_TARIEF = 0.37;   // fiets — 2026
+
+/** €-bedrag met 2 tot 4 decimalen (voor km-tarieven, bv. € 0,4449). */
+function eurKm(n) {
+  return '€ ' + Number(n ?? 0).toLocaleString('nl-BE', {
+    minimumFractionDigits: 2, maximumFractionDigits: 4,
+  });
+}
+
 // Rol → korte activiteitsomschrijving (gebruikt in artikel 1).
 const ACTIVITEIT_LABELS = {
   lesgever:    'Voorbereiden en geven van sportinitiaties als lesgever',
@@ -235,6 +247,7 @@ export function genereerContractTekst(lesgever, kamp, contract = {}) {
   const dagen     = Number(contract.aantal_dagen ?? 0);
   const km        = Number(contract.kilometers ?? 0);
   const tarief    = Number(contract.km_tarief ?? 0.4361);
+  const vervoerMiddel = Math.abs(tarief - FIETS_KM_TARIEF) < 0.005 ? 'met de fiets' : 'met de auto';
   const extraDagTypes = [
     { veld: 'voorbereidingsdag_dagen', label: 'Voorbereidingsdag' },
     { veld: 'opruimdag_dagen',         label: 'Opruimdag' },
@@ -279,8 +292,9 @@ ${[
   ${eur(dagBedrag)}. Voorbereidings-, opruim-, opleidings- en
   evaluatiedagen tellen mee als vergoede prestaties en vallen, samen met
   de kampdagen, binnen de wettelijke grenzen voor vrijwilligersvergoedingen
-  (dag- en jaarmaximum).${km > 0 ? `\n\n  Daarnaast wordt een verplaatsingsonkostenvergoeding van ${eur(tarief)}/km
-  uitbetaald, met een maximum van 2.000 km per jaar.` : ''}
+  (dag- en jaarmaximum).${km > 0 ? `\n\n  Daarnaast wordt een verplaatsingsonkostenvergoeding ${vervoerMiddel}
+  van ${eurKm(tarief)}/km uitbetaald, met een maximum van 2.000 km per jaar.
+  Toegepaste tarieven: auto ${eurKm(AUTO_KM_TARIEF)}/km · fiets ${eurKm(FIETS_KM_TARIEF)}/km.` : ''}
 
   De vrijwilliger verklaart op eer dat hij/zij in de loop van het
   kalenderjaar nooit een forfaitaire onkostenvergoeding voor
@@ -489,7 +503,7 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
     }),
     ...(km > 0 ? [`<tr>${td('Kilometervergoeding')}
       ${td(`${km.toFixed(1)} km`, true)}
-      ${td(f(tarief) + '/km', true)}
+      ${td(eurKm(tarief) + '/km', true)}
       ${td(f(kmTotaal), true, true)}</tr>`] : []),
   ].filter(Boolean).join('');
 
@@ -887,8 +901,10 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
       het kalenderjaar nooit een forfaitaire onkostenvergoeding zal ontvangen voor vrijwilligerswerk
       die in totaal hoger is dan de wettelijk toegestane maxima (Wet van 3 juli 2005
       betreffende de rechten van vrijwilligers).
-      ${km > 0 ? `Daarnaast wordt een verplaatsingsonkostenvergoeding van
-      <strong>${f(tarief)}/km</strong> uitbetaald, met een maximum van 2.000 km per jaar.` : ''}
+      ${km > 0 ? `Daarnaast wordt een verplaatsingsonkostenvergoeding
+      ${Math.abs(tarief - FIETS_KM_TARIEF) < 0.005 ? 'met de fiets' : 'met de auto'} van
+      <strong>${eurKm(tarief)}/km</strong> uitbetaald, met een maximum van 2.000 km per jaar.
+      Toegepaste tarieven: auto ${eurKm(AUTO_KM_TARIEF)}/km · fiets ${eurKm(FIETS_KM_TARIEF)}/km.` : ''}
     </p>
   </div>
 </div>
