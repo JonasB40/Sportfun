@@ -1150,7 +1150,7 @@
         return `<tr style="cursor:pointer" onclick="window._bewerkContractEnHerlaad('${c.id}')">
           <td><div class="vet">${ontsnap(c.profielen?.voornaam ?? '')} ${ontsnap(c.profielen?.achternaam ?? '')}</div>
               <div class="font-klein kleur-grijs">${ontsnap(c.profielen?.email ?? '')}</div></td>
-          <td style="text-align:right">${c.aantal_dagen ?? 0}</td>
+          <td style="text-align:right" title="Gewerkte dagen: ${(c.gewerkte_dagen ?? []).map(d => datumNaarNL(d, true)).join(', ') || '—'}">${c.aantal_dagen ?? 0}</td>
           <td style="text-align:right">${formaatBedrag(vergoeding)}</td>
           <td style="text-align:right">${formaatBedrag(km)}</td>
           <td style="text-align:right;font-weight:800">${formaatBedrag(c.totaal_bedrag)}</td>
@@ -1219,7 +1219,7 @@
         return `<tr style="cursor:pointer" onclick="window._bewerkContractEnHerlaad('${c.id}')">
           <td><div class="vet">${ontsnap(c.kampen?.naam ?? 'Onbekend kamp')}</div>
               <div class="font-klein kleur-grijs">${c.kampen?.startdatum ? datumNaarNL(c.kampen.startdatum) : ''}${c.kampen?.locatie ? ' · ' + ontsnap(c.kampen.locatie) : ''}</div></td>
-          <td style="text-align:right">${c.aantal_dagen ?? 0}</td>
+          <td style="text-align:right" title="Gewerkte dagen: ${(c.gewerkte_dagen ?? []).map(d => datumNaarNL(d, true)).join(', ') || '—'}">${c.aantal_dagen ?? 0}</td>
           <td style="text-align:right">${formaatBedrag(vergoeding)}</td>
           <td style="text-align:right">${formaatBedrag(km)}</td>
           <td style="text-align:right;font-weight:800">${formaatBedrag(c.totaal_bedrag)}</td>

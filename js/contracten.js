@@ -79,6 +79,7 @@ export async function genereerContractAutomatisch(lesgeverID, kampID) {
       inhoud = genereerContractTekst(lesgever, kamp, {
         vergoeding_per_dag: dagvergoeding,
         aantal_dagen:       gewerkteDagen.length,
+        gewerkte_dagen:     gewerkteDagen,
         kilometers:         totaleKM,
         km_tarief:          Number(limieten?.km_tarief ?? 0.4361),
       });
@@ -245,6 +246,7 @@ export function genereerContractTekst(lesgever, kamp, contract = {}) {
   const rij = (label, aantal, bedrag) =>
     `  ${label.padEnd(22)}${String(aantal).padStart(9)}   ${eur(bedrag).padStart(11)}`;
 
+  const gewerkteDagen = Array.isArray(contract.gewerkte_dagen) ? contract.gewerkte_dagen : [];
   const dagTot = +(dagBedrag * dagen).toFixed(2);
   const kmTot  = +(km * tarief).toFixed(2);
   let extraTot = 0;
@@ -271,7 +273,7 @@ ${[
     km > 0 ? rij('Kilometervergoeding', `${km.toFixed(1)} km`, kmTot) : null,
   ].filter(Boolean).join('\n')}
   ${'─'.repeat(46)}
-  ${'TOTAAL'.padEnd(22)}${''.padStart(9)}   ${eur(totaal).padStart(11)}
+  ${'TOTAAL'.padEnd(22)}${''.padStart(9)}   ${eur(totaal).padStart(11)}${gewerkteDagen.length > 0 ? `\n\n  Gewerkte kampdagen (${gewerkteDagen.length}): ${gewerkteDagen.map(d => datumNaarNL(d, true)).join(' · ')}` : ''}
 
   Alle vergoede dagen worden toegekend aan het vaste dagtarief van
   ${eur(dagBedrag)}. Voorbereidings-, opruim-, opleidings- en
