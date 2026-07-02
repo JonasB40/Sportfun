@@ -866,9 +866,9 @@ export function renderGebruikerRij(gebruiker) {
       <td>
         <div class="flex-gap">
           <button class="knop knop-omtrek knop-klein"
-                  onclick="window._wijzigRol(${JSON.stringify(gebruiker.id)},${JSON.stringify(gebruiker.rol)})">Rol</button>
+                  onclick="window._wijzigRol('${gebruiker.id}','${gebruiker.rol}')">Rol</button>
           <button class="knop ${gebruiker.actief ? 'knop-gevaar' : 'knop-middengroen'} knop-klein"
-                  onclick="window._toggleActief(${JSON.stringify(gebruiker.id)}, ${!gebruiker.actief})">
+                  onclick="window._toggleActief('${gebruiker.id}', ${!gebruiker.actief})">
             ${gebruiker.actief ? 'Deactiveren' : 'Activeren'}
           </button>
         </div>
@@ -912,11 +912,11 @@ export function renderKampRij(kamp, gekoppelden = []) {
       <td>
         <div class="flex-gap">
           <button class="knop knop-primair knop-klein" id="lesgever-knop-${ontsnap(kamp.id)}"
-                  onclick="window._toggleKampDetail(${JSON.stringify(kamp.id)})">👥 Lesgevers</button>
+                  onclick="window._toggleKampDetail('${kamp.id}')">👥 Lesgevers</button>
           <button class="knop knop-omtrek knop-klein"
-                  onclick="window._bewerkKamp(${JSON.stringify(kamp.id)})">Bewerken</button>
+                  onclick="window._bewerkKamp('${kamp.id}')">Bewerken</button>
           <button class="knop knop-omtrek knop-klein" title="Kopieer dit kamp als nieuw concept"
-                  onclick="window._kopieerKamp(${JSON.stringify(kamp.id)})">📋 Kopieer</button>
+                  onclick="window._kopieerKamp('${kamp.id}')">📋 Kopieer</button>
         </div>
       </td>
     </tr>

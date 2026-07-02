@@ -835,10 +835,10 @@ export function renderFotosRaster(fotos, ficheID, isBeheerder = false) {
     <div style="position:relative;display:inline-block">
       <img src="${ontsnap(veiligUrl)}" alt="Foto ${i + 1}"
            style="width:120px;height:80px;object-fit:cover;border-radius:8px;display:block;cursor:pointer"
-           onclick="window.open(${JSON.stringify(veiligUrl)},'_blank')">
+           onclick="window.open(${ontsnap(JSON.stringify(veiligUrl))},'_blank')">
       ${isBeheerder ? `
         <button title="Foto verwijderen"
-                onclick="window._verwijderFichesFoto(${JSON.stringify(ficheID)}, ${JSON.stringify(veiligUrl)})"
+                onclick="window._verwijderFichesFoto(${ontsnap(JSON.stringify(ficheID))}, ${ontsnap(JSON.stringify(veiligUrl))})"
                 style="position:absolute;top:3px;right:3px;background:rgba(255,105,85,0.85);
                        border:none;border-radius:50%;width:22px;height:22px;color:white;
                        font-size:0.78rem;cursor:pointer;line-height:1;display:flex;
