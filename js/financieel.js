@@ -351,19 +351,9 @@ export async function markeerBetaaldStatus(contractID, betaald) {
  */
 export async function slaContractBijwerkenOp(data) {
   try {
-    // Velden die we expliciet sturen
-    // Herbereken totaal_bedrag zodat het altijd actueel is
-    const { totaal } = berekenContractTotaal({
-      vergoeding_per_dag:      data.vergoeding_per_dag,
-      aantal_dagen:            data.aantal_dagen,
-      kilometers:              data.kilometers ?? 0,
-      km_tarief:               data.km_tarief ?? KM_TARIEF_2026,
-      voorbereidingsdag_dagen: data.voorbereidingsdag_dagen ?? 0,
-      opruimdag_dagen:         data.opruimdag_dagen ?? 0,
-      opleidingsdag_dagen:     data.opleidingsdag_dagen ?? 0,
-      evaluatiemoment_dagen:   data.evaluatiemoment_dagen ?? 0,
-    });
-
+    // Let op: 'totaal_bedrag' NIET meesturen — dat is een door de database
+    // gegenereerde kolom (GENERATED ALWAYS) en wordt automatisch herberekend
+    // uit de onderstaande velden. Meesturen geeft een 400-fout.
     const payload = {
       vergoeding_per_dag:       data.vergoeding_per_dag,
       aantal_dagen:             data.aantal_dagen,
@@ -376,7 +366,6 @@ export async function slaContractBijwerkenOp(data) {
       opruimdag_dagen:          data.opruimdag_dagen ?? 0,
       opleidingsdag_dagen:      data.opleidingsdag_dagen ?? 0,
       evaluatiemoment_dagen:    data.evaluatiemoment_dagen ?? 0,
-      totaal_bedrag:            totaal,
     };
 
     const { data: updated, error } = await supabase
