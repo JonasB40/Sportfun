@@ -149,16 +149,18 @@ export async function valideerContract(contract, lesgeverID, contractIDNegeren =
     };
   }
 
-  // 2. Jaarmax
-  const { totaal } = berekenContractTotaal(contract);
+  // 2. Jaarmax — enkel het forfaitaire deel telt (km-vergoeding valt buiten
+  //    het jaarplafond en wordt dus niet meegerekend).
+  const { vergoedingBedrag, extraBedrag } = berekenContractTotaal(contract);
+  const forfaitDeel = +(vergoedingBedrag + extraBedrag).toFixed(2);
   const jaarTotaal = await haalJaarTotaalLesgeverOp(lesgeverID, jaar, contractIDNegeren);
-  const nieuwTotaal = jaarTotaal + totaal;
+  const nieuwTotaal = +(jaarTotaal + forfaitDeel).toFixed(2);
 
   if (nieuwTotaal > limiet.max_per_jaar) {
     const overschrijding = +(nieuwTotaal - limiet.max_per_jaar).toFixed(2);
     return {
       geldig: false,
-      fout: `Jaartotaal zou €${nieuwTotaal.toFixed(2)} worden (max €${limiet.max_per_jaar.toFixed(2)}). Overschrijding: €${overschrijding.toFixed(2)}.`,
+      fout: `Forfaitair jaartotaal zou €${nieuwTotaal.toFixed(2)} worden (max €${limiet.max_per_jaar.toFixed(2)}). Overschrijding: €${overschrijding.toFixed(2)}. (Kilometervergoeding telt niet mee.)`,
       jaarTotaal, limiet,
     };
   }
@@ -171,23 +173,33 @@ export async function valideerContract(contract, lesgeverID, contractIDNegeren =
 /**
  * Haal het totaal van alle contracten op voor een lesgever in een specifiek jaar.
  *
+ * Telt enkel het FORFAITAIRE deel (dag- en extra-dagvergoeding). De
+ * kilometervergoeding (vervoer) telt wettelijk NIET mee voor het jaarplafond
+ * en wordt hier dus buiten beschouwing gelaten.
+ *
  * @param {string} lesgeverID
  * @param {number} [jaar=HUIDIG_JAAR]
  * @param {string|null} negeerContractID - Contract dat genegeerd moet worden (bij eigen update).
- * @returns {Promise<number>}
+ * @returns {Promise<number>} Forfaitair jaartotaal (zonder km-vergoeding).
  */
 export async function haalJaarTotaalLesgeverOp(lesgeverID, jaar = HUIDIG_JAAR, negeerContractID = null) {
   try {
     let q = supabase
       .from('contracten')
-      .select('id, totaal_bedrag, kampen!inner(startdatum)')
+      .select(`id, vergoeding_per_dag, aantal_dagen,
+               voorbereidingsdag_dagen, opruimdag_dagen, opleidingsdag_dagen, evaluatiemoment_dagen,
+               kampen!inner(startdatum)`)
       .eq('lesgever_id', lesgeverID)
       .gte('kampen.startdatum', `${jaar}-01-01`)
       .lte('kampen.startdatum', `${jaar}-12-31`);
     if (negeerContractID) q = q.neq('id', negeerContractID);
     const { data, error } = await q;
     if (error) throw error;
-    return (data ?? []).reduce((som, c) => som + Number(c.totaal_bedrag ?? 0), 0);
+    // Forfaitair deel = dagbedrag × (kampdagen + extra dagen), zonder km.
+    return (data ?? []).reduce((som, c) => {
+      const { vergoedingBedrag, extraBedrag } = berekenContractTotaal(c);
+      return som + vergoedingBedrag + extraBedrag;
+    }, 0);
   } catch (fout) {
     console.warn('[financieel] Jaartotaal ophalen mislukt:', fout?.message);
     return 0;

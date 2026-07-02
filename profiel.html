@@ -892,21 +892,26 @@
       return start && start.startsWith(String(HUIDIG_JAAR));
     });
 
-    let uitbetaald = 0, openstaand = 0;
+    let uitbetaald = 0, openstaand = 0, forfaitTotaal = 0;
     for (const c of ditJaar) {
       const bedrag = Number(c.totaal_bedrag ?? 0);
       if (c.betaald) uitbetaald += bedrag;
       else openstaand += bedrag;
+      // Forfaitair deel (zonder km-vergoeding) voor de jaarplafond-meter:
+      // km-vervoer telt wettelijk niet mee voor het jaarmaximum.
+      const kmBedrag = Number(c.kilometers ?? 0) * Number(c.km_tarief ?? 0);
+      forfaitTotaal += Math.max(0, bedrag - kmBedrag);
     }
     const totaal = uitbetaald + openstaand;
 
     document.getElementById('fin-uitbetaald').textContent = formaatBedrag(uitbetaald);
     document.getElementById('fin-openstaand').textContent = formaatBedrag(openstaand);
     document.getElementById('fin-totaal').textContent     = formaatBedrag(totaal);
-    const pct = Math.min(100, (totaal / limiet.max_per_jaar * 100));
+    // De meter vergelijkt het forfaitaire deel met het wettelijke jaarmaximum.
+    const pct = Math.min(100, (forfaitTotaal / limiet.max_per_jaar * 100));
     document.getElementById('fin-balk').style.width = `${pct}%`;
     document.getElementById('fin-max-label').textContent =
-      `${pct.toFixed(0)}% van jaarmax ${formaatBedrag(limiet.max_per_jaar)}`;
+      `${pct.toFixed(0)}% van forfaitair jaarmax ${formaatBedrag(limiet.max_per_jaar)}`;
 
     if (ditJaar.length > 0) {
       document.getElementById('financieel-overzicht').style.display = 'block';

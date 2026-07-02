@@ -12,7 +12,8 @@ import { toonToast, datumNaarNL, ontsnap, lokaleISO } from './utils.js?v=1780304
 import { maakNotificatie } from './auth.js?v=1780304789425';
 import {
   haalLimietenOp, haalStandaardVergoedingOp,
-  berekenGewerkteDagen, berekenContractTotaal, formaatBedrag
+  berekenGewerkteDagen, berekenContractTotaal, formaatBedrag,
+  haalJaarTotaalLesgeverOp
 } from './financieel.js?v=1780304789425';
 
 // ── Automatische contractgeneratie bij koppeling ────────────────────
@@ -86,6 +87,27 @@ export async function genereerContractAutomatisch(lesgeverID, kampID) {
       inhoud = `Vrijwilligersovereenkomst — ${kamp.naam}\n${lesgever.voornaam} ${lesgever.achternaam}`;
     }
 
+    // 6b. Jaarplafond bewaken: als het forfaitaire jaartotaal (dit contract +
+    //     bestaande contracten van hetzelfde jaar) het wettelijke maximum
+    //     overschrijdt, markeren we het contract met een waarschuwing zodat een
+    //     beheerder het kan bijsturen. We blokkeren de aanmaak niet, want de
+    //     lesgever heeft een contract nodig voor het bevestigde kamp.
+    let opmerking = null;
+    try {
+      const kampJaar = Number(kamp.startdatum?.slice(0, 4)) || limieten?.jaar;
+      const ditForfait = +(dagvergoeding * gewerkteDagen.length).toFixed(2);
+      const bestaandForfait = await haalJaarTotaalLesgeverOp(lesgeverID, kampJaar);
+      const nieuwForfait = +(bestaandForfait + ditForfait).toFixed(2);
+      const jaarMax = Number(limieten?.max_per_jaar ?? 0);
+      if (jaarMax > 0 && nieuwForfait > jaarMax) {
+        opmerking = `⚠️ Jaarplafond ${kampJaar}: forfaitair totaal €${nieuwForfait.toFixed(2)} `
+          + `overschrijdt het maximum van €${jaarMax.toFixed(2)}. Pas de vergoeding aan of `
+          + `gebruik een reële kostenvergoeding.`;
+      }
+    } catch (e) {
+      console.warn('[contracten] Jaarplafond-check bij aanmaak overgeslagen:', e?.message);
+    }
+
     // 7. Sla op
     const { data: nieuw, error } = await supabase
       .from('contracten')
@@ -98,6 +120,7 @@ export async function genereerContractAutomatisch(lesgeverID, kampID) {
         gewerkte_dagen:     gewerkteDagen,
         kilometers:         totaleKM,
         km_tarief:          Number(limieten?.km_tarief ?? 0.4361),
+        opmerking,
       })
       .select()
       .single();
