@@ -15,7 +15,7 @@ import { toonToast } from './utils.js?v=1780304789425';
 
 // ── Constanten (synced met financiele_limieten tabel) ─────────────────
 export const HUIDIG_JAAR = new Date().getFullYear();
-export const KM_TARIEF_2026   = 0.4361;
+export const KM_TARIEF_2026   = 0.4449; // autotarief 1/7/2025 – 30/6/2026
 export const MAX_PER_DAG_2026 = 44.02;
 export const MAX_PER_JAAR_2026 = 1761.00;
 

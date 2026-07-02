@@ -81,7 +81,7 @@ export async function genereerContractAutomatisch(lesgeverID, kampID) {
         aantal_dagen:       gewerkteDagen.length,
         gewerkte_dagen:     gewerkteDagen,
         kilometers:         totaleKM,
-        km_tarief:          Number(limieten?.km_tarief ?? 0.4361),
+        km_tarief:          Number(limieten?.km_tarief ?? AUTO_KM_TARIEF),
       });
     } catch (e) {
       console.warn('[contracten] Contracttekst-fout, gebruik fallback:', e?.message);
@@ -120,7 +120,7 @@ export async function genereerContractAutomatisch(lesgeverID, kampID) {
         aantal_dagen:       gewerkteDagen.length,
         gewerkte_dagen:     gewerkteDagen,
         kilometers:         totaleKM,
-        km_tarief:          Number(limieten?.km_tarief ?? 0.4361),
+        km_tarief:          Number(limieten?.km_tarief ?? AUTO_KM_TARIEF),
         opmerking,
       })
       .select()
@@ -246,7 +246,7 @@ export function genereerContractTekst(lesgever, kamp, contract = {}) {
   const dagBedrag = Number(contract.vergoeding_per_dag ?? 0);
   const dagen     = Number(contract.aantal_dagen ?? 0);
   const km        = Number(contract.kilometers ?? 0);
-  const tarief    = Number(contract.km_tarief ?? 0.4361);
+  const tarief    = Number(contract.km_tarief ?? AUTO_KM_TARIEF);
   const vervoerMiddel = Math.abs(tarief - FIETS_KM_TARIEF) < 0.005 ? 'met de fiets' : 'met de auto';
   const extraDagTypes = [
     { veld: 'voorbereidingsdag_dagen', label: 'Voorbereidingsdag' },
@@ -451,7 +451,7 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
   const dagBedrag   = Number(contract.vergoeding_per_dag ?? 0);
   const dagen       = Number(contract.aantal_dagen ?? 0);
   const km          = Number(contract.kilometers ?? 0);
-  const tarief      = Number(contract.km_tarief ?? 0.4361);
+  const tarief      = Number(contract.km_tarief ?? AUTO_KM_TARIEF);
   const gewerkteDagen = contract.gewerkte_dagen ?? [];
 
   const extraDagTypes = [
