@@ -1356,6 +1356,22 @@
     });
   }
 
+  // ── Print via verborgen iframe (geen pop-ups) ──────────────────
+  function drukHTML(htmlInhoud) {
+    let iframe = document.getElementById('print-frame');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'print-frame';
+      iframe.style.cssText = 'position:fixed;width:0;height:0;border:none;left:-9999px';
+      document.body.appendChild(iframe);
+    }
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write(htmlInhoud);
+    doc.close();
+    iframe.onload = () => { iframe.contentWindow.focus(); iframe.contentWindow.print(); };
+  }
+
   // ── Volledige contracten afdrukken ──────────────────────────────
   async function drukContractenVolledigAf(contracten) {
     toonToast('Contracten ophalen…', 'info');
@@ -1389,9 +1405,7 @@
       const styleMatch = fullHTML.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
       paginas.push({ body: bodyMatch?.[1] ?? '', style: styleMatch?.[1] ?? '' });
     }
-    const w = window.open('', '_blank');
-    if (!w) { toonToast('Sta pop-ups toe om contracten af te drukken.', 'fout'); return; }
-    w.document.write(`<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8">
+    drukHTML(`<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8">
       <title>Contracten afdrukken — SportFun</title>
       <style>${paginas[0].style}
         .contract-pagina { page-break-after: always; }
@@ -1399,8 +1413,6 @@
       </style></head><body>
       ${paginas.map(p => `<div class="contract-pagina">${p.body}</div>`).join('')}
     </body></html>`);
-    w.document.close();
-    w.print();
   }
 
   // ── Overzicht afdrukken ───────────────────────────────────────
@@ -1503,9 +1515,7 @@
       return s;
     }, { forfaitair: 0, km: 0, kmBedrag: 0, totaal: 0, betaald: 0 });
 
-    const w = window.open('', '_blank');
-    if (!w) { toonToast('Sta pop-ups toe om het overzicht af te drukken.', 'fout'); return; }
-    w.document.write(`<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8">
+    drukHTML(`<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8">
       <title>Financieel overzicht ${HUIDIG_JAAR} — SportFun</title>
       <style>
         @page { margin: 14mm 12mm; }
@@ -1583,8 +1593,6 @@
       </div>
 
       </body></html>`);
-    w.document.close();
-    w.print();
   }
 
   window._bewerkContractEnHerlaad = (contractID) => window._bewerkContract(contractID);
@@ -1966,6 +1974,10 @@
 
   async function haalSportfunHandtekeningURL() {
     try {
+      // Controleer eerst of het bestand bestaat om 404/400 te voorkomen
+      const { data: lijst } = await supabase.storage
+        .from('handtekeningen').list('sportfun', { limit: 1, search: 'handtekening.png' });
+      if (!lijst?.length) return null;
       const { data } = await supabase.storage
         .from('handtekeningen')
         .createSignedUrl(SF_HTK_PAD, 3600);
@@ -1975,9 +1987,12 @@
 
   async function laadSportfunHandtekeningPreview() {
     const url = await haalSportfunHandtekeningURL();
+    const wrapper = document.getElementById('sf-handtekening-preview-wrapper');
     if (url) {
       document.getElementById('sf-handtekening-preview').src = url;
-      document.getElementById('sf-handtekening-preview-wrapper').style.display = 'block';
+      wrapper.style.display = 'block';
+    } else {
+      wrapper.style.display = 'none';
     }
   }
 
