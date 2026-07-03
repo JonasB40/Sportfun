@@ -1612,13 +1612,28 @@
         { groepId: 'cb-evaluatiemoment-knoppen',   inputId: 'cb-evaluatiemoment',   veld: 'evaluatiemoment_dagen' },
       ];
       let heeftAnderePrestaties = false;
-      const dagVoor = lokaleISO(new Date(new Date(kamp.startdatum + 'T00:00:00').getTime() - 86400000));
-      const dagNa   = lokaleISO(new Date(new Date(kamp.einddatum  + 'T00:00:00').getTime() + 86400000));
+      const kampStart = new Date(kamp.startdatum + 'T00:00:00');
+      const kampEind  = new Date(kamp.einddatum  + 'T00:00:00');
+      const ms = 86400000;
+
+      // Lees dagen per type
+      const voorDagen  = Math.ceil(Number(contract.voorbereidingsdag_dagen) || 0);
+      const oplDagen   = Math.ceil(Number(contract.opleidingsdag_dagen) || 0);
+      const opruimDagen = Math.ceil(Number(contract.opruimdag_dagen) || 0);
+      const evalDagen  = Math.ceil(Number(contract.evaluatiemoment_dagen) || 0);
+
+      // Vóór kamp: voorbereidingsdag dichtst bij kamp, dan opleidingsdag daarvoor
+      const voorStart = lokaleISO(new Date(kampStart.getTime() - voorDagen * ms));
+      const oplStart  = lokaleISO(new Date(kampStart.getTime() - (voorDagen + oplDagen) * ms));
+      // Na kamp: opruimdag dichtst bij kamp, dan evaluatiemoment daarna
+      const opruimStart = lokaleISO(new Date(kampEind.getTime() + ms));
+      const evalStart   = lokaleISO(new Date(kampEind.getTime() + (1 + opruimDagen) * ms));
+
       const extraDefaults = [
-        { inputId: 'cb-voorbereidingsdag', datumId: 'cb-voorbereidingsdag-datum', veld: 'voorbereidingsdag_dagen', datumVeld: 'voorbereidingsdag_datum', autoDatum: dagVoor },
-        { inputId: 'cb-opruimdag',         datumId: 'cb-opruimdag-datum',         veld: 'opruimdag_dagen',         datumVeld: 'opruimdag_datum',         autoDatum: dagNa },
-        { inputId: 'cb-opleidingsdag',     datumId: 'cb-opleidingsdag-datum',     veld: 'opleidingsdag_dagen',     datumVeld: 'opleidingsdag_datum',     autoDatum: dagVoor },
-        { inputId: 'cb-evaluatiemoment',   datumId: 'cb-evaluatiemoment-datum',   veld: 'evaluatiemoment_dagen',   datumVeld: 'evaluatiemoment_datum',   autoDatum: dagNa },
+        { inputId: 'cb-voorbereidingsdag', datumId: 'cb-voorbereidingsdag-datum', veld: 'voorbereidingsdag_dagen', datumVeld: 'voorbereidingsdag_datum', autoDatum: voorStart },
+        { inputId: 'cb-opleidingsdag',     datumId: 'cb-opleidingsdag-datum',     veld: 'opleidingsdag_dagen',     datumVeld: 'opleidingsdag_datum',     autoDatum: oplStart },
+        { inputId: 'cb-opruimdag',         datumId: 'cb-opruimdag-datum',         veld: 'opruimdag_dagen',         datumVeld: 'opruimdag_datum',         autoDatum: opruimStart },
+        { inputId: 'cb-evaluatiemoment',   datumId: 'cb-evaluatiemoment-datum',   veld: 'evaluatiemoment_dagen',   datumVeld: 'evaluatiemoment_datum',   autoDatum: evalStart },
       ];
       extraDefaults.forEach(({ inputId, datumId, veld, datumVeld, autoDatum }) => {
         const waarde = Number(contract[veld] ?? 0);

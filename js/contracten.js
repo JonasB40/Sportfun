@@ -501,7 +501,16 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
       if (d <= 0) return '';
       const datumSleutel = veld.replace('_dagen', '_datum');
       const datumVal = contract[datumSleutel];
-      const datumTekst = datumVal ? ` <span style="color:#6B7280;font-size:8pt">(${datumNaarNL(datumVal)})</span>` : '';
+      let datumTekst = '';
+      if (datumVal) {
+        const kalenderDagen = Math.ceil(d);
+        const datums = [];
+        for (let i = 0; i < kalenderDagen; i++) {
+          const dt = new Date(new Date(datumVal + 'T00:00:00').getTime() + i * 86400000);
+          datums.push(datumNaarNL(lokaleISO(dt), true));
+        }
+        datumTekst = ` <span style="color:#6B7280;font-size:8pt">(${datums.join(', ')})</span>`;
+      }
       return `<tr>${td(label + datumTekst)}${td(`${brk(d)} dag`, true)}${td(f(dagBedrag), true)}${td(f(+(dagBedrag * d).toFixed(2)), true, true)}</tr>`;
     }),
     ...(km > 0 ? [`<tr>${td('Kilometervergoeding')}
