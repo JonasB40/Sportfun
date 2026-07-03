@@ -230,7 +230,7 @@
   import { checkSessie, haalProfielOp, vulNavigatieIn, initialiseerNotificatieBel, initialiseerContractBadge } from './js/auth.js?v=1780304789425';
   import {
     haalFichesOp, haalFicheOp, filterFiches,
-    renderFicheKaart, renderFicheDetail,
+    renderFicheKaart, renderFicheDetail, drukFicheAf,
     slaFicheVoorstelOp, werkFicheStatusBij, werkFicheBij, verwijderFiche,
     bouwFicheFormulier, leesFormulierWaarden, vulFormulierMetFiche,
     initialiseerTagInvoer, laadMateriaalTags,
@@ -407,6 +407,9 @@
       sluitModal('fiche-detail-overlay');
       openFicheFormulierBewerkModus(fiche);
     });
+
+    // Afdrukken
+    document.getElementById('print-fiche-knop')?.addEventListener('click', () => drukFicheAf(fiche));
 
     // Verwijderen (enkel voor beheerders)
     document.getElementById('verwijder-fiche-knop')?.addEventListener('click', async () => {

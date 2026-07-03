@@ -237,7 +237,7 @@ export function sluitModal(modalId) {
 export function initialiseerModals() {
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) overlay.classList.add('verborgen');
+      if (e.target === overlay && !overlay.dataset.geenOverlaySluiten) overlay.classList.add('verborgen');
     });
     overlay.querySelectorAll('.modal-sluiten').forEach(knop => {
       knop.addEventListener('click', () => overlay.classList.add('verborgen'));
@@ -432,6 +432,11 @@ export function downloadBestand(inhoud, bestandsnaam, type = 'text/plain') {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+export function formateerIBAN(iban) {
+  if (!iban) return '';
+  return iban.replace(/\s/g, '').replace(/(.{4})/g, '$1 ').trim();
 }
 
 /** Ontsnap speciale tekens voor iCal-veldwaarden. */

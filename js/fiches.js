@@ -435,8 +435,9 @@ export function renderFicheDetail(fiche, isBeheerder = false, isAdmin = false) {
       ${isBeheerder ? `<div id="foto-upload-status-${ontsnap(fiche.id)}" style="font-size:0.78rem;color:var(--kleur-grijs);margin-top:6px"></div>` : ''}
     </div>
 
-    <div class="font-klein kleur-grijs" style="border-top:1px solid #e5e7eb;padding-top:12px">
-      Aangemaakt door ${aanmaker}
+    <div class="font-klein kleur-grijs" style="border-top:1px solid #e5e7eb;padding-top:12px;display:flex;justify-content:space-between;align-items:center">
+      <span>Aangemaakt door ${aanmaker}</span>
+      <button class="knop knop-omtrek knop-klein" id="print-fiche-knop" data-id="${ontsnap(fiche.id)}">🖨 Afdrukken</button>
     </div>
     ${beheerdersActies}
   `;
@@ -950,4 +951,95 @@ export async function verwijderFichesFoto(ficheID, publicUrl) {
     toonToast('Kon foto niet verwijderen.', 'fout');
     return false;
   }
+}
+
+// ── Fiche afdrukken ────────────────────────────────────────────────
+
+export function drukFicheAf(fiche) {
+  const e = s => ontsnap(s ?? '');
+  const materiaalLijst = Array.isArray(fiche.materiaal) && fiche.materiaal.length > 0
+    ? `<ul>${fiche.materiaal.map(m => `<li>${e(m)}</li>`).join('')}</ul>`
+    : '<em>Geen materiaal vereist</em>';
+
+  const fotosHTML = Array.isArray(fiche.fotos) && fiche.fotos.length > 0
+    ? `<div class="fotos">${fiche.fotos.map(url =>
+        `<img src="${e(url)}" alt="Foto">`).join('')}</div>` : '';
+
+  const w = window.open('', '_blank');
+  if (!w) { toonToast('Sta pop-ups toe om de fiche af te drukken.', 'fout'); return; }
+  w.document.write(`<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8">
+    <title>${e(fiche.naam)} — SportFun Activiteitenfiche</title>
+    <style>
+      @page { margin: 16mm 14mm; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a2e28; line-height: 1.5; font-size: 10pt; }
+      .accent { height: 5px; background: linear-gradient(90deg, #194338, #148869, #D7FC5C); border-radius: 3px; margin-bottom: 16px; }
+      .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1.5px solid #e5e7eb; }
+      .header h1 { font-size: 16pt; color: #194338; margin-bottom: 4px; }
+      .header .sub { font-size: 8pt; color: #6b7280; }
+      .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+      .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 8pt; font-weight: 700; }
+      .badge-groen { background: #d1fae5; color: #065f46; }
+      .badge-blauw { background: #dbeafe; color: #1e40af; }
+      .badge-limoen { background: #ecfccb; color: #3f6212; }
+      .badge-zand { background: #fef3c7; color: #92400e; }
+      .meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+      .meta-item { background: #194338; color: white; border-radius: 8px; padding: 8px 12px; }
+      .meta-label { font-size: 7pt; text-transform: uppercase; letter-spacing: 0.8px; color: rgba(215,252,92,0.85); font-weight: 700; margin-bottom: 2px; }
+      .meta-waarde { font-size: 10pt; font-weight: 700; }
+      h2 { font-size: 10pt; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #148869; margin: 18px 0 8px; display: flex; align-items: center; gap: 8px; }
+      h2::before { content: ''; display: block; width: 12px; height: 3px; background: #D7FC5C; border-radius: 2px; }
+      h2::after { content: ''; flex: 1; height: 1px; background: #e5e7eb; }
+      .tekst { font-size: 9.5pt; white-space: pre-wrap; line-height: 1.7; color: #374151; }
+      .winnaar { background: rgba(215,252,92,0.18); border: 1.5px solid #c5d030; border-radius: 8px; padding: 10px 14px; margin-top: 8px; }
+      .winnaar h3 { font-size: 9pt; color: #5a6800; margin-bottom: 4px; }
+      .winnaar p { font-size: 9pt; color: #5a6800; }
+      ul { margin: 6px 0 0 20px; font-size: 9.5pt; color: #374151; }
+      li { margin-bottom: 3px; }
+      .fotos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+      .fotos img { max-width: 180px; max-height: 140px; border-radius: 6px; object-fit: cover; }
+      .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #e5e7eb; font-size: 7.5pt; color: #9ca3af; text-align: center; }
+      @media print { body { padding: 0; } .fotos img { max-width: 150px; max-height: 120px; } }
+    </style></head><body>
+    <div class="accent"></div>
+    <div class="header">
+      <div>
+        <h1>${e(fiche.naam)}</h1>
+        <div class="sub">SportFun vzw — Activiteitenfiche</div>
+      </div>
+    </div>
+
+    <div class="badges">
+      ${fiche.thema ? `<span class="badge badge-blauw">${e(themaLabel(fiche.thema))}</span>` : ''}
+      ${fiche.categorie ? `<span class="badge badge-groen">${e(categorieLabel(fiche.categorie))}</span>` : ''}
+      ${fiche.leeftijdsgroep ? `<span class="badge badge-limoen">${e(fiche.leeftijdsgroep)}</span>` : ''}
+      ${fiche.locatie ? `<span class="badge badge-zand">${e(fiche.locatie)}</span>` : ''}
+      ${fiche.moeilijkheid ? `<span class="badge badge-zand">${e(fiche.moeilijkheid)}</span>` : ''}
+    </div>
+
+    <div class="meta">
+      ${fiche.duur_minuten ? `<div class="meta-item"><div class="meta-label">Duur</div><div class="meta-waarde">${e(fiche.duur_minuten)} min</div></div>` : ''}
+      ${fiche.min_deelnemers ? `<div class="meta-item"><div class="meta-label">Min. deelnemers</div><div class="meta-waarde">${e(fiche.min_deelnemers)}</div></div>` : ''}
+      ${fiche.max_deelnemers ? `<div class="meta-item"><div class="meta-label">Max. deelnemers</div><div class="meta-waarde">${e(fiche.max_deelnemers)}</div></div>` : ''}
+      ${fiche.locatie ? `<div class="meta-item"><div class="meta-label">Locatie</div><div class="meta-waarde">${e(fiche.locatie)}</div></div>` : ''}
+    </div>
+
+    ${fiche.doelstelling ? `<h2>Doelstelling</h2><p class="tekst">${e(fiche.doelstelling)}</p>` : ''}
+
+    <h2>Spelregels</h2>
+    <p class="tekst">${e(fiche.spelregels)}</p>
+
+    ${fiche.variaties ? `<h2>Variaties</h2><p class="tekst">${e(fiche.variaties)}</p>` : ''}
+
+    ${fiche.winnaar ? `<div class="winnaar"><h3>🏆 Winnaar</h3><p>${e(fiche.winnaar)}</p></div>` : ''}
+
+    <h2>Materiaal</h2>
+    ${materiaalLijst}
+
+    ${fotosHTML ? `<h2>Foto's</h2>${fotosHTML}` : ''}
+
+    <div class="footer">SportFun vzw — Activiteitenfiche "${e(fiche.naam)}"</div>
+  </body></html>`);
+  w.document.close();
+  w.print();
 }

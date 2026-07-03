@@ -366,6 +366,10 @@ export async function slaContractBijwerkenOp(data) {
       opruimdag_dagen:          data.opruimdag_dagen ?? 0,
       opleidingsdag_dagen:      data.opleidingsdag_dagen ?? 0,
       evaluatiemoment_dagen:    data.evaluatiemoment_dagen ?? 0,
+      voorbereidingsdag_datum:  data.voorbereidingsdag_datum || null,
+      opruimdag_datum:          data.opruimdag_datum || null,
+      opleidingsdag_datum:      data.opleidingsdag_datum || null,
+      evaluatiemoment_datum:    data.evaluatiemoment_datum || null,
     };
 
     const { data: updated, error } = await supabase

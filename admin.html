@@ -32,15 +32,25 @@
       width: 160px; font-size: 0.88rem; font-weight: 600;
       color: var(--kleur-donkergroen); flex-shrink: 0;
     }
-    .dag-breuk-groep { display: flex; gap: 4px; flex-wrap: wrap; }
-    .dag-breuk-knop {
-      padding: 5px 10px; border-radius: 6px; font-size: 0.82rem; font-weight: 700;
-      border: 1.5px solid var(--kleur-zand); background: white;
-      color: var(--kleur-grijs); cursor: pointer; font-family: var(--font);
-      transition: all 0.15s;
+    .dag-breuk-groep { display: inline-flex; gap: 4px; align-items: center; }
+    .extra-dag-datum {
+      width: 130px; padding: 5px 8px; border: 1px solid #ccc; border-radius: 6px;
+      font-family: var(--font); font-size: 0.82rem; color: var(--kleur-donkergroen);
     }
-    .dag-breuk-knop:hover { border-color: var(--kleur-middengroen); color: var(--kleur-middengroen); }
-    .dag-breuk-knop.actief { background: var(--kleur-middengroen); color: white; border-color: var(--kleur-middengroen); }
+    .dag-breuk-input {
+      width: 52px; text-align: center; font-weight: 700; font-size: 0.9rem;
+      border: 1px solid #ccc; border-radius: 6px; padding: 6px 2px;
+      font-family: var(--font); -moz-appearance: textfield;
+    }
+    .dag-breuk-input::-webkit-outer-spin-button,
+    .dag-breuk-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .dag-breuk-stap {
+      width: 32px; height: 32px; border-radius: 50%; border: 1px solid #ccc;
+      background: white; font-size: 1.1rem; font-weight: 700; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--kleur-donkergroen); transition: all 0.15s; flex-shrink: 0;
+    }
+    .dag-breuk-stap:hover { background: var(--kleur-middengroen); color: white; border-color: var(--kleur-middengroen); }
 
     /* ══════════════════════════════════════════════════════════
        MOBIELE AANPASSINGEN BEHEERPAGINA
@@ -246,6 +256,7 @@
     .periode-header-rij:hover td { background: #1a4e41; }
 
     /* ── Locatie-subkoppen binnen een periode ── */
+    .locatie-subheader-rij { cursor: pointer; }
     .locatie-subheader-rij td {
       background: rgba(215,252,92,0.10);
       color: var(--kleur-donkergroen);
@@ -255,6 +266,7 @@
       border-left: 3px solid var(--kleur-limoen);
       border-bottom: 1px solid rgba(215,252,92,0.25);
     }
+    .locatie-subheader-rij:hover td { background: rgba(215,252,92,0.20); }
 
     /* ── Extra klein (≤ 400px) ──────────────────────────────── */
     @media (max-width: 400px) {
@@ -273,7 +285,8 @@
       }
 
       /* Extra-dag knoppen: smaller */
-      .dag-breuk-knop { padding: 6px 8px; font-size: 0.78rem; }
+      .dag-breuk-stap { width: 30px; height: 30px; }
+      .dag-breuk-input { width: 46px; font-size: 0.82rem; }
     }
   </style>
 </head>
@@ -507,19 +520,59 @@
           </div>
         </div>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <!-- Header + toggle + afdrukken -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
           <h2 class="sectie-titel" style="margin:0">Vrijwilligerscontracten</h2>
-          <div style="display:inline-flex;background:var(--kleur-zand);border-radius:8px;padding:3px" id="contr-sort-toggle">
-            <button class="contr-sort-knop actief" data-mode="kamp"
-              style="padding:5px 14px;border:none;background:var(--kleur-donkergroen);color:var(--kleur-limoen);border-radius:5px;font-family:var(--font);font-size:0.78rem;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(25,67,56,0.18)">
-              Per kamp
-            </button>
-            <button class="contr-sort-knop" data-mode="lesgever"
-              style="padding:5px 14px;border:none;background:transparent;border-radius:5px;font-family:var(--font);font-size:0.78rem;font-weight:700;cursor:pointer;color:var(--kleur-grijs)">
-              Per lesgever
-            </button>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div style="display:inline-flex;background:var(--kleur-zand);border-radius:8px;padding:3px" id="contr-sort-toggle">
+              <button class="contr-sort-knop" data-mode="kamp"
+                style="padding:5px 14px;border:none;background:var(--kleur-donkergroen);color:var(--kleur-limoen);border-radius:5px;font-family:var(--font);font-size:0.78rem;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(25,67,56,0.18)">
+                Per kamp
+              </button>
+              <button class="contr-sort-knop" data-mode="lesgever"
+                style="padding:5px 14px;border:none;background:transparent;border-radius:5px;font-family:var(--font);font-size:0.78rem;font-weight:700;cursor:pointer;color:var(--kleur-grijs)">
+                Per lesgever
+              </button>
+            </div>
+            <button class="knop knop-omtrek knop-klein" id="contr-print-selectie" style="display:none">🖨 Selectie afdrukken (<span id="contr-selectie-aantal">0</span>)</button>
+            <button class="knop knop-omtrek knop-klein" id="contr-print-alles">🖨 Overzicht afdrukken</button>
           </div>
         </div>
+
+        <!-- Filters -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+          <div style="position:relative;flex:1;min-width:180px">
+            <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--kleur-grijs);width:14px;height:14px"
+                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="search" id="contr-zoek" placeholder="Zoek op naam, kamp of locatie…"
+                   style="width:100%;height:34px;padding:0 12px 0 32px;border:1.5px solid var(--kleur-lichtgrijs);border-radius:8px;font-family:var(--font);font-size:0.82rem;outline:none">
+          </div>
+          <select class="filter-select" id="contr-filter-kamp" style="min-width:140px">
+            <option value="">Alle kampen</option>
+          </select>
+          <select class="filter-select" id="contr-filter-lesgever" style="min-width:140px">
+            <option value="">Alle lesgevers</option>
+          </select>
+          <select class="filter-select" id="contr-filter-locatie" style="min-width:120px">
+            <option value="">Alle locaties</option>
+          </select>
+          <select class="filter-select" id="contr-filter-status" style="min-width:120px">
+            <option value="">Alle statussen</option>
+            <option value="aangemaakt">Aangemaakt</option>
+            <option value="ondertekend">Ondertekend</option>
+            <option value="betaald">Betaald</option>
+          </select>
+        </div>
+
+        <!-- Selecteer alles checkbox -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:4px 0">
+          <input type="checkbox" id="contr-selecteer-alles" style="width:16px;height:16px;cursor:pointer">
+          <label for="contr-selecteer-alles" style="font-size:0.8rem;color:var(--kleur-grijs);cursor:pointer">Alles selecteren</label>
+          <span id="contr-filter-telling" style="font-size:0.78rem;color:var(--kleur-grijs);margin-left:auto"></span>
+        </div>
+
         <div id="contracten-per-kamp-lijst">
           <div style="text-align:center;padding:40px;color:var(--kleur-grijs)">
             <div class="laadindicator" style="margin:0 auto 8px"></div>Laden…
@@ -532,7 +585,7 @@
 </div>
 
 <!-- Modal: Kamp aanmaken/bewerken -->
-<div class="modal-overlay verborgen" id="kamp-modal-overlay">
+<div class="modal-overlay verborgen" id="kamp-modal-overlay" data-geen-overlay-sluiten="1">
   <div class="modal modal-lg">
     <div class="modal-header">
       <h2 id="kamp-modal-titel">Nieuw kamp</h2>
@@ -567,8 +620,8 @@
         </div>
         <div class="formulier-rij">
           <div class="formulier-groep">
-            <label for="kamp-locatie">Locatie *</label>
-            <input type="text" id="kamp-locatie" required placeholder="bv. Sporthal De Brug"
+            <label for="kamp-locatie">Gemeente *</label>
+            <input type="text" id="kamp-locatie" required placeholder="bv. Sombeke"
                    list="locatie-suggesties" autocomplete="off">
             <datalist id="locatie-suggesties"></datalist>
           </div>
@@ -599,9 +652,12 @@
             <option value="afgelopen">Afgelopen</option>
           </select>
         </div>
-        <div class="modal-voetlijn" style="border:none;padding:0;margin-top:8px">
-          <button type="button" class="knop knop-omtrek" id="kamp-annuleren">Annuleren</button>
-          <button type="submit" class="knop knop-accent" id="kamp-opslaan-knop">Kamp opslaan</button>
+        <div class="modal-voetlijn" style="border:none;padding:0;margin-top:8px;justify-content:space-between">
+          <button type="button" class="knop knop-omtrek" id="kamp-verwijderen" style="color:var(--kleur-koraal);border-color:var(--kleur-koraal);display:none" title="Kamp definitief verwijderen">🗑 Verwijderen</button>
+          <div style="display:flex;gap:8px;margin-left:auto">
+            <button type="button" class="knop knop-omtrek" id="kamp-annuleren">Annuleren</button>
+            <button type="submit" class="knop knop-accent" id="kamp-opslaan-knop">Kamp opslaan</button>
+          </div>
         </div>
       </form>
     </div>
@@ -610,7 +666,7 @@
 
 
 <!-- Modal: Contract bewerken (financiële details) -->
-<div class="modal-overlay verborgen" id="contract-bewerken-overlay">
+<div class="modal-overlay verborgen" id="contract-bewerken-overlay" data-geen-overlay-sluiten="1">
   <div class="modal modal-lg" style="display:flex;flex-direction:column;overflow:hidden;max-height:92vh">
     <div class="modal-header">
       <h2 id="cb-titel">Contract bewerken</h2>
@@ -659,9 +715,9 @@
 
       <div class="formulier-rij">
         <div class="formulier-groep">
-          <label for="cb-km">Kilometers (heen-terug, totaal)</label>
+          <label for="cb-km">Kilometers per dag (heen-retour)</label>
           <input type="number" id="cb-km" min="0" step="0.1">
-          <div class="hulptekst">Vul de totale afstand in voor alle kampdagen.</div>
+          <div class="hulptekst">Vul de dagelijkse afstand heen en terug in.</div>
         </div>
         <div class="formulier-groep">
           <label>Vervoermiddel</label>
@@ -716,49 +772,41 @@
             <div class="extra-dag-type-rij">
               <span class="extra-dag-label">Voorbereidingsdag</span>
               <div class="dag-breuk-groep" id="cb-voorbereidingsdag-knoppen">
-                <button type="button" class="dag-breuk-knop actief" data-waarde="0">0</button>
-                <button type="button" class="dag-breuk-knop" data-waarde="0.25">¼</button>
-                <button type="button" class="dag-breuk-knop" data-waarde="0.5">½</button>
-                <button type="button" class="dag-breuk-knop" data-waarde="0.75">¾</button>
-                <button type="button" class="dag-breuk-knop" data-waarde="1">1</button>
+                <button type="button" class="dag-breuk-stap" data-richting="-1">−</button>
+                <input type="number" id="cb-voorbereidingsdag" class="dag-breuk-input" min="0" max="10" step="0.25" value="0">
+                <button type="button" class="dag-breuk-stap" data-richting="1">+</button>
               </div>
-              <input type="hidden" id="cb-voorbereidingsdag" value="0">
+              <input type="date" id="cb-voorbereidingsdag-datum" class="extra-dag-datum" title="Datum voorbereidingsdag">
             </div>
 
             <div class="extra-dag-type-rij">
               <span class="extra-dag-label">Opruimdag</span>
               <div class="dag-breuk-groep" id="cb-opruimdag-knoppen">
-                <button type="button" class="dag-breuk-knop actief" data-waarde="0">0</button>
-                <button type="button" class="dag-breuk-knop" data-waarde="0.25">¼</button>
-                <button type="button" class="dag-breuk-knop" data-waarde="0.5">½</button>
-                <button type="button" class="dag-breuk-knop" data-waarde="0.75">¾</button>
-                <button type="button" class="dag-breuk-knop" data-waarde="1">1</button>
+                <button type="button" class="dag-breuk-stap" data-richting="-1">−</button>
+                <input type="number" id="cb-opruimdag" class="dag-breuk-input" min="0" max="10" step="0.25" value="0">
+                <button type="button" class="dag-breuk-stap" data-richting="1">+</button>
               </div>
-              <input type="hidden" id="cb-opruimdag" value="0">
+              <input type="date" id="cb-opruimdag-datum" class="extra-dag-datum" title="Datum opruimdag">
             </div>
 
             <div class="extra-dag-type-rij">
               <span class="extra-dag-label">Opleidingsdag</span>
               <div class="dag-breuk-groep" id="cb-opleidingsdag-knoppen">
-                <button type="button" class="dag-breuk-knop actief" data-waarde="0">0</button>
-                <button type="button" class="dag-breuk-knop" data-waarde="0.25">¼</button>
-                <button type="button" class="dag-breuk-knop" data-waarde="0.5">½</button>
-                <button type="button" class="dag-breuk-knop" data-waarde="0.75">¾</button>
-                <button type="button" class="dag-breuk-knop" data-waarde="1">1</button>
+                <button type="button" class="dag-breuk-stap" data-richting="-1">−</button>
+                <input type="number" id="cb-opleidingsdag" class="dag-breuk-input" min="0" max="10" step="0.25" value="0">
+                <button type="button" class="dag-breuk-stap" data-richting="1">+</button>
               </div>
-              <input type="hidden" id="cb-opleidingsdag" value="0">
+              <input type="date" id="cb-opleidingsdag-datum" class="extra-dag-datum" title="Datum opleidingsdag">
             </div>
 
             <div class="extra-dag-type-rij">
               <span class="extra-dag-label">Evaluatiemoment</span>
               <div class="dag-breuk-groep" id="cb-evaluatiemoment-knoppen">
-                <button type="button" class="dag-breuk-knop actief" data-waarde="0">0</button>
-                <button type="button" class="dag-breuk-knop" data-waarde="0.25">¼</button>
-                <button type="button" class="dag-breuk-knop" data-waarde="0.5">½</button>
-                <button type="button" class="dag-breuk-knop" data-waarde="0.75">¾</button>
-                <button type="button" class="dag-breuk-knop" data-waarde="1">1</button>
+                <button type="button" class="dag-breuk-stap" data-richting="-1">−</button>
+                <input type="number" id="cb-evaluatiemoment" class="dag-breuk-input" min="0" max="10" step="0.25" value="0">
+                <button type="button" class="dag-breuk-stap" data-richting="1">+</button>
               </div>
-              <input type="hidden" id="cb-evaluatiemoment" value="0">
+              <input type="date" id="cb-evaluatiemoment-datum" class="extra-dag-datum" title="Datum evaluatiemoment">
             </div>
 
           </div>
@@ -1020,15 +1068,15 @@
   import {
     nieuweFilterState, filterKampen, renderFilterBalk, haalKoppelingsMapOp
   } from './js/kampfilter.js?v=1780304789425';
-  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, datumNaarNL, bevestig, kopieerNaarKlembord, lokaleISO, ontsnap } from './js/utils.js?v=1780304789425';
+  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, datumNaarNL, bevestig, kopieerNaarKlembord, lokaleISO, ontsnap, formateerIBAN } from './js/utils.js?v=1780304789425';
   import {
     haalOverzichtPerLesgeverOp, haalAlleContractenFinancieelOp,
     haalLimietenOp, valideerContract, berekenContractTotaal,
     haalJaarTotaalLesgeverOp, markeerBetaaldStatus,
     formaatBedrag, contractStatusPil, slaContractBijwerkenOp,
-    berekenGewerkteDagen, HUIDIG_JAAR
+    berekenGewerkteDagen, HUIDIG_JAAR, MAX_PER_JAAR_2026
   } from './js/financieel.js?v=1780304789425';
-  import { openContractAfdrukken, genereerContractTekst } from './js/contracten.js?v=1780304789425';
+  import { openContractAfdrukken, genereerContractTekst, genereerContractHTML } from './js/contracten.js?v=1780304789425';
 
   let huidigProfiel      = null;
   let alleKampen         = [];
@@ -1036,23 +1084,21 @@
   let huidigBeheerKampID = null;
 
   // ═══════════════════════════════════════════════════════════════
-  //  CONTRACTEN PER KAMP
+  //  CONTRACTEN OVERZICHT
   // ═══════════════════════════════════════════════════════════════
 
   let contrSorteerMode = 'kamp';
   let contrGeladen = false;
-  let contrJaarCache = {};   // jaar => contracten[]
-  let contrJaarOpen = {};    // jaar => bool
-
-  // Jaren die we tonen (huidig + max 4 voorgaande, minimum 2023)
-  const contrJaren = Array.from({ length: 5 }, (_, i) => HUIDIG_JAAR - i).filter(j => j >= 2023);
+  let contrJaarCache = {};
+  let contrAlleContracten = [];
+  let contrGeselecteerd = new Set();
 
   async function laadContractenPerKamp() {
     if (contrGeladen) return;
     contrGeladen = true;
 
     // Sort-toggle
-    document.getElementById('contr-sort-toggle').addEventListener('click', async (e) => {
+    document.getElementById('contr-sort-toggle').addEventListener('click', (e) => {
       const knop = e.target.closest('.contr-sort-knop');
       if (!knop) return;
       const mode = knop.dataset.mode;
@@ -1064,203 +1110,457 @@
         b.style.color = actief ? 'var(--kleur-limoen)' : 'var(--kleur-grijs)';
         b.style.boxShadow = actief ? '0 2px 6px rgba(25,67,56,0.18)' : 'none';
       });
-      renderContractenPerKamp();
+      renderContractenOverzicht();
     });
 
-    // Open huidig jaar standaard
-    contrJaarOpen[HUIDIG_JAAR] = true;
+    // Filters
+    ['contr-zoek', 'contr-filter-kamp', 'contr-filter-lesgever',
+     'contr-filter-locatie', 'contr-filter-status'].forEach(id => {
+      document.getElementById(id).addEventListener(
+        id === 'contr-zoek' ? 'input' : 'change', renderContractenOverzicht);
+    });
+
+    // Selecteer alles
+    document.getElementById('contr-selecteer-alles').addEventListener('change', (e) => {
+      const gefilterd = filterContracten();
+      if (e.target.checked) gefilterd.forEach(c => contrGeselecteerd.add(c.id));
+      else gefilterd.forEach(c => contrGeselecteerd.delete(c.id));
+      renderContractenOverzicht();
+    });
+
+    // Afdrukken
+    document.getElementById('contr-print-alles').addEventListener('click', async () => {
+      await drukContractenAf(filterContracten());
+    });
+    document.getElementById('contr-print-selectie').addEventListener('click', async () => {
+      const sel = contrAlleContracten.filter(c => contrGeselecteerd.has(c.id));
+      if (sel.length === 0) { toonToast('Selecteer eerst contracten.', 'fout'); return; }
+      await drukContractenVolledigAf(sel);
+    });
+
     await laadJaarData(HUIDIG_JAAR);
-    renderContractenPerKamp();
+    vulFilterDropdowns();
+    renderContractenOverzicht();
   }
 
   async function laadJaarData(jaar) {
     if (contrJaarCache[jaar]) return;
     contrJaarCache[jaar] = await haalAlleContractenFinancieelOp(jaar);
+    contrAlleContracten = contrJaarCache[jaar] ?? [];
   }
 
-  function renderContractenPerKamp() {
-    const container = document.getElementById('contracten-per-kamp-lijst');
-    container.innerHTML = contrJaren.map(jaar => {
-      const isOpen = !!contrJaarOpen[jaar];
-      const contracten = contrJaarCache[jaar];
-      const isHuidig = jaar === HUIDIG_JAAR;
+  function vulFilterDropdowns() {
+    const kampen = new Map(), lesgevers = new Map(), locaties = new Set();
+    for (const c of contrAlleContracten) {
+      if (c.kampen?.id) kampen.set(c.kampen.id, c.kampen.naam);
+      if (c.lesgever_id && c.profielen) lesgevers.set(c.lesgever_id,
+        `${c.profielen.achternaam} ${c.profielen.voornaam}`);
+      if (c.kampen?.locatie) locaties.add(c.kampen.locatie);
+    }
+    const kampSel = document.getElementById('contr-filter-kamp');
+    kampSel.innerHTML = '<option value="">Alle kampen</option>' +
+      [...kampen].sort((a,b) => a[1].localeCompare(b[1],'nl'))
+        .map(([id, n]) => `<option value="${id}">${ontsnap(n)}</option>`).join('');
+    const lgSel = document.getElementById('contr-filter-lesgever');
+    lgSel.innerHTML = '<option value="">Alle lesgevers</option>' +
+      [...lesgevers].sort((a,b) => a[1].localeCompare(b[1],'nl'))
+        .map(([id, n]) => `<option value="${id}">${ontsnap(n)}</option>`).join('');
+    const locSel = document.getElementById('contr-filter-locatie');
+    locSel.innerHTML = '<option value="">Alle locaties</option>' +
+      [...locaties].sort().map(l => `<option value="${ontsnap(l)}">${ontsnap(l)}</option>`).join('');
+  }
 
-      const headerStijl = isHuidig
-        ? 'background:var(--kleur-donkergroen);color:white'
-        : 'background:var(--kleur-zand);color:var(--kleur-donkergroen);border:1.5px solid var(--kleur-lichtgrijs)';
-      const pijlKleur = isHuidig ? 'color:var(--kleur-limoen)' : 'color:var(--kleur-grijs)';
-
-      let inhoud = '';
-      if (isOpen) {
-        if (!contracten) {
-          inhoud = '<div style="text-align:center;padding:24px;color:var(--kleur-grijs)"><div class="laadindicator" style="margin:0 auto 8px"></div>Laden…</div>';
-        } else if (contracten.length === 0) {
-          inhoud = `<div style="text-align:center;padding:24px;color:var(--kleur-grijs)">Geen contracten voor ${jaar}.</div>`;
-        } else if (contrSorteerMode === 'kamp') {
-          inhoud = renderContractenPerKampGroep(contracten);
-        } else {
-          inhoud = renderContractenPerLesgevers(contracten);
-        }
+  function filterContracten() {
+    const zoek = document.getElementById('contr-zoek').value.toLowerCase().trim();
+    const kampF = document.getElementById('contr-filter-kamp').value;
+    const lgF = document.getElementById('contr-filter-lesgever').value;
+    const locF = document.getElementById('contr-filter-locatie').value;
+    const statusF = document.getElementById('contr-filter-status').value;
+    return contrAlleContracten.filter(c => {
+      if (kampF && (c.kampen?.id ?? '') !== kampF) return false;
+      if (lgF && c.lesgever_id !== lgF) return false;
+      if (locF && (c.kampen?.locatie ?? '') !== locF) return false;
+      if (statusF === 'betaald' && !c.betaald) return false;
+      if (statusF === 'ondertekend' && (!c.ondertekend || c.betaald)) return false;
+      if (statusF === 'aangemaakt' && (c.ondertekend || c.betaald)) return false;
+      if (zoek) {
+        const tekst = [
+          c.profielen?.voornaam, c.profielen?.achternaam, c.profielen?.email,
+          c.kampen?.naam, c.kampen?.locatie
+        ].filter(Boolean).join(' ').toLowerCase();
+        if (!tekst.includes(zoek)) return false;
       }
-
-      const aantalBadge = contracten
-        ? `<span style="background:rgba(215,252,92,0.25);color:${isHuidig ? 'var(--kleur-limoen)' : 'var(--kleur-donkergroen)'};border-radius:20px;padding:1px 9px;font-size:0.72rem;font-weight:800">${contracten.length}</span>`
-        : '';
-
-      return `
-        <div style="margin-bottom:12px;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.07)">
-          <div style="padding:13px 18px;${headerStijl};display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-weight:800;font-size:1rem;user-select:none"
-               onclick="window._toggleContrJaar(${jaar})">
-            <span style="display:flex;align-items:center;gap:10px">
-              ${isHuidig ? '' : '📦 '}${jaar} ${aantalBadge}
-            </span>
-            <span style="${pijlKleur};transition:transform 0.2s;transform:${isOpen ? 'rotate(90deg)' : 'rotate(0deg)'}">▶</span>
-          </div>
-          ${isOpen ? `<div>${inhoud}</div>` : ''}
-        </div>`;
-    }).join('');
+      return true;
+    });
   }
 
-  window._toggleContrJaar = async function(jaar) {
-    contrJaarOpen[jaar] = !contrJaarOpen[jaar];
-    if (contrJaarOpen[jaar] && !contrJaarCache[jaar]) {
-      renderContractenPerKamp(); // toon laad-indicator
-      await laadJaarData(jaar);
-    }
-    renderContractenPerKamp();
-  };
-
-  function renderContractenPerKampGroep(contracten) {
-    const perKamp = new Map();
-    for (const c of contracten) {
-      const kId = c.kamp_id ?? c.kampen?.id ?? 'onbekend';
-      if (!perKamp.has(kId)) perKamp.set(kId, { kamp: c.kampen, contracten: [] });
-      perKamp.get(kId).contracten.push(c);
-    }
-    const gesorteerd = [...perKamp.values()].sort((a, b) =>
-      (b.kamp?.startdatum ?? '').localeCompare(a.kamp?.startdatum ?? ''));
-
-    return gesorteerd.map(({ kamp, contracten: cts }) => {
-      const aantalOnd = cts.filter(c => c.ondertekend).length;
-      const aantalBetaald = cts.filter(c => c.betaald).length;
-      const totaalBedrag = cts.reduce((s, c) => s + (c.totaal_bedrag ?? 0), 0);
-      const rijen = cts.map(c => {
-        const vergoeding = +((c.vergoeding_per_dag ?? 0) * (c.aantal_dagen ?? 0)).toFixed(2);
-        const km = +((c.kilometers ?? 0) * (c.km_tarief ?? 0)).toFixed(2);
-        return `<tr style="cursor:pointer" onclick="window._bewerkContractEnHerlaad('${c.id}')">
-          <td><div class="vet">${ontsnap(c.profielen?.voornaam ?? '')} ${ontsnap(c.profielen?.achternaam ?? '')}</div>
-              <div class="font-klein kleur-grijs">${ontsnap(c.profielen?.email ?? '')}</div></td>
-          <td style="text-align:right" title="Gewerkte dagen: ${(c.gewerkte_dagen ?? []).map(d => datumNaarNL(d, true)).join(', ') || '—'}">${c.aantal_dagen ?? 0}</td>
-          <td style="text-align:right">${formaatBedrag(vergoeding)}</td>
-          <td style="text-align:right">${formaatBedrag(km)}</td>
-          <td style="text-align:right;font-weight:800">${formaatBedrag(c.totaal_bedrag)}</td>
-          <td>${contractStatusPil(c)}</td>
-          <td><button class="knop knop-omtrek knop-klein">Bewerk</button></td>
-        </tr>`;
-      }).join('');
-      return `
-        <div style="border-bottom:1px solid var(--kleur-lichtgrijs)">
-          <div style="padding:12px 18px;background:var(--kleur-donkergroen);color:var(--kleur-wit);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-            <div>
-              <div style="font-weight:800;font-size:0.95rem">${ontsnap(kamp?.naam ?? 'Onbekend kamp')}</div>
-              <div style="font-size:0.76rem;color:rgba(215,252,92,0.8);margin-top:2px">
-                ${kamp?.startdatum ? datumNaarNL(kamp.startdatum) + ' – ' + datumNaarNL(kamp.einddatum) : ''}
-                ${kamp?.locatie ? ' · ' + ontsnap(kamp.locatie) : ''}
-              </div>
-            </div>
-            <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
-              <div style="font-size:0.76rem;text-align:right">
-                <div style="color:rgba(255,255,255,0.7)">Ondertekend</div>
-                <div style="font-weight:800;color:var(--kleur-limoen)">${aantalOnd}/${cts.length}</div>
-              </div>
-              <div style="font-size:0.76rem;text-align:right">
-                <div style="color:rgba(255,255,255,0.7)">Betaald</div>
-                <div style="font-weight:800;color:var(--kleur-limoen)">${aantalBetaald}/${cts.length}</div>
-              </div>
-              <div style="font-size:0.76rem;text-align:right">
-                <div style="color:rgba(255,255,255,0.7)">Totaal</div>
-                <div style="font-weight:800;color:var(--kleur-limoen)">${formaatBedrag(totaalBedrag)}</div>
-              </div>
-            </div>
-          </div>
-          <div class="tabel-wrapper" style="margin:0">
-            <table class="tabel" style="margin:0">
-              <thead><tr>
-                <th>Lesgever</th><th style="text-align:right">Dagen</th>
-                <th style="text-align:right">Vergoeding</th><th style="text-align:right">KM</th>
-                <th style="text-align:right">Totaal</th><th>Status</th><th></th>
-              </tr></thead>
-              <tbody>${rijen}</tbody>
-            </table>
-          </div>
-        </div>`;
-    }).join('');
+  function updateSelectieUI() {
+    const aantal = contrGeselecteerd.size;
+    const printSel = document.getElementById('contr-print-selectie');
+    printSel.style.display = aantal > 0 ? '' : 'none';
+    document.getElementById('contr-selectie-aantal').textContent = aantal;
   }
 
-  function renderContractenPerLesgevers(contracten) {
+  function contractRij(c, label1Veld) {
+    const t = berekenContractTotaal(c);
+    const checked = contrGeselecteerd.has(c.id) ? 'checked' : '';
+    let label1;
+    if (label1Veld === 'lesgever') {
+      label1 = `<div class="vet">${ontsnap(c.profielen?.voornaam ?? '')} ${ontsnap(c.profielen?.achternaam ?? '')}</div>
+        <div class="font-klein kleur-grijs">${ontsnap(c.profielen?.email ?? '')}</div>`;
+    } else {
+      label1 = `<div class="vet">${ontsnap(c.kampen?.naam ?? 'Onbekend')}</div>
+        <div class="font-klein kleur-grijs">${c.kampen?.startdatum ? datumNaarNL(c.kampen.startdatum) : ''}${c.kampen?.locatie ? ' · ' + ontsnap(c.kampen.locatie) : ''}</div>`;
+    }
+    return `<tr>
+      <td style="width:30px"><input type="checkbox" class="contr-cb" data-id="${c.id}" ${checked} style="width:15px;height:15px;cursor:pointer"></td>
+      <td style="cursor:pointer" onclick="window._bewerkContractEnHerlaad('${c.id}')">${label1}</td>
+      <td style="text-align:right" title="Gewerkte dagen: ${(c.gewerkte_dagen ?? []).map(d => datumNaarNL(d, true)).join(', ') || '—'}">${c.aantal_dagen ?? 0}</td>
+      <td style="text-align:right">${formaatBedrag(t.vergoedingBedrag + t.extraBedrag)}</td>
+      <td style="text-align:right">${formaatBedrag(t.kmBedrag)}</td>
+      <td style="text-align:right;font-weight:800">${formaatBedrag(c.totaal_bedrag)}</td>
+      <td>${contractStatusPil(c)}</td>
+      <td><button class="knop knop-omtrek knop-klein" onclick="window._bewerkContractEnHerlaad('${c.id}')">Bewerk</button></td>
+    </tr>`;
+  }
+
+  function groepHeader(titel, subtitel, cts, kleur) {
+    const aantalOnd = cts.filter(c => c.ondertekend).length;
+    const aantalBetaald = cts.filter(c => c.betaald).length;
+    const totaal = cts.reduce((s, c) => s + (c.totaal_bedrag ?? 0), 0);
+    const ids = cts.map(c => c.id);
+    const alleGeselecteerd = ids.every(id => contrGeselecteerd.has(id));
+    return `<div style="padding:10px 18px;background:${kleur};color:var(--kleur-wit);display:flex;align-items:center;flex-wrap:wrap;gap:6px">
+      <input type="checkbox" class="contr-groep-cb" data-ids='${JSON.stringify(ids)}' ${alleGeselecteerd ? 'checked' : ''}
+        style="width:16px;height:16px;cursor:pointer;flex-shrink:0;accent-color:var(--kleur-limoen)">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;font-size:0.9rem">${ontsnap(titel)}</div>
+        ${subtitel ? `<div style="font-size:0.73rem;color:rgba(255,255,255,0.75);margin-top:1px">${subtitel}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:12px;font-size:0.73rem">
+        <div style="text-align:right"><div style="color:rgba(255,255,255,0.6)">Ond.</div><div style="font-weight:800;color:var(--kleur-limoen)">${aantalOnd}/${cts.length}</div></div>
+        <div style="text-align:right"><div style="color:rgba(255,255,255,0.6)">Bet.</div><div style="font-weight:800;color:var(--kleur-limoen)">${aantalBetaald}/${cts.length}</div></div>
+        <div style="text-align:right"><div style="color:rgba(255,255,255,0.6)">Totaal</div><div style="font-weight:800;color:var(--kleur-limoen)">${formaatBedrag(totaal)}</div></div>
+      </div>
+    </div>`;
+  }
+
+  function renderContractenOverzicht() {
+    const gefilterd = filterContracten();
+    const container = document.getElementById('contracten-per-kamp-lijst');
+    document.getElementById('contr-filter-telling').textContent =
+      `${gefilterd.length} van ${contrAlleContracten.length} contracten`;
+
+    if (gefilterd.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--kleur-grijs)">Geen contracten gevonden.</div>';
+      updateSelectieUI();
+      return;
+    }
+
+    let html = '';
+    if (contrSorteerMode === 'kamp') {
+      const perKamp = new Map();
+      for (const c of gefilterd) {
+        const kId = c.kamp_id ?? 'onbekend';
+        if (!perKamp.has(kId)) perKamp.set(kId, { kamp: c.kampen, cts: [] });
+        perKamp.get(kId).cts.push(c);
+      }
+      for (const { kamp, cts } of [...perKamp.values()].sort((a, b) =>
+        (b.kamp?.startdatum ?? '').localeCompare(a.kamp?.startdatum ?? ''))) {
+        const sub = [
+          kamp?.startdatum ? datumNaarNL(kamp.startdatum) + ' – ' + datumNaarNL(kamp.einddatum) : '',
+          kamp?.locatie ? ontsnap(kamp.locatie) : ''
+        ].filter(Boolean).join(' · ');
+        html += `<div style="border-bottom:1px solid var(--kleur-lichtgrijs)">
+          ${groepHeader(kamp?.naam ?? 'Onbekend kamp', sub, cts, 'var(--kleur-donkergroen)')}
+          <div class="tabel-wrapper" style="margin:0"><table class="tabel" style="margin:0">
+            <thead><tr><th style="width:30px"></th><th>Lesgever</th><th style="text-align:right">Dagen</th><th style="text-align:right">Verg.</th><th style="text-align:right">KM</th><th style="text-align:right">Totaal</th><th>Status</th><th></th></tr></thead>
+            <tbody>${cts.map(c => contractRij(c, 'lesgever')).join('')}</tbody>
+          </table></div></div>`;
+      }
+    } else {
+      const perLg = new Map();
+      for (const c of gefilterd) {
+        const lgId = c.lesgever_id ?? 'onbekend';
+        if (!perLg.has(lgId)) perLg.set(lgId, { profiel: c.profielen, cts: [] });
+        perLg.get(lgId).cts.push(c);
+      }
+      for (const { profiel, cts } of [...perLg.values()].sort((a, b) =>
+        `${a.profiel?.achternaam}`.localeCompare(`${b.profiel?.achternaam}`, 'nl'))) {
+        const naam = `${profiel?.voornaam ?? ''} ${profiel?.achternaam ?? ''}`;
+        html += `<div style="border-bottom:1px solid var(--kleur-lichtgrijs)">
+          ${groepHeader(naam, ontsnap(profiel?.email ?? ''), cts, 'var(--kleur-middengroen)')}
+          <div class="tabel-wrapper" style="margin:0"><table class="tabel" style="margin:0">
+            <thead><tr><th style="width:30px"></th><th>Kamp</th><th style="text-align:right">Dagen</th><th style="text-align:right">Verg.</th><th style="text-align:right">KM</th><th style="text-align:right">Totaal</th><th>Status</th><th></th></tr></thead>
+            <tbody>${cts.sort((a,b) => (b.kampen?.startdatum??'').localeCompare(a.kampen?.startdatum??'')).map(c => contractRij(c, 'kamp')).join('')}</tbody>
+          </table></div></div>`;
+      }
+    }
+
+    // Totaalregel onderaan
+    const totVergoeding = gefilterd.reduce((s, c) => { const t = berekenContractTotaal(c); return s + t.vergoedingBedrag + t.extraBedrag; }, 0);
+    const totKm = gefilterd.reduce((s, c) => { const t = berekenContractTotaal(c); return s + t.kmBedrag; }, 0);
+    const totBedrag = gefilterd.reduce((s, c) => s + (c.totaal_bedrag ?? 0), 0);
+    html += `<div style="padding:10px 18px;background:var(--kleur-zand);display:flex;justify-content:flex-end;gap:20px;font-weight:800;font-size:0.88rem">
+      <span>Vergoeding: ${formaatBedrag(totVergoeding)}</span>
+      <span>KM: ${formaatBedrag(totKm)}</span>
+      <span style="color:var(--kleur-donkergroen)">Totaal: ${formaatBedrag(totBedrag)}</span>
+    </div>`;
+
+    container.innerHTML = html;
+    updateSelectieUI();
+
+    // Groep-checkbox events
+    container.querySelectorAll('.contr-groep-cb').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const ids = JSON.parse(e.target.dataset.ids);
+        ids.forEach(id => e.target.checked ? contrGeselecteerd.add(id) : contrGeselecteerd.delete(id));
+        container.querySelectorAll('.contr-cb').forEach(c => {
+          if (ids.includes(c.dataset.id)) c.checked = e.target.checked;
+        });
+        updateSelectieUI();
+      });
+    });
+
+    // Individuele checkbox events
+    container.querySelectorAll('.contr-cb').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        if (e.target.checked) contrGeselecteerd.add(e.target.dataset.id);
+        else contrGeselecteerd.delete(e.target.dataset.id);
+        updateSelectieUI();
+      });
+    });
+  }
+
+  // ── Volledige contracten afdrukken ──────────────────────────────
+  async function drukContractenVolledigAf(contracten) {
+    toonToast('Contracten ophalen…', 'info');
+    const ids = contracten.map(c => c.id);
+    const { data, error } = await supabase
+      .from('contracten')
+      .select('*, kampen(*), profielen!lesgever_id(*)')
+      .in('id', ids);
+    if (error || !data?.length) {
+      toonToast('Kon contracten niet ophalen.', 'fout');
+      return;
+    }
+    const sfHandtekeningURL = await haalSportfunHandtekeningURL();
+    const paginas = [];
+    for (const c of data) {
+      let handtekeningURL = null;
+      if (c.profielen?.handtekening_url) {
+        try {
+          const { data: d } = await supabase.storage.from('handtekeningen')
+            .createSignedUrl(c.profielen.handtekening_url, 3600);
+          handtekeningURL = d?.signedUrl;
+        } catch {}
+      }
+      const fullHTML = genereerContractHTML(c.profielen, c.kampen, {
+        contract: c,
+        ondertekendOp: c.ondertekend_op,
+        handtekeningURL,
+        sportfunHandtekeningURL: sfHandtekeningURL,
+      });
+      const bodyMatch = fullHTML.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+      const styleMatch = fullHTML.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+      paginas.push({ body: bodyMatch?.[1] ?? '', style: styleMatch?.[1] ?? '' });
+    }
+    const w = window.open('', '_blank');
+    if (!w) { toonToast('Sta pop-ups toe om contracten af te drukken.', 'fout'); return; }
+    w.document.write(`<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8">
+      <title>Contracten afdrukken — SportFun</title>
+      <style>${paginas[0].style}
+        .contract-pagina { page-break-after: always; }
+        .contract-pagina:last-child { page-break-after: auto; }
+      </style></head><body>
+      ${paginas.map(p => `<div class="contract-pagina">${p.body}</div>`).join('')}
+    </body></html>`);
+    w.document.close();
+    w.print();
+  }
+
+  // ── Overzicht afdrukken ───────────────────────────────────────
+  async function drukContractenAf(contracten) {
+    const MAX_KM_JAAR = 2000;
+    const LIMIET_JAAR = MAX_PER_JAAR_2026;
+    const WARN_PCT = 0.8;
+
+    // Haal rekeningnummers op
+    const lgIds = [...new Set(contracten.map(c => c.lesgever_id).filter(Boolean))];
+    let rekenMap = new Map();
+    if (lgIds.length > 0) {
+      const { data } = await supabase.from('profielen').select('id, rekeningnummer').in('id', lgIds);
+      if (data) rekenMap = new Map(data.map(p => [p.id, p.rekeningnummer]));
+    }
+
     const perLg = new Map();
     for (const c of contracten) {
       const lgId = c.lesgever_id ?? 'onbekend';
-      if (!perLg.has(lgId)) perLg.set(lgId, { profiel: c.profielen, contracten: [] });
-      perLg.get(lgId).contracten.push(c);
+      if (!perLg.has(lgId)) perLg.set(lgId, { profiel: c.profielen, cts: [] });
+      perLg.get(lgId).cts.push(c);
     }
-    const gesorteerd = [...perLg.values()].sort((a, b) => {
-      const na = `${a.profiel?.achternaam ?? ''} ${a.profiel?.voornaam ?? ''}`;
-      const nb = `${b.profiel?.achternaam ?? ''} ${b.profiel?.voornaam ?? ''}`;
-      return na.localeCompare(nb, 'nl');
-    });
 
-    return gesorteerd.map(({ profiel, contracten: cts }) => {
-      const totaalBedrag = cts.reduce((s, c) => s + (c.totaal_bedrag ?? 0), 0);
-      const aantalOnd = cts.filter(c => c.ondertekend).length;
-      const rijen = cts.sort((a, b) => (b.kampen?.startdatum ?? '').localeCompare(a.kampen?.startdatum ?? '')).map(c => {
-        const vergoeding = +((c.vergoeding_per_dag ?? 0) * (c.aantal_dagen ?? 0)).toFixed(2);
-        const km = +((c.kilometers ?? 0) * (c.km_tarief ?? 0)).toFixed(2);
-        return `<tr style="cursor:pointer" onclick="window._bewerkContractEnHerlaad('${c.id}')">
-          <td><div class="vet">${ontsnap(c.kampen?.naam ?? 'Onbekend kamp')}</div>
-              <div class="font-klein kleur-grijs">${c.kampen?.startdatum ? datumNaarNL(c.kampen.startdatum) : ''}${c.kampen?.locatie ? ' · ' + ontsnap(c.kampen.locatie) : ''}</div></td>
-          <td style="text-align:right" title="Gewerkte dagen: ${(c.gewerkte_dagen ?? []).map(d => datumNaarNL(d, true)).join(', ') || '—'}">${c.aantal_dagen ?? 0}</td>
-          <td style="text-align:right">${formaatBedrag(vergoeding)}</td>
-          <td style="text-align:right">${formaatBedrag(km)}</td>
-          <td style="text-align:right;font-weight:800">${formaatBedrag(c.totaal_bedrag)}</td>
-          <td>${contractStatusPil(c)}</td>
-          <td><button class="knop knop-omtrek knop-klein">Bewerk</button></td>
-        </tr>`;
+    const f = n => formaatBedrag(n);
+    const limietKleur = (waarde, max) => {
+      const pct = waarde / max;
+      if (pct >= 1) return 'color:#dc2626;font-weight:700';
+      if (pct >= WARN_PCT) return 'color:#d97706;font-weight:700';
+      return '';
+    };
+    const statusLabel = c => c.betaald ? '✓ Betaald' : c.ondertekend ? '✎ Ondertekend' : '○ Aangemaakt';
+    const statusKleur = c => c.betaald ? '#16a34a' : c.ondertekend ? '#2563eb' : '#9ca3af';
+
+    const secties = [...perLg.values()].sort((a, b) =>
+      `${a.profiel?.achternaam}`.localeCompare(`${b.profiel?.achternaam}`, 'nl'))
+      .map(({ profiel, cts }) => {
+        const naam = `${ontsnap(profiel?.voornaam ?? '')} ${ontsnap(profiel?.achternaam ?? '')}`;
+        const iban = ontsnap(formateerIBAN(rekenMap.get(cts[0]?.lesgever_id)) || '—');
+        const forfaitair = cts.reduce((s, c) => { const t = berekenContractTotaal(c); return s + t.vergoedingBedrag + t.extraBedrag; }, 0);
+        const totKm = cts.reduce((s, c) => s + Number(c.kilometers ?? 0), 0);
+        const totKmBedrag = cts.reduce((s, c) => { const t = berekenContractTotaal(c); return s + t.kmBedrag; }, 0);
+        const totBedrag = cts.reduce((s, c) => s + (c.totaal_bedrag ?? 0), 0);
+        const betaald = cts.reduce((s, c) => s + (c.betaald ? (c.totaal_bedrag ?? 0) : 0), 0);
+        const openstaand = totBedrag - betaald;
+
+        const detailRijen = cts
+          .sort((a, b) => (a.kampen?.startdatum ?? '').localeCompare(b.kampen?.startdatum ?? ''))
+          .map(c => {
+            const t = berekenContractTotaal(c);
+            const periode = c.kampen?.startdatum
+              ? `${datumNaarNL(c.kampen.startdatum, true)} – ${datumNaarNL(c.kampen.einddatum, true)}`
+              : '—';
+            const gewerkt = (c.gewerkte_dagen ?? []).map(d => datumNaarNL(d, true)).join(', ') || '—';
+            return `<tr class="detail">
+              <td style="padding-left:28px">${ontsnap(c.kampen?.naam ?? '?')}
+                <div class="klein">${periode} · ${ontsnap(c.kampen?.locatie ?? '')}</div>
+                <div class="klein">Gewerkt: ${gewerkt}</div>
+              </td>
+              <td class="r">${c.aantal_dagen ?? 0}</td>
+              <td class="r">${f(t.vergoedingBedrag + t.extraBedrag)}</td>
+              <td class="r">${Number(c.kilometers ?? 0).toFixed(1)}</td>
+              <td class="r">${f(t.kmBedrag)}</td>
+              <td class="r b">${f(c.totaal_bedrag)}</td>
+              <td><span class="status" style="color:${statusKleur(c)}">${statusLabel(c)}</span></td>
+            </tr>`;
+          }).join('');
+
+        return `
+          <tr class="lg-kop">
+            <td colspan="7">
+              <div class="lg-naam-rij">
+                <strong>${naam}</strong>
+                <span class="iban">${iban}</span>
+              </div>
+            </td>
+          </tr>
+          ${detailRijen}
+          <tr class="lg-totaal">
+            <td style="padding-left:28px">Totaal ${naam}</td>
+            <td class="r">${cts.reduce((s, c) => s + (c.aantal_dagen ?? 0), 0)}</td>
+            <td class="r" style="${limietKleur(forfaitair, LIMIET_JAAR)}">${f(forfaitair)}
+              <div class="klein">${(forfaitair / LIMIET_JAAR * 100).toFixed(0)}% van max</div>
+            </td>
+            <td class="r" style="${limietKleur(totKm, MAX_KM_JAAR)}">${totKm.toFixed(1)} km
+              <div class="klein">${(totKm / MAX_KM_JAAR * 100).toFixed(0)}% van max</div>
+            </td>
+            <td class="r">${f(totKmBedrag)}</td>
+            <td class="r b">${f(totBedrag)}</td>
+            <td>${openstaand > 0 ? `<span class="openstaand">${f(openstaand)} open</span>` : '<span style="color:#16a34a">Voldaan</span>'}</td>
+          </tr>`;
       }).join('');
-      return `
-        <div style="border-bottom:1px solid var(--kleur-lichtgrijs)">
-          <div style="padding:12px 18px;background:var(--kleur-middengroen);color:var(--kleur-wit);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-            <div>
-              <div style="font-weight:800;font-size:0.95rem">${ontsnap(profiel?.voornaam ?? '')} ${ontsnap(profiel?.achternaam ?? '')}</div>
-              <div style="font-size:0.76rem;color:rgba(255,255,255,0.75);margin-top:2px">${ontsnap(profiel?.email ?? '')}</div>
-            </div>
-            <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
-              <div style="font-size:0.76rem;text-align:right">
-                <div style="color:rgba(255,255,255,0.7)">Kampen</div>
-                <div style="font-weight:800;color:var(--kleur-limoen)">${cts.length}</div>
-              </div>
-              <div style="font-size:0.76rem;text-align:right">
-                <div style="color:rgba(255,255,255,0.7)">Ondertekend</div>
-                <div style="font-weight:800;color:var(--kleur-limoen)">${aantalOnd}/${cts.length}</div>
-              </div>
-              <div style="font-size:0.76rem;text-align:right">
-                <div style="color:rgba(255,255,255,0.7)">Totaal</div>
-                <div style="font-weight:800;color:var(--kleur-limoen)">${formaatBedrag(totaalBedrag)}</div>
-              </div>
-            </div>
-          </div>
-          <div class="tabel-wrapper" style="margin:0">
-            <table class="tabel" style="margin:0">
-              <thead><tr>
-                <th>Kamp</th><th style="text-align:right">Dagen</th>
-                <th style="text-align:right">Vergoeding</th><th style="text-align:right">KM</th>
-                <th style="text-align:right">Totaal</th><th>Status</th><th></th>
-              </tr></thead>
-              <tbody>${rijen}</tbody>
-            </table>
-          </div>
-        </div>`;
-    }).join('');
+
+    const totalen = contracten.reduce((s, c) => {
+      const t = berekenContractTotaal(c);
+      s.forfaitair += t.vergoedingBedrag + t.extraBedrag;
+      s.km += Number(c.kilometers ?? 0);
+      s.kmBedrag += t.kmBedrag;
+      s.totaal += c.totaal_bedrag ?? 0;
+      s.betaald += c.betaald ? (c.totaal_bedrag ?? 0) : 0;
+      return s;
+    }, { forfaitair: 0, km: 0, kmBedrag: 0, totaal: 0, betaald: 0 });
+
+    const w = window.open('', '_blank');
+    if (!w) { toonToast('Sta pop-ups toe om het overzicht af te drukken.', 'fout'); return; }
+    w.document.write(`<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8">
+      <title>Financieel overzicht ${HUIDIG_JAAR} — SportFun</title>
+      <style>
+        @page { margin: 14mm 12mm; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 24px; color: #194338; font-size: 9pt; line-height: 1.4; }
+        h1 { font-size: 14pt; margin: 0 0 2px; color: #194338; }
+        .sub { font-size: 8pt; color: #6b7280; margin-bottom: 14px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 6px 8px; border-bottom: 2px solid #194338;
+             font-size: 7pt; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; }
+        td { padding: 5px 8px; vertical-align: top; }
+        .r { text-align: right; }
+        .b { font-weight: 700; }
+        .klein { font-size: 7.5pt; color: #6b7280; margin-top: 1px; }
+
+        .lg-kop td { background: #194338; color: white; padding: 8px 10px; border: none; }
+        .lg-naam-rij { display: flex; justify-content: space-between; align-items: center; }
+        .lg-naam-rij strong { font-size: 10pt; }
+        .iban { font-size: 8pt; color: rgba(215,252,92,0.9); font-family: 'Consolas', monospace; letter-spacing: 0.5px; }
+
+        .detail td { border-bottom: 1px solid #e5e7eb; font-size: 8.5pt; }
+        .detail:nth-child(even) td { background: #f9fafb; }
+
+        .lg-totaal td { border-top: 1.5px solid #194338; border-bottom: 3px double #194338;
+                        font-weight: 700; font-size: 8.5pt; background: #f0faf6; }
+
+        .status { font-size: 8pt; font-weight: 600; }
+        .openstaand { color: #dc2626; font-weight: 700; font-size: 8pt; }
+
+        .grand-total td { background: #194338; color: white; font-weight: 800;
+                          font-size: 9pt; padding: 10px 8px; border: none; }
+        .grand-total .limoen { color: #D7FC5C; }
+
+        .legenda { margin-top: 12px; font-size: 7.5pt; color: #6b7280; line-height: 1.6; }
+        .legenda strong { color: #194338; }
+        .chip { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 7pt; font-weight: 700; margin-left: 4px; }
+        .chip-oranje { background: #fef3c7; color: #d97706; }
+        .chip-rood { background: #fee2e2; color: #dc2626; }
+
+        @media print { body { padding: 0; } }
+      </style></head><body>
+
+      <h1>Financieel overzicht vrijwilligerscontracten ${HUIDIG_JAAR}</h1>
+      <div class="sub">SportFun vzw · Afgedrukt op ${new Date().toLocaleDateString('nl-BE')} · ${[...perLg.values()].length} lesgevers · ${contracten.length} contracten</div>
+
+      <table>
+        <thead><tr>
+          <th>Kamp / Lesgever</th>
+          <th class="r">Dagen</th>
+          <th class="r">Forfaitair</th>
+          <th class="r">Km</th>
+          <th class="r">Km-verg.</th>
+          <th class="r">Totaal</th>
+          <th>Status</th>
+        </tr></thead>
+        <tbody>${secties}</tbody>
+        <tr class="grand-total">
+          <td>Eindtotaal — ${[...perLg.values()].length} lesgevers</td>
+          <td class="r">${contracten.reduce((s, c) => s + (c.aantal_dagen ?? 0), 0)}</td>
+          <td class="r limoen">${f(totalen.forfaitair)}</td>
+          <td class="r">${totalen.km.toFixed(1)} km</td>
+          <td class="r">${f(totalen.kmBedrag)}</td>
+          <td class="r limoen">${f(totalen.totaal)}</td>
+          <td>${totalen.totaal - totalen.betaald > 0
+            ? `<span style="color:#fca5a5">${f(totalen.totaal - totalen.betaald)} open</span>`
+            : '<span style="color:#D7FC5C">Alles voldaan</span>'}</td>
+        </tr>
+      </table>
+
+      <div class="legenda">
+        <strong>Forfaitair</strong> = dagvergoeding (kampdagen + extra prestaties) — max. €${LIMIET_JAAR.toFixed(2).replace('.',',')} per jaar per vrijwilliger<br>
+        <strong>Km</strong> = totaal gereden kilometers (heen-retour) — max. ${MAX_KM_JAAR.toLocaleString('nl-BE')} km per jaar per vrijwilliger<br>
+        Kleurcodes: <span class="chip chip-oranje">≥ 80%</span> van limiet · <span class="chip chip-rood">≥ 100%</span> limiet overschreden<br>
+        <strong>IBAN</strong> wordt getoond in de groene balk per lesgever voor directe overschrijving.
+      </div>
+
+      </body></html>`);
+    w.document.close();
+    w.print();
   }
 
   window._bewerkContractEnHerlaad = (contractID) => window._bewerkContract(contractID);
@@ -1294,14 +1594,15 @@
       document.getElementById('cb-id').value = contractID;
       document.getElementById('cb-lesgever-naam').textContent = `${lg.voornaam} ${lg.achternaam}`;
       document.getElementById('cb-lesgever-info').textContent =
-        `${lg.email}${lg.rekeningnummer ? ' · ' + lg.rekeningnummer : ''}`;
+        `${lg.email}${lg.rekeningnummer ? ' · ' + formateerIBAN(lg.rekeningnummer) : ''}`;
       document.getElementById('cb-kamp-naam').textContent = kamp.naam;
       document.getElementById('cb-kamp-info').textContent =
         `${kamp.locatie} · ${datumNaarNL(kamp.startdatum)} – ${datumNaarNL(kamp.einddatum)}`;
 
       // Vul velden
       document.getElementById('cb-dagbedrag').value = contract.vergoeding_per_dag ?? 0;
-      document.getElementById('cb-km').value = contract.kilometers ?? 0;
+      const aantalDagenVoorKm = contract.aantal_dagen || 1;
+      document.getElementById('cb-km').value = +(((contract.kilometers ?? 0) / aantalDagenVoorKm).toFixed(1));
 
       // Andere prestaties inladen
       const anderePrestatieDefs = [
@@ -1311,13 +1612,18 @@
         { groepId: 'cb-evaluatiemoment-knoppen',   inputId: 'cb-evaluatiemoment',   veld: 'evaluatiemoment_dagen' },
       ];
       let heeftAnderePrestaties = false;
-      anderePrestatieDefs.forEach(({ groepId, inputId, veld }) => {
+      const dagVoor = lokaleISO(new Date(new Date(kamp.startdatum + 'T00:00:00').getTime() - 86400000));
+      const dagNa   = lokaleISO(new Date(new Date(kamp.einddatum  + 'T00:00:00').getTime() + 86400000));
+      const extraDefaults = [
+        { inputId: 'cb-voorbereidingsdag', datumId: 'cb-voorbereidingsdag-datum', veld: 'voorbereidingsdag_dagen', datumVeld: 'voorbereidingsdag_datum', autoDatum: dagVoor },
+        { inputId: 'cb-opruimdag',         datumId: 'cb-opruimdag-datum',         veld: 'opruimdag_dagen',         datumVeld: 'opruimdag_datum',         autoDatum: dagNa },
+        { inputId: 'cb-opleidingsdag',     datumId: 'cb-opleidingsdag-datum',     veld: 'opleidingsdag_dagen',     datumVeld: 'opleidingsdag_datum',     autoDatum: dagVoor },
+        { inputId: 'cb-evaluatiemoment',   datumId: 'cb-evaluatiemoment-datum',   veld: 'evaluatiemoment_dagen',   datumVeld: 'evaluatiemoment_datum',   autoDatum: dagNa },
+      ];
+      extraDefaults.forEach(({ inputId, datumId, veld, datumVeld, autoDatum }) => {
         const waarde = Number(contract[veld] ?? 0);
         document.getElementById(inputId).value = waarde;
-        const groep = document.getElementById(groepId);
-        groep.querySelectorAll('.dag-breuk-knop').forEach(k => {
-          k.classList.toggle('actief', parseFloat(k.dataset.waarde) === waarde);
-        });
+        document.getElementById(datumId).value = contract[datumVeld] || autoDatum;
         if (waarde > 0) heeftAnderePrestaties = true;
       });
       // Sectie auto-openen als er al waarden zijn
@@ -1455,15 +1761,17 @@
     { groepId: 'cb-evaluatiemoment-knoppen',   inputId: 'cb-evaluatiemoment' },
   ];
   extraDagTypen.forEach(({ groepId, inputId }) => {
-    document.getElementById(groepId).querySelectorAll('.dag-breuk-knop').forEach(knop => {
+    const groep = document.getElementById(groepId);
+    const input = document.getElementById(inputId);
+    groep.querySelectorAll('.dag-breuk-stap').forEach(knop => {
       knop.addEventListener('click', () => {
-        document.getElementById(groepId).querySelectorAll('.dag-breuk-knop')
-          .forEach(k => k.classList.remove('actief'));
-        knop.classList.add('actief');
-        document.getElementById(inputId).value = knop.dataset.waarde;
+        const stap = parseFloat(knop.dataset.richting) * 0.25;
+        const nu = parseFloat(input.value) || 0;
+        input.value = Math.max(0, Math.min(10, +(nu + stap).toFixed(2)));
         cbUpdateTotaal();
       });
     });
+    input.addEventListener('input', () => cbUpdateTotaal());
   });
 
   function cbLeesExtraDagen() {
@@ -1472,19 +1780,23 @@
       opruimdag_dagen:         parseFloat(document.getElementById('cb-opruimdag').value) || 0,
       opleidingsdag_dagen:     parseFloat(document.getElementById('cb-opleidingsdag').value) || 0,
       evaluatiemoment_dagen:   parseFloat(document.getElementById('cb-evaluatiemoment').value) || 0,
+      voorbereidingsdag_datum: document.getElementById('cb-voorbereidingsdag-datum').value || null,
+      opruimdag_datum:         document.getElementById('cb-opruimdag-datum').value || null,
+      opleidingsdag_datum:     document.getElementById('cb-opleidingsdag-datum').value || null,
+      evaluatiemoment_datum:   document.getElementById('cb-evaluatiemoment-datum').value || null,
     };
   }
 
   function cbUpdateTotaal() {
     const dagbedrag   = parseFloat(document.getElementById('cb-dagbedrag').value) || 0;
-    const km          = parseFloat(document.getElementById('cb-km').value) || 0;
+    const kmPerDag    = parseFloat(document.getElementById('cb-km').value) || 0;
     const tarief      = parseFloat(document.getElementById('cb-km-tarief').value) || 0;
     const aantalDagen = document.querySelectorAll('#cb-dagen-knoppen .dag-toggle.beschikbaar').length;
     document.getElementById('cb-dagen-display').textContent = aantalDagen;
     const t = berekenContractTotaal({
       vergoeding_per_dag: dagbedrag,
       aantal_dagen: aantalDagen,
-      kilometers: km,
+      kilometers: kmPerDag * aantalDagen,
       km_tarief: tarief,
       ...cbLeesExtraDagen(),
     });
@@ -1501,7 +1813,7 @@
     foutEl.classList.add('verborgen');
 
     const dagbedrag = parseFloat(document.getElementById('cb-dagbedrag').value) || 0;
-    const km        = parseFloat(document.getElementById('cb-km').value) || 0;
+    const kmPerDag  = parseFloat(document.getElementById('cb-km').value) || 0;
     const tarief    = parseFloat(document.getElementById('cb-km-tarief').value) || 0;
     const gewerkte  = Array.from(document.querySelectorAll('#cb-dagen-knoppen .dag-toggle.beschikbaar'))
       .map(b => b.dataset.datum);
@@ -1510,7 +1822,7 @@
       id: cbHuidigContract.id,
       vergoeding_per_dag: dagbedrag,
       aantal_dagen: gewerkte.length,
-      kilometers: km,
+      kilometers: kmPerDag * gewerkte.length,
       km_tarief: tarief,
       gewerkte_dagen: gewerkte,
       opmerking: document.getElementById('cb-opmerking').value.trim() || null,
@@ -1542,6 +1854,9 @@
       toonToast('Contract opgeslagen.', 'succes');
       sluitModal('contract-bewerken-overlay');
       contrGeladen = false;
+      contrJaarCache = {};
+      contrAlleContracten = [];
+      contrGeselecteerd.clear();
       lgFinDataCache = null;
       await Promise.all([laadContractenPerKamp(), herlaadFinCache()]);
       renderLesgeverFiches();
@@ -1556,6 +1871,9 @@
     if (ok) {
       sluitModal('contract-bewerken-overlay');
       contrGeladen = false;
+      contrJaarCache = {};
+      contrAlleContracten = [];
+      contrGeselecteerd.clear();
       lgFinDataCache = null;
       await Promise.all([laadContractenPerKamp(), herlaadFinCache()]);
       renderLesgeverFiches();
@@ -1675,6 +1993,7 @@
   // ── Kampen ──
   let archiefKampenOpen  = false;
   let periodeOpenState   = {};
+  let locatieOpenState   = {};
   let kampFilter         = nieuweFilterState();
   let koppelingsMap     = new Map();
   let kampFilterGerenderd = false;
@@ -1729,6 +2048,11 @@
 
   window._togglePeriode = function(key) {
     periodeOpenState[key] = !periodeOpenState[key];
+    renderKampenTabel();
+  };
+  window._toggleLocatie = function(periodeKey, locatie) {
+    const k = periodeKey + '::' + locatie;
+    locatieOpenState[k] = !locatieOpenState[k];
     renderKampenTabel();
   };
 
@@ -1795,14 +2119,24 @@
             locatieMap.get(loc).push(k);
           }
           for (const [locatie, kampen] of locatieMap) {
+            const locKey = p.key + '::' + locatie;
+            const locOpen = locatieOpenState[locKey] !== false;
             html += `
-              <tr class="locatie-subheader-rij">
-                <td colspan="6">📍 ${locatie.replace(/</g,'&lt;')}</td>
+              <tr class="locatie-subheader-rij" onclick="window._toggleLocatie('${p.key}','${locatie.replace(/'/g,"\\'")}')">
+                <td colspan="6">
+                  <span style="display:inline-flex;align-items:center;gap:8px;width:100%">
+                    📍 ${locatie.replace(/</g,'&lt;')}
+                    <span class="badge badge-grijs">${kampen.length}</span>
+                    <span style="margin-left:auto;font-size:0.75rem">${locOpen ? '▲' : '▼'}</span>
+                  </span>
+                </td>
               </tr>`;
-            html += kampen
-              .sort((a, b) => (a.leeftijdsgroep ?? '').localeCompare(b.leeftijdsgroep ?? '', 'nl'))
-              .map(k => renderKampRij(k, _gekoppeldenVoorKamp(k.id)))
-              .join('');
+            if (locOpen) {
+              html += kampen
+                .sort((a, b) => (a.leeftijdsgroep ?? '').localeCompare(b.leeftijdsgroep ?? '', 'nl'))
+                .map(k => renderKampRij(k, _gekoppeldenVoorKamp(k.id)))
+                .join('');
+            }
           }
         }
       }
@@ -1843,6 +2177,7 @@
     document.getElementById('kamp-formulier').reset();
     document.getElementById('kamp-modal-titel').textContent = 'Nieuw kamp';
     document.getElementById('kamp-dagen-display').textContent = '—';
+    document.getElementById('kamp-verwijderen').style.display = 'none';
     openModal('kamp-modal-overlay');
   });
 
@@ -1876,14 +2211,38 @@
     const resultaat = await slaKampOp(data, kampID);
     if (resultaat) {
       sluitModal('kamp-modal-overlay');
-      alleKampen = [];          // cache leegmaken zodat laadKampen() herlaadt
-      kampFilterGerenderd = false; // filter herbouwen met nieuwe locaties
+      alleKampen = [];
+      kampFilterGerenderd = false;
+      contrGeladen = false;
+      contrJaarCache = {};
+      contrAlleContracten = [];
+      contrGeselecteerd.clear();
       await laadKampen();
       vulLocatieSuggesties();
     }
   });
 
   document.getElementById('kamp-annuleren').addEventListener('click', () => sluitModal('kamp-modal-overlay'));
+
+  document.getElementById('kamp-verwijderen').addEventListener('click', async () => {
+    const kampID = document.getElementById('kamp-id').value;
+    if (!kampID) return;
+    const kamp = alleKampen.find(k => k.id === kampID);
+    const naam = kamp?.naam ?? 'dit kamp';
+    if (!await bevestig(`Weet je zeker dat je "${naam}" definitief wilt verwijderen?\n\nAlle gekoppelde lesgevers, beschikbaarheden en contracten worden ook verwijderd.`)) return;
+
+    const { error } = await supabase.from('kampen').delete().eq('id', kampID);
+    if (error) {
+      toonToast('Verwijderen mislukt: ' + error.message, 'fout');
+      return;
+    }
+    sluitModal('kamp-modal-overlay');
+    toonToast(`"${naam}" is verwijderd.`, 'succes');
+    alleKampen = [];
+    kampFilterGerenderd = false;
+    await laadKampen();
+    vulLocatieSuggesties();
+  });
 
   window._gaNaarLesgevers = () => {
     document.querySelector('.tab-knop[data-tab="lesgevers"]')?.click();
@@ -2056,7 +2415,12 @@
     const kamp = alleKampen.find(k => k.id === kampID);
     try {
       const succes = await koppelLesgever(kampID, lgID, kamp?.naam ?? '', true);
-      if (succes) await laadKampDetailInline(kampID);
+      if (succes) {
+        if (!koppelingsMap.has(kampID)) koppelingsMap.set(kampID, new Set());
+        koppelingsMap.get(kampID).add(lgID);
+        renderKampenTabel();
+        await laadKampDetailInline(kampID);
+      }
     } finally {
       if (knop.isConnected) { knop.disabled = false; knop.textContent = '+ Koppelen'; }
     }
@@ -2065,7 +2429,12 @@
   window._ontkoppelInline = async (kampID, lgID, naam) => {
     if (!await bevestig(`${naam} ontkoppelen van dit kamp?`)) return;
     const succes = await ontkoppelLesgever(kampID, lgID);
-    if (succes) await laadKampDetailInline(kampID);
+    if (succes) {
+      const ids = koppelingsMap.get(kampID);
+      if (ids) ids.delete(lgID);
+      renderKampenTabel();
+      await laadKampDetailInline(kampID);
+    }
   };
 
   window._toggleBeschikbaarheid = async (kampID, open) => {
@@ -2113,6 +2482,7 @@
     document.getElementById('kamp-leeftijd').value   = kamp.leeftijdsgroep;
     document.getElementById('kamp-status').value     = kamp.status;
     document.getElementById('kamp-modal-titel').textContent = 'Kamp bewerken';
+    document.getElementById('kamp-verwijderen').style.display = '';
     bereken_dagen();
     openModal('kamp-modal-overlay');
   };
@@ -2285,7 +2655,7 @@
           <div class="lg-veld"><span class="lg-veld-label">Telefoon</span><span class="lg-veld-waarde ${u.telefoon ? '' : 'leeg'}" data-veld="telefoon">${u.telefoon ?? 'niet ingevuld'}</span></div>
           <div class="lg-veld"><span class="lg-veld-label">Adres</span><span class="lg-veld-waarde ${u.adres ? '' : 'leeg'}" data-veld="adres">${ontsnap(u.adres ?? 'niet ingevuld')}</span></div>
           <div class="lg-veld"><span class="lg-veld-label">Geboortedatum</span><span class="lg-veld-waarde ${u.geboortedatum ? '' : 'leeg'}" data-veld="geboortedatum">${u.geboortedatum ? datumNaarNL(u.geboortedatum) : 'niet ingevuld'}</span></div>
-          <div class="lg-veld"><span class="lg-veld-label">IBAN</span><span class="lg-veld-waarde ${u.rekeningnummer ? '' : 'leeg'}" data-veld="rekeningnummer" style="font-family:monospace">${u.rekeningnummer ?? 'niet ingevuld'}</span></div>
+          <div class="lg-veld"><span class="lg-veld-label">IBAN</span><span class="lg-veld-waarde ${u.rekeningnummer ? '' : 'leeg'}" data-veld="rekeningnummer" style="font-family:monospace">${u.rekeningnummer ? formateerIBAN(u.rekeningnummer) : 'niet ingevuld'}</span></div>
           <div class="lg-veld"><span class="lg-veld-label">Hobby / Sporten</span><span class="lg-veld-waarde ${u.hobby_sporten ? '' : 'leeg'}" data-veld="hobby_sporten">${ontsnap(u.hobby_sporten ?? 'niet ingevuld')}</span></div>
         </div>
 

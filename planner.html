@@ -474,6 +474,21 @@
     .schema-fiche-meta { font-size: 0.72rem; color: var(--kleur-grijs); }
     .schema-geen-fiche { font-size: 0.80rem; color: var(--kleur-grijs); font-style: italic; }
 
+    /* Meerdere fiches per blok */
+    .schema-blok-thema { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--kleur-middengroen); margin-bottom: 4px; }
+    .schema-fiche-lijst { display: flex; flex-direction: column; gap: 3px; }
+    .schema-fiche-item-compact { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+    .schema-fiche-item-compact .schema-fiche-naam { font-size: 0.82rem; font-weight: 600; }
+    .schema-fiche-item-compact .schema-fiche-meta { font-size: 0.70rem; color: var(--kleur-grijs); }
+
+    /* Gekoppelde fiches in modal */
+    .gekoppelde-fiches-lijst { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .gekoppelde-fiche-rij { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--kleur-zand); border-radius: 8px; }
+    .gekoppelde-fiche-rij .fiche-naam { flex: 1; font-weight: 600; font-size: 0.88rem; }
+    .gekoppelde-fiche-rij .fiche-duur { font-size: 0.76rem; color: var(--kleur-grijs); }
+    .gekoppelde-fiche-rij .fiche-verwijder { background: none; border: none; cursor: pointer; font-size: 1rem; color: var(--kleur-grijs); padding: 2px 6px; border-radius: 4px; }
+    .gekoppelde-fiche-rij .fiche-verwijder:hover { background: rgba(220,38,38,0.1); color: #dc2626; }
+
     /* Lesgever + pauze labels */
     .schema-lg { font-size: 0.82rem; font-weight: 600; color: var(--kleur-donkergroen); }
     .schema-lg.leeg { color: var(--kleur-grijs); font-style: italic; font-weight: 400; }
@@ -814,12 +829,26 @@
       <button class="modal-sluiten" aria-label="Sluiten">✕</button>
     </div>
     <div class="modal-lichaam">
+      <!-- Blok-thema -->
+      <div class="formulier-groep" id="activiteit-thema-sectie">
+        <label for="activiteit-blok-thema">Blokthema (optioneel)</label>
+        <input type="text" id="activiteit-blok-thema" placeholder="bv. Waterspelen, Balsporten, Warming-up…"
+               style="width:100%;padding:9px 14px;border:1.5px solid var(--kleur-lichtgrijs);border-radius:8px;font-family:var(--font);font-size:0.88rem;outline:none;box-sizing:border-box">
+        <div class="hulptekst">Geeft een overkoepelend thema aan dit tijdsblok.</div>
+      </div>
+
+      <!-- Gekoppelde fiches -->
+      <div class="formulier-groep" id="activiteit-gekoppeld-sectie">
+        <label>Gekoppelde activiteiten</label>
+        <div id="activiteit-gekoppelde-lijst" class="gekoppelde-fiches-lijst"></div>
+      </div>
+
+      <!-- Fiche zoeken en toevoegen -->
       <div class="formulier-groep">
-        <label>1. Kies een lesfiche</label>
+        <label>Activiteit toevoegen</label>
         <div class="hulptekst" style="margin-bottom:8px">
           Blader per thema of zoek op naam. Mist er een fiche? Voeg toe via <strong>Activiteiten</strong>.
         </div>
-        <!-- Thema-filterknoppen -->
         <div id="activiteit-thema-knoppen"
              style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
           <button class="thema-filter-knop actief" data-thema="" onclick="window._filterActiviteitThema('')">Alle</button>
@@ -1982,6 +2011,9 @@
       `Activiteit toevoegen — ${datumNaarNLKort(datum)}`;
     document.getElementById('activiteit-zoek').value = '';
     document.getElementById('activiteit-geselecteerd').textContent = '';
+    document.getElementById('activiteit-thema-sectie').style.display = 'none';
+    document.getElementById('activiteit-gekoppeld-sectie').style.display = 'none';
+    document.getElementById('activiteit-opslaan').textContent = 'Toevoegen';
     // Reset thema-filter naar "Alle"
     activiteitActiefThema = '';
     zetThemaKnopActief('activiteit-thema-knoppen', '');
@@ -2056,7 +2088,30 @@
     }).join('');
   }
 
-  window._selecteerActiviteitFiche = (id, naam) => {
+  window._selecteerActiviteitFiche = async (id, naam) => {
+    // In koppel-modus: direct toevoegen aan blok_fiches
+    if (ficheKoppelingBlokID) {
+      const alGekoppeld = blokGekoppeldeFiches.some(bf => bf.fiche_id === id);
+      if (alGekoppeld) { toonToast('Deze fiche is al gekoppeld.', 'info'); return; }
+      const f = alleFiches.find(fi => fi.id === id);
+      const volgorde = blokGekoppeldeFiches.length;
+      const { data, error } = await supabase.from('blok_fiches').insert({
+        blok_id: ficheKoppelingBlokID, fiche_id: id, volgorde,
+      }).select('id').single();
+      if (error) { toonToast('Kon fiche niet toevoegen: ' + error.message, 'fout'); return; }
+      // Migreer legacy fiche_id weg als dat er nog was
+      if (blokGekoppeldeFiches.some(bf => bf.id === '__legacy__')) {
+        await slaBlokOp({ fiche_id: null }, ficheKoppelingBlokID);
+        blokGekoppeldeFiches = blokGekoppeldeFiches.filter(bf => bf.id !== '__legacy__');
+      }
+      blokGekoppeldeFiches.push({ id: data.id, fiche_id: id, naam: f?.naam ?? naam, duur_minuten: f?.duur_minuten });
+      renderGekoppeldeFiches();
+      document.getElementById('activiteit-geselecteerd').textContent = `✓ ${naam} toegevoegd`;
+      setTimeout(() => { document.getElementById('activiteit-geselecteerd').textContent = ''; }, 2000);
+      await herlaadDagTimeline(activiteitKampID, activiteitDatum);
+      return;
+    }
+    // Nieuw-blok-modus: enkel selecteren
     activiteitFicheID = id;
     document.querySelectorAll('#activiteit-resultaten .fiche-zoek-item').forEach(el => el.classList.remove('geselecteerd'));
     document.querySelector(`#activiteit-resultaten .fiche-zoek-item[data-id="${id}"]`)?.classList.add('geselecteerd');
@@ -2064,22 +2119,38 @@
   };
 
   document.getElementById('activiteit-opslaan').addEventListener('click', async () => {
-    if (!activiteitFicheID) { toonToast('Selecteer eerst een activiteit.', 'fout'); return; }
-
-    // Update-modus: enkel fiche_id aanpassen op bestaand blok
+    // Bestaand blok bewerken: thema opslaan + fiche toevoegen als geselecteerd
     if (ficheKoppelingBlokID) {
-      const ok = await slaBlokOp({ fiche_id: activiteitFicheID }, ficheKoppelingBlokID);
-      if (ok) {
-        toonToast('Activiteit gekoppeld.', 'succes');
-        sluitModal('activiteit-modal');
-        ficheKoppelingBlokID = null;
-        document.getElementById('activiteit-tijd-sectie').style.display = '';
-        await herlaadDagTimeline(activiteitKampID, activiteitDatum);
+      const thema = document.getElementById('activiteit-blok-thema').value.trim();
+      await slaBlokOp({ label: thema || null }, ficheKoppelingBlokID);
+
+      // Nieuwe fiche toevoegen als er eentje geselecteerd is
+      if (activiteitFicheID) {
+        const alGekoppeld = blokGekoppeldeFiches.some(bf => bf.fiche_id === activiteitFicheID);
+        if (!alGekoppeld) {
+          const volgorde = blokGekoppeldeFiches.length;
+          const { error } = await supabase.from('blok_fiches').insert({
+            blok_id: ficheKoppelingBlokID,
+            fiche_id: activiteitFicheID,
+            volgorde,
+          });
+          if (error) { toonToast('Kon fiche niet toevoegen: ' + error.message, 'fout'); return; }
+        }
+        // Migreer legacy fiche_id weg
+        await slaBlokOp({ fiche_id: null }, ficheKoppelingBlokID);
       }
+
+      toonToast('Blok opgeslagen.', 'succes');
+      sluitModal('activiteit-modal');
+      ficheKoppelingBlokID = null;
+      document.getElementById('activiteit-tijd-sectie').style.display = '';
+      document.getElementById('activiteit-opslaan').textContent = 'Toevoegen';
+      await herlaadDagTimeline(activiteitKampID, activiteitDatum);
       return;
     }
 
     // Nieuw blok aanmaken (gebruikt in week-modus via + Activiteit knop)
+    if (!activiteitFicheID) { toonToast('Selecteer eerst een activiteit.', 'fout'); return; }
     const start = document.getElementById('activiteit-start').value;
     const eind  = document.getElementById('activiteit-eind').value;
     if (!start || !eind) { toonToast('Vul start- en eindtijd in.', 'fout'); return; }
@@ -2093,35 +2164,41 @@
       return;
     }
 
-    const ok = await slaBlokOp({
+    const { data: nieuwBlok, error: blokErr } = await supabase.from('dag_blokken').insert({
       kamp_id: activiteitKampID, datum: activiteitDatum,
       groep_index: activiteitGroepIdx, type: 'activiteit',
       start_tijd: start, eind_tijd: eind,
-      fiche_id: activiteitFicheID, label: null, lesgevers: [],
+      fiche_id: null, label: null, lesgevers: [],
+    }).select('id').single();
+    if (blokErr) { toonToast('Kon blok niet aanmaken.', 'fout'); return; }
+
+    await supabase.from('blok_fiches').insert({
+      blok_id: nieuwBlok.id, fiche_id: activiteitFicheID, volgorde: 0,
     });
-    if (ok) {
-      toonToast('Activiteit toegevoegd.', 'succes');
-      sluitModal('activiteit-modal');
-      await herlaadDagTimeline(activiteitKampID, activiteitDatum);
-    }
+
+    toonToast('Activiteit toegevoegd.', 'succes');
+    sluitModal('activiteit-modal');
+    await herlaadDagTimeline(activiteitKampID, activiteitDatum);
   });
   document.getElementById('activiteit-ontkoppelen').addEventListener('click', async () => {
     if (!ficheKoppelingBlokID) return;
-    const ok = await slaBlokOp({ fiche_id: null }, ficheKoppelingBlokID);
-    if (ok) {
-      toonToast('Fiche verwijderd van het blok.', 'succes');
-      sluitModal('activiteit-modal');
-      ficheKoppelingBlokID = null;
-      document.getElementById('activiteit-tijd-sectie').style.display = '';
-      document.getElementById('activiteit-ontkoppelen').classList.add('verborgen');
-      await herlaadDagTimeline(activiteitKampID, activiteitDatum);
-    }
+    // Verwijder alle blok_fiches + legacy fiche_id
+    await supabase.from('blok_fiches').delete().eq('blok_id', ficheKoppelingBlokID);
+    await slaBlokOp({ fiche_id: null }, ficheKoppelingBlokID);
+    toonToast('Alle fiches verwijderd van het blok.', 'succes');
+    sluitModal('activiteit-modal');
+    ficheKoppelingBlokID = null;
+    document.getElementById('activiteit-tijd-sectie').style.display = '';
+    document.getElementById('activiteit-ontkoppelen').classList.add('verborgen');
+    document.getElementById('activiteit-opslaan').textContent = 'Toevoegen';
+    await herlaadDagTimeline(activiteitKampID, activiteitDatum);
   });
 
   document.getElementById('activiteit-annuleren').addEventListener('click', () => {
     ficheKoppelingBlokID = null;
     document.getElementById('activiteit-tijd-sectie').style.display = '';
     document.getElementById('activiteit-ontkoppelen').classList.add('verborgen');
+    document.getElementById('activiteit-opslaan').textContent = 'Toevoegen';
     sluitModal('activiteit-modal');
   });
 
@@ -2241,32 +2318,71 @@
   window._voegRandblokToe = (kampID, datum, type) => window._voegVooropvangToe(kampID, datum, type);
 
   // ── Fiche koppelen aan bestaand activiteitsblok ──────────────────
+  let blokGekoppeldeFiches = []; // { id (blok_fiches.id), fiche_id, naam, duur_minuten }
+
+  function renderGekoppeldeFiches() {
+    const lijst = document.getElementById('activiteit-gekoppelde-lijst');
+    if (blokGekoppeldeFiches.length === 0) {
+      lijst.innerHTML = '<div style="font-size:0.82rem;color:var(--kleur-grijs);font-style:italic;padding:6px 0">Nog geen activiteiten gekoppeld.</div>';
+      return;
+    }
+    lijst.innerHTML = blokGekoppeldeFiches.map((bf, i) => `
+      <div class="gekoppelde-fiche-rij">
+        <span style="font-size:0.76rem;color:var(--kleur-grijs);min-width:18px">${i + 1}.</span>
+        <span class="fiche-naam">${ontsnap(bf.naam)}</span>
+        <span class="fiche-duur">${bf.duur_minuten ? bf.duur_minuten + ' min' : ''}</span>
+        <button class="fiche-verwijder" onclick="window._verwijderBlokFiche('${bf.id}')" title="Verwijderen">✕</button>
+      </div>`).join('');
+  }
+
+  window._verwijderBlokFiche = async (blokFicheId) => {
+    const { error } = await supabase.from('blok_fiches').delete().eq('id', blokFicheId);
+    if (error) { toonToast('Kon fiche niet verwijderen.', 'fout'); return; }
+    blokGekoppeldeFiches = blokGekoppeldeFiches.filter(bf => bf.id !== blokFicheId);
+    renderGekoppeldeFiches();
+    await herlaadDagTimeline(activiteitKampID, activiteitDatum);
+  };
+
   window._koppelFicheAanBlok = (blokID, kampID, datum) => {
     ficheKoppelingBlokID = blokID;
     activiteitKampID     = kampID;
     activiteitDatum      = datum;
     activiteitFicheID    = null;
 
-    document.getElementById('activiteit-modal-titel').textContent = 'Activiteit koppelen';
+    document.getElementById('activiteit-modal-titel').textContent = 'Activiteiten beheren';
     document.getElementById('activiteit-zoek').value = '';
+    document.getElementById('activiteit-geselecteerd').textContent = '';
 
-    // Huidige fiche pre-selecteren
+    // Toon thema-sectie en gekoppelde fiches
+    document.getElementById('activiteit-thema-sectie').style.display = '';
+    document.getElementById('activiteit-gekoppeld-sectie').style.display = '';
+
     const state = kampState.get(kampID);
     const blok  = state?.blokken?.find(b => b.id === blokID);
-    if (blok?.fiche_id) {
-      activiteitFicheID = blok.fiche_id;
-      const fiche = alleFiches.find(f => f.id === blok.fiche_id);
-      document.getElementById('activiteit-geselecteerd').textContent = fiche ? `✓ ${fiche.naam}` : '';
-    } else {
-      document.getElementById('activiteit-geselecteerd').textContent = '';
+
+    // Blokthema laden
+    const themaInput = document.getElementById('activiteit-blok-thema');
+    themaInput.value = (blok?.label && blok.label !== 'activiteit') ? blok.label : '';
+
+    // Gekoppelde fiches laden
+    blokGekoppeldeFiches = (blok?.blok_fiches ?? []).map(bf => ({
+      id: bf.id,
+      fiche_id: bf.fiche_id,
+      naam: bf.activiteiten_fiches?.naam ?? '?',
+      duur_minuten: bf.activiteiten_fiches?.duur_minuten,
+    }));
+    // Fallback: als er nog een oude fiche_id koppeling is
+    if (blokGekoppeldeFiches.length === 0 && blok?.fiche_id) {
+      const f = alleFiches.find(fi => fi.id === blok.fiche_id);
+      if (f) blokGekoppeldeFiches.push({ id: '__legacy__', fiche_id: f.id, naam: f.naam, duur_minuten: f.duur_minuten });
     }
+    renderGekoppeldeFiches();
 
-    // Verberg tijdslot-sectie (niet nodig bij koppelen aan bestaand blok)
+    // Verberg tijdslot-sectie en oude ontkoppel-knop
     document.getElementById('activiteit-tijd-sectie').style.display = 'none';
+    document.getElementById('activiteit-ontkoppelen').classList.add('verborgen');
 
-    // Toon "Fiche verwijderen" knop enkel als er al een fiche gekoppeld is
-    document.getElementById('activiteit-ontkoppelen')
-      .classList.toggle('verborgen', !blok?.fiche_id);
+    document.getElementById('activiteit-opslaan').textContent = 'Opslaan';
 
     toonActiviteitResultaten(alleFiches.filter(f => f.status === 'goedgekeurd').slice(0, 20));
     openModal('activiteit-modal');

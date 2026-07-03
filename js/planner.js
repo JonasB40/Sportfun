@@ -826,9 +826,12 @@ export async function haalDagBlokkenOp(kampID, datum) {
   try {
     const { data, error } = await supabase
       .from('dag_blokken')
-      .select('*, activiteiten_fiches(id, naam, categorie, duur_minuten)')
+      .select('*, activiteiten_fiches(id, naam, categorie, duur_minuten), blok_fiches(id, fiche_id, volgorde, activiteiten_fiches(id, naam, categorie, duur_minuten))')
       .eq('kamp_id', kampID).eq('datum', datum).order('start_tijd');
     if (error) throw error;
+    for (const blok of (data ?? [])) {
+      if (blok.blok_fiches) blok.blok_fiches.sort((a, b) => a.volgorde - b.volgorde);
+    }
     return data ?? [];
   } catch (fout) {
     console.error('[planner] haalDagBlokkenOp:', fout.message);
@@ -1096,14 +1099,26 @@ export function renderPlanningTimeline(kampID, datum, blokken, echteGroepen, isE
     const tijdEl = `<span class="schema-tijd${klikbaar ? ' schema-tijd-bewerkbaar' : ''}" ${tijdKlik}>${icoon} ${tijdStr}</span>`;
 
     // Blokinhoud
+    const fiches = (blok.blok_fiches ?? []).map(bf => bf.activiteiten_fiches).filter(Boolean);
+    const heeftFiches = fiches.length > 0 || fiche;
     let inhoud;
     if (isActiviteit) {
-      inhoud = fiche
-        ? `<div class="schema-fiche-info">
+      if (fiches.length > 0) {
+        const themaLabel = blok.label && blok.label !== 'activiteit'
+          ? `<div class="schema-blok-thema">${ontsnap(blok.label)}</div>` : '';
+        inhoud = `${themaLabel}<div class="schema-fiche-lijst">${fiches.map(f =>
+          `<div class="schema-fiche-item-compact">
+            <span class="schema-fiche-naam">${ontsnap(f.naam)}</span>
+            <span class="schema-fiche-meta">${f.duur_minuten ? f.duur_minuten + ' min' : ''}</span>
+          </div>`).join('')}</div>`;
+      } else if (fiche) {
+        inhoud = `<div class="schema-fiche-info">
              <span class="schema-fiche-naam">${ontsnap(fiche.naam)}</span>
              <span class="schema-fiche-meta">${ontsnap(fiche.categorie ?? '')}${fiche.duur_minuten ? ' · ' + fiche.duur_minuten + ' min' : ''}</span>
-           </div>`
-        : `<span class="schema-geen-fiche">Geen activiteit gepland</span>`;
+           </div>`;
+      } else {
+        inhoud = `<span class="schema-geen-fiche">Geen activiteit gepland</span>`;
+      }
     } else if (isVast) {
       inhoud = namen
         ? `<span class="schema-lg">👤 ${namen}</span>`
@@ -1118,10 +1133,10 @@ export function renderPlanningTimeline(kampID, datum, blokken, echteGroepen, isE
     let acties = '';
     if (isEditeerbaar) {
       if (isActiviteit) {
-        const ficheLabel = fiche ? '✏️ Fiche' : '+ Fiche';
+        const ficheLabel = heeftFiches ? '✏️ Fiches' : '+ Fiche';
         acties += `<button class="schema-knop schema-fiche-knop"
           onclick="window._koppelFicheAanBlok('${blok.id}','${kampID}','${datum}')"
-          title="${fiche ? 'Fiche wijzigen' : 'Activiteit koppelen'}">${ficheLabel}</button>`;
+          title="Activiteiten beheren">${ficheLabel}</button>`;
         if (echteGroepen.length > 0) {
           acties += `<button class="schema-knop schema-toggle-knop"
             onclick="window._togglePerGroep('${blok.id}','${kampID}','${datum}')"
@@ -1153,18 +1168,25 @@ export function renderPlanningTimeline(kampID, datum, blokken, echteGroepen, isE
 
     const rijen = echteGroepen.map(g => {
       const gb = slot.blokken.find(b => b.groep_index === g.groep_index);
+      const gbFiches = (gb?.blok_fiches ?? []).map(bf => bf.activiteiten_fiches).filter(Boolean);
       const f  = gb?.activiteiten_fiches;
+      const heeftF = gbFiches.length > 0 || f;
+      let ficheInhoud;
+      if (gbFiches.length > 0) {
+        ficheInhoud = gbFiches.map(fi =>
+          `<span class="schema-fiche-naam">${ontsnap(fi.naam)}</span>`).join(', ');
+      } else if (f) {
+        ficheInhoud = `<span class="schema-fiche-naam">${ontsnap(f.naam)}</span>`;
+      } else {
+        ficheInhoud = `<span class="schema-geen-fiche">Geen activiteit</span>`;
+      }
       return `
         <div class="schema-groep-rij">
           <span class="schema-groep-naam">${ontsnap(g.naam)}</span>
-          <div class="schema-groep-inhoud">
-            ${f
-              ? `<span class="schema-fiche-naam">${ontsnap(f.naam)}</span>`
-              : `<span class="schema-geen-fiche">Geen activiteit</span>`}
-          </div>
+          <div class="schema-groep-inhoud">${ficheInhoud}</div>
           ${isEditeerbaar && gb
             ? `<button class="schema-knop schema-fiche-knop klein"
-                 onclick="window._koppelFicheAanBlok('${gb.id}','${kampID}','${datum}')">${f ? '✏️' : '+'}</button>`
+                 onclick="window._koppelFicheAanBlok('${gb.id}','${kampID}','${datum}')">${heeftF ? '✏️' : '+'}</button>`
             : ''}
         </div>`;
     }).join('');
@@ -1256,7 +1278,10 @@ export function renderWeekTimeline(kampID, dagen, blokkenPerDag, groepen, onKlik
     const blokkenHTML = middenBlokken.map(blok => {
       const top = tijdNaarPx(blok.start_tijd);
       const hoog = duurNaarPx(blok.start_tijd, blok.eind_tijd);
-      const naam = blok.activiteiten_fiches?.naam ?? blok.label ?? (blok.type === 'activiteit' ? null : blok.type);
+      const blokFiches = (blok.blok_fiches ?? []).map(bf => bf.activiteiten_fiches).filter(Boolean);
+      const naam = blokFiches.length > 0
+        ? blokFiches.map(f => f.naam).join(', ')
+        : (blok.activiteiten_fiches?.naam ?? blok.label ?? (blok.type === 'activiteit' ? null : blok.type));
       const kleur = { middagpauze:'middagpauze', pauze:'pauze', activiteit:'activiteit' }[blok.type] ?? 'activiteit';
       const isKort = hoog < 24;
       const lgNamen = (blok.lesgevers ?? []).map(id => '👤').slice(0, 3).join(' ');

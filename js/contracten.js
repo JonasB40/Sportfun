@@ -8,7 +8,7 @@
  */
 
 import { supabase } from './supabase.js?v=1780304789425';
-import { toonToast, datumNaarNL, ontsnap, lokaleISO } from './utils.js?v=1780304789425';
+import { toonToast, datumNaarNL, ontsnap, lokaleISO, formateerIBAN } from './utils.js?v=1780304789425';
 import { maakNotificatie } from './auth.js?v=1780304789425';
 import {
   haalLimietenOp, haalStandaardVergoedingOp,
@@ -475,7 +475,7 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
   const eLgAdres         = ontsnap(lesgever.adres ?? '');
   const eLgTelefoon      = ontsnap(lesgever.telefoon ?? '');
   const eLgEmail         = ontsnap(lesgever.email ?? '');
-  const eLgRekeningnr    = ontsnap(lesgever.rekeningnummer ?? '');
+  const eLgRekeningnr    = ontsnap(formateerIBAN(lesgever.rekeningnummer) || lesgever.rekeningnummer || '');
   const eKampNaam        = ontsnap(kamp.naam ?? '');
   const eKampLocatie     = ontsnap(kamp.locatie ?? '');
   const eKampAdres       = ontsnap(kamp.adres ?? '');
@@ -499,7 +499,10 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
     ...extraDagTypes.map(({ veld, label }) => {
       const d = Number(contract[veld] ?? 0);
       if (d <= 0) return '';
-      return `<tr>${td(label)}${td(`${brk(d)} dag`, true)}${td(f(dagBedrag), true)}${td(f(+(dagBedrag * d).toFixed(2)), true, true)}</tr>`;
+      const datumSleutel = veld.replace('_dagen', '_datum');
+      const datumVal = contract[datumSleutel];
+      const datumTekst = datumVal ? ` <span style="color:#6B7280;font-size:8pt">(${datumNaarNL(datumVal)})</span>` : '';
+      return `<tr>${td(label + datumTekst)}${td(`${brk(d)} dag`, true)}${td(f(dagBedrag), true)}${td(f(+(dagBedrag * d).toFixed(2)), true, true)}</tr>`;
     }),
     ...(km > 0 ? [`<tr>${td('Kilometervergoeding')}
       ${td(`${km.toFixed(1)} km`, true)}
