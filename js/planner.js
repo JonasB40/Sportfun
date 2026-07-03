@@ -10,9 +10,9 @@
  * @module planner
  */
 
-import { supabase } from './supabase.js?v=1780304789425';
-import { toonToast, formateerDatum, datumNaarNL, dagNaam, lokaleISO, ontsnap } from './utils.js?v=1780304789425';
-import { maakNotificatie } from './auth.js?v=1780304789425';
+import { supabase } from './supabase.js?v=1783500000000';
+import { toonToast, formateerDatum, datumNaarNL, dagNaam, lokaleISO, ontsnap } from './utils.js?v=1783500000000';
+import { maakNotificatie } from './auth.js?v=1783500000000';
 
 // ── Alle toekomstige kampen met beschikbaarheidsstatus ──────────────
 
@@ -127,7 +127,7 @@ export async function aanvaardKoppeling(koppelingID, lesgever, kampNaam) {
     // Automatisch contract aanmaken bij bevestigd
     if (koppeling) {
       try {
-        const { genereerContractAutomatisch } = await import('./contracten.js?v=1780304789425');
+        const { genereerContractAutomatisch } = await import('./contracten.js?v=1783500000000');
         await genereerContractAutomatisch(koppeling.lesgever_id, koppeling.kamp_id);
       } catch (e) {
         console.warn('[planner] Auto-contract aanmaken mislukt:', e?.message);

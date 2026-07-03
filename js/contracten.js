@@ -7,14 +7,14 @@
  * @module contracten
  */
 
-import { supabase } from './supabase.js?v=1780304789425';
-import { toonToast, datumNaarNL, ontsnap, lokaleISO, formateerIBAN } from './utils.js?v=1780304789425';
-import { maakNotificatie } from './auth.js?v=1780304789425';
+import { supabase } from './supabase.js?v=1783500000000';
+import { toonToast, datumNaarNL, ontsnap, lokaleISO, formateerIBAN } from './utils.js?v=1783500000000';
+import { maakNotificatie } from './auth.js?v=1783500000000';
 import {
   haalLimietenOp, haalStandaardVergoedingOp,
   berekenGewerkteDagen, berekenContractTotaal, formaatBedrag,
   haalJaarTotaalLesgeverOp
-} from './financieel.js?v=1780304789425';
+} from './financieel.js?v=1783500000000';
 
 // ── Automatische contractgeneratie bij koppeling ────────────────────
 
@@ -29,6 +29,15 @@ import {
  */
 export async function genereerContractAutomatisch(lesgeverID, kampID) {
   try {
+    // 0. Controleer of lesgever gekoppeld is aan dit kamp
+    const { data: koppeling } = await supabase
+      .from('kamp_lesgevers').select('id')
+      .eq('kamp_id', kampID).eq('lesgever_id', lesgeverID).maybeSingle();
+    if (!koppeling) {
+      console.warn('[contracten] Lesgever niet gekoppeld aan kamp — geen contract aangemaakt');
+      return null;
+    }
+
     // 1. Bestaat er al een contract voor deze combinatie?
     const { data: bestaand } = await supabase
       .from('contracten')

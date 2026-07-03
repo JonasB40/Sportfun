@@ -33,13 +33,16 @@
       color: var(--kleur-donkergroen); flex-shrink: 0;
     }
     .dag-breuk-groep { display: inline-flex; gap: 4px; align-items: center; }
-    .extra-dag-datum {
-      width: 130px; padding: 5px 8px; border: 1px solid #ccc; border-radius: 6px;
+    /* Extra specificiteit nodig: .formulier-groep input (components.css)
+       overschrijft anders width/padding waardoor het cijfer onzichtbaar wordt */
+    .extra-dag-type-rij input.extra-dag-datum {
+      width: 150px; padding: 5px 8px; border: 1px solid #ccc; border-radius: 6px;
       font-family: var(--font); font-size: 0.82rem; color: var(--kleur-donkergroen);
     }
-    .dag-breuk-input {
+    .extra-dag-type-rij input.dag-breuk-input {
       width: 52px; text-align: center; font-weight: 700; font-size: 0.9rem;
       border: 1px solid #ccc; border-radius: 6px; padding: 6px 2px;
+      color: var(--kleur-donkergroen);
       font-family: var(--font); -moz-appearance: textfield;
     }
     .dag-breuk-input::-webkit-outer-spin-button,
@@ -286,7 +289,7 @@
 
       /* Extra-dag knoppen: smaller */
       .dag-breuk-stap { width: 30px; height: 30px; }
-      .dag-breuk-input { width: 46px; font-size: 0.82rem; }
+      .extra-dag-type-rij input.dag-breuk-input { width: 46px; font-size: 0.82rem; }
     }
   </style>
 </head>
@@ -847,6 +850,7 @@
     </div>
 
     <div class="modal-voetlijn">
+      <button class="knop knop-gevaar knop-omtrek" id="cb-verwijderen" style="margin-right:auto">Verwijderen</button>
       <button class="knop knop-omtrek" id="cb-annuleren">Annuleren</button>
       <button class="knop knop-omtrek" id="cb-print-knop">📄 PDF</button>
       <button class="knop knop-middengroen" id="cb-betaald-knop">💰 Markeer als betaald</button>
@@ -1052,8 +1056,8 @@
 <div id="toast-container"></div>
 
 <script type="module">
-  import { supabase } from './js/supabase.js?v=1780304789425';
-  import { checkSessie, haalProfielOp, vulNavigatieIn, controleerToegang, initialiseerNotificatieBel } from './js/auth.js?v=1780304789425';
+  import { supabase } from './js/supabase.js?v=1783500000000';
+  import { checkSessie, haalProfielOp, vulNavigatieIn, controleerToegang, initialiseerNotificatieBel } from './js/auth.js?v=1783500000000';
   import {
     haalAlleKampenOp, slaKampOp, haalKampLesgeversOp,
     koppelLesgever, ontkoppelLesgever,
@@ -1063,20 +1067,20 @@
     genereerContractVoorLesgever, archiveerVerloopenKampen,
     haalBeschikbaarhedenMatrixOp,
     renderGebruikerRij, renderKampRij, kopieerKamp
-  } from './js/admin.js?v=1780304789425';
-  import { genereerKampDagen } from './js/planner.js?v=1780304789425';
+  } from './js/admin.js?v=1783500000000';
+  import { genereerKampDagen } from './js/planner.js?v=1783500000000';
   import {
     nieuweFilterState, filterKampen, renderFilterBalk, haalKoppelingsMapOp
-  } from './js/kampfilter.js?v=1780304789425';
-  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, datumNaarNL, bevestig, kopieerNaarKlembord, lokaleISO, ontsnap, formateerIBAN } from './js/utils.js?v=1780304789425';
+  } from './js/kampfilter.js?v=1783500000000';
+  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, datumNaarNL, bevestig, kopieerNaarKlembord, lokaleISO, ontsnap, formateerIBAN } from './js/utils.js?v=1783500000000';
   import {
     haalOverzichtPerLesgeverOp, haalAlleContractenFinancieelOp,
     haalLimietenOp, valideerContract, berekenContractTotaal,
     haalJaarTotaalLesgeverOp, markeerBetaaldStatus,
     formaatBedrag, contractStatusPil, slaContractBijwerkenOp,
     berekenGewerkteDagen, HUIDIG_JAAR, MAX_PER_JAAR_2026
-  } from './js/financieel.js?v=1780304789425';
-  import { openContractAfdrukken, genereerContractTekst, genereerContractHTML } from './js/contracten.js?v=1780304789425';
+  } from './js/financieel.js?v=1783500000000';
+  import { openContractAfdrukken, genereerContractTekst, genereerContractHTML } from './js/contracten.js?v=1783500000000';
 
   let huidigProfiel      = null;
   let alleKampen         = [];
@@ -1147,6 +1151,24 @@
     if (contrJaarCache[jaar]) return;
     contrJaarCache[jaar] = await haalAlleContractenFinancieelOp(jaar);
     contrAlleContracten = contrJaarCache[jaar] ?? [];
+    // Wees-contracten detecteren: contracten zonder actieve kamp_lesgevers koppeling
+    await detecteerWeesContracten();
+  }
+
+  async function detecteerWeesContracten() {
+    if (contrAlleContracten.length === 0) return;
+    const kampIds = [...new Set(contrAlleContracten.map(c => c.kamp_id))];
+    const { data: koppelingen } = await supabase
+      .from('kamp_lesgevers').select('kamp_id, lesgever_id').in('kamp_id', kampIds);
+    const koppelingSet = new Set((koppelingen ?? []).map(k => `${k.kamp_id}|${k.lesgever_id}`));
+    let weesAantal = 0;
+    for (const c of contrAlleContracten) {
+      c._isWees = !koppelingSet.has(`${c.kamp_id}|${c.lesgever_id}`);
+      if (c._isWees) weesAantal++;
+    }
+    if (weesAantal > 0) {
+      toonToast(`⚠️ ${weesAantal} wees-contract${weesAantal > 1 ? 'en' : ''} gevonden — lesgever niet meer gekoppeld aan kamp.`, 'fout', 8000);
+    }
   }
 
   function vulFilterDropdowns() {
@@ -1212,9 +1234,11 @@
       label1 = `<div class="vet">${ontsnap(c.kampen?.naam ?? 'Onbekend')}</div>
         <div class="font-klein kleur-grijs">${c.kampen?.startdatum ? datumNaarNL(c.kampen.startdatum) : ''}${c.kampen?.locatie ? ' · ' + ontsnap(c.kampen.locatie) : ''}</div>`;
     }
-    return `<tr>
+    const weesStijl = c._isWees ? 'background:rgba(255,105,85,0.08);' : '';
+    const weesLabel = c._isWees ? ' <span style="color:#ff6955;font-size:0.7rem;font-weight:700" title="Lesgever niet meer gekoppeld aan dit kamp">⚠ WEES</span>' : '';
+    return `<tr style="${weesStijl}">
       <td style="width:30px"><input type="checkbox" class="contr-cb" data-id="${c.id}" ${checked} style="width:15px;height:15px;cursor:pointer"></td>
-      <td style="cursor:pointer" onclick="window._bewerkContractEnHerlaad('${c.id}')">${label1}</td>
+      <td style="cursor:pointer" onclick="window._bewerkContractEnHerlaad('${c.id}')">${label1}${weesLabel}</td>
       <td style="text-align:right" title="Gewerkte dagen: ${(c.gewerkte_dagen ?? []).map(d => datumNaarNL(d, true)).join(', ') || '—'}">${c.aantal_dagen ?? 0}</td>
       <td style="text-align:right">${formaatBedrag(t.vergoedingBedrag + t.extraBedrag)}</td>
       <td style="text-align:right">${formaatBedrag(t.kmBedrag)}</td>
@@ -1612,35 +1636,15 @@
         { groepId: 'cb-evaluatiemoment-knoppen',   inputId: 'cb-evaluatiemoment',   veld: 'evaluatiemoment_dagen' },
       ];
       let heeftAnderePrestaties = false;
-      const kampStart = new Date(kamp.startdatum + 'T00:00:00');
-      const kampEind  = new Date(kamp.einddatum  + 'T00:00:00');
-      const ms = 86400000;
-
-      // Lees dagen per type
-      const voorDagen  = Math.ceil(Number(contract.voorbereidingsdag_dagen) || 0);
-      const oplDagen   = Math.ceil(Number(contract.opleidingsdag_dagen) || 0);
-      const opruimDagen = Math.ceil(Number(contract.opruimdag_dagen) || 0);
-      const evalDagen  = Math.ceil(Number(contract.evaluatiemoment_dagen) || 0);
-
-      // Vóór kamp: voorbereidingsdag dichtst bij kamp, dan opleidingsdag daarvoor
-      const voorStart = lokaleISO(new Date(kampStart.getTime() - voorDagen * ms));
-      const oplStart  = lokaleISO(new Date(kampStart.getTime() - (voorDagen + oplDagen) * ms));
-      // Na kamp: opruimdag dichtst bij kamp, dan evaluatiemoment daarna
-      const opruimStart = lokaleISO(new Date(kampEind.getTime() + ms));
-      const evalStart   = lokaleISO(new Date(kampEind.getTime() + (1 + opruimDagen) * ms));
-
-      const extraDefaults = [
-        { inputId: 'cb-voorbereidingsdag', datumId: 'cb-voorbereidingsdag-datum', veld: 'voorbereidingsdag_dagen', datumVeld: 'voorbereidingsdag_datum', autoDatum: voorStart },
-        { inputId: 'cb-opleidingsdag',     datumId: 'cb-opleidingsdag-datum',     veld: 'opleidingsdag_dagen',     datumVeld: 'opleidingsdag_datum',     autoDatum: oplStart },
-        { inputId: 'cb-opruimdag',         datumId: 'cb-opruimdag-datum',         veld: 'opruimdag_dagen',         datumVeld: 'opruimdag_datum',         autoDatum: opruimStart },
-        { inputId: 'cb-evaluatiemoment',   datumId: 'cb-evaluatiemoment-datum',   veld: 'evaluatiemoment_dagen',   datumVeld: 'evaluatiemoment_datum',   autoDatum: evalStart },
-      ];
-      extraDefaults.forEach(({ inputId, datumId, veld, datumVeld, autoDatum }) => {
+      cbKampStart = kamp.startdatum;
+      cbKampEind  = kamp.einddatum;
+      anderePrestatieDefs.forEach(({ inputId, veld }) => {
         const waarde = Number(contract[veld] ?? 0);
         document.getElementById(inputId).value = waarde;
-        document.getElementById(datumId).value = contract[datumVeld] || autoDatum;
         if (waarde > 0) heeftAnderePrestaties = true;
       });
+      // Datums altijd automatisch (her)berekenen zodat ze nooit overlappen
+      cbAutoDatums();
       // Sectie auto-openen als er al waarden zijn
       anderePrestatiesOpen = heeftAnderePrestaties;
       anderePrestatiesInhoud.style.display = heeftAnderePrestaties ? 'block' : 'none';
@@ -1768,6 +1772,40 @@
     }
   }
 
+  // Kampperiode van het geopende contract (gezet in _bewerkContract)
+  let cbKampStart = null;
+  let cbKampEind  = null;
+
+  /**
+   * Herbereken de datums van de extra prestaties op basis van de huidige
+   * dagenaantallen, zodat er nooit overlap is:
+   *  - vóór het kamp: eerst opleidingsdagen, dan voorbereidingsdagen,
+   *    aansluitend op de kampstart
+   *  - na het kamp: eerst opruimdagen, dan het evaluatiemoment
+   */
+  function cbAutoDatums() {
+    if (!cbKampStart || !cbKampEind) return;
+    const ms = 86400000;
+    const start = new Date(cbKampStart + 'T00:00:00').getTime();
+    const eind  = new Date(cbKampEind  + 'T00:00:00').getTime();
+    const d = id => Math.ceil(parseFloat(document.getElementById(id).value) || 0);
+
+    const voorDagen   = d('cb-voorbereidingsdag');
+    const oplDagen    = d('cb-opleidingsdag');
+    const opruimDagen = d('cb-opruimdag');
+
+    // Vóór kamp: voorbereiding sluit aan op kampstart, opleiding daarvóór
+    document.getElementById('cb-voorbereidingsdag-datum').value =
+      lokaleISO(new Date(start - Math.max(voorDagen, 1) * ms));
+    document.getElementById('cb-opleidingsdag-datum').value =
+      lokaleISO(new Date(start - (Math.max(voorDagen, 1) + Math.max(oplDagen, 1)) * ms));
+    // Na kamp: opruim sluit aan op kampeinde, evaluatie daarna
+    document.getElementById('cb-opruimdag-datum').value =
+      lokaleISO(new Date(eind + ms));
+    document.getElementById('cb-evaluatiemoment-datum').value =
+      lokaleISO(new Date(eind + (1 + Math.max(opruimDagen, 1)) * ms));
+  }
+
   // Koppel klik-handlers op dag-breuk knoppen (¼, ½, ¾, 1 dag per dagtype)
   const extraDagTypen = [
     { groepId: 'cb-voorbereidingsdag-knoppen', inputId: 'cb-voorbereidingsdag' },
@@ -1783,10 +1821,11 @@
         const stap = parseFloat(knop.dataset.richting) * 0.25;
         const nu = parseFloat(input.value) || 0;
         input.value = Math.max(0, Math.min(10, +(nu + stap).toFixed(2)));
+        cbAutoDatums();
         cbUpdateTotaal();
       });
     });
-    input.addEventListener('input', () => cbUpdateTotaal());
+    input.addEventListener('input', () => { cbAutoDatums(); cbUpdateTotaal(); });
   });
 
   function cbLeesExtraDagen() {
@@ -1896,6 +1935,31 @@
   });
 
   document.getElementById('cb-annuleren').addEventListener('click', () => sluitModal('contract-bewerken-overlay'));
+
+  document.getElementById('cb-verwijderen').addEventListener('click', async () => {
+    if (!cbHuidigContract) return;
+    let waarschuwing = 'Dit contract definitief verwijderen? Dit kan niet ongedaan worden.';
+    if (cbHuidigContract.betaald)
+      waarschuwing = '⚠️ Dit contract is BETAALD. Echt verwijderen? Dit kan niet ongedaan worden.';
+    else if (cbHuidigContract.ondertekend)
+      waarschuwing = '⚠️ Dit contract is ONDERTEKEND. Echt verwijderen? Dit kan niet ongedaan worden.';
+    if (!await bevestig(waarschuwing)) return;
+    const { error } = await supabase.from('contracten').delete().eq('id', cbHuidigContract.id);
+    if (error) {
+      console.error('[contract] Verwijderen mislukt:', error.message);
+      toonToast('Kon contract niet verwijderen: ' + error.message, 'fout');
+      return;
+    }
+    toonToast('Contract verwijderd.', 'succes');
+    sluitModal('contract-bewerken-overlay');
+    contrGeladen = false;
+    contrJaarCache = {};
+    contrAlleContracten = [];
+    contrGeselecteerd.clear();
+    lgFinDataCache = null;
+    await Promise.all([laadContractenPerKamp(), herlaadFinCache()]);
+    renderLesgeverFiches();
+  });
 
   // ── SportFun handtekening: upload + preview ────────────────────────
   const SF_HTK_PAD = 'sportfun/handtekening.png';
@@ -2442,11 +2506,42 @@
   };
 
   window._ontkoppelInline = async (kampID, lgID, naam) => {
-    if (!await bevestig(`${naam} ontkoppelen van dit kamp?`)) return;
+    // Controleer of er een contract bestaat voor deze lesgever bij dit kamp
+    const { data: bestaandContract } = await supabase
+      .from('contracten').select('id, ondertekend, betaald')
+      .eq('kamp_id', kampID).eq('lesgever_id', lgID).maybeSingle();
+
+    let vraag = `${naam} ontkoppelen van dit kamp?`;
+    let verwijderContract = false;
+
+    if (bestaandContract) {
+      if (bestaandContract.betaald) {
+        vraag += '\n\n⚠️ Er is een BETAALD contract. Dit contract blijft bewaard. Verwijder het handmatig via het contractenoverzicht als dat nodig is.';
+      } else if (bestaandContract.ondertekend) {
+        vraag += '\n\n⚠️ Er is een ONDERTEKEND contract. Dit contract blijft bewaard. Verwijder het handmatig via het contractenoverzicht als dat nodig is.';
+      } else {
+        vraag += '\n\nEr bestaat een niet-ondertekend contract — dit wordt mee verwijderd.';
+        verwijderContract = true;
+      }
+    }
+
+    if (!await bevestig(vraag)) return;
+
+    // Alleen niet-ondertekende, niet-betaalde contracten automatisch verwijderen
+    if (verwijderContract) {
+      const { error } = await supabase.from('contracten').delete().eq('id', bestaandContract.id);
+      if (error) { toonToast('Kon contract niet verwijderen: ' + error.message, 'fout'); return; }
+    }
+
     const succes = await ontkoppelLesgever(kampID, lgID);
     if (succes) {
       const ids = koppelingsMap.get(kampID);
       if (ids) ids.delete(lgID);
+      contrGeladen = false;
+      contrJaarCache = {};
+      contrAlleContracten = [];
+      contrGeselecteerd.clear();
+      lgFinDataCache = null;
       renderKampenTabel();
       await laadKampDetailInline(kampID);
     }

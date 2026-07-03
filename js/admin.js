@@ -6,10 +6,10 @@
  * @module admin
  */
 
-import { supabase, maakGebruikerViaSignup } from './supabase.js?v=1780304789425';
-import { toonToast, datumNaarNL, genereerToken, ontsnap, lokaleISO } from './utils.js?v=1780304789425';
-import { genereerContractTekst, slaContractOp } from './contracten.js?v=1780304789425';
-import { maakNotificatie } from './auth.js?v=1780304789425';
+import { supabase, maakGebruikerViaSignup } from './supabase.js?v=1783500000000';
+import { toonToast, datumNaarNL, genereerToken, ontsnap, lokaleISO } from './utils.js?v=1783500000000';
+import { genereerContractTekst, slaContractOp } from './contracten.js?v=1783500000000';
+import { maakNotificatie } from './auth.js?v=1783500000000';
 
 // ── Kampbeheer ──────────────────────────────────────────────────────
 
@@ -219,7 +219,7 @@ export async function koppelLesgever(kampID, lesgeverID, kampNaam, direct = fals
     // Automatisch contract aanmaken als status meteen 'bevestigd' is
     if (direct) {
       try {
-        const { genereerContractAutomatisch } = await import('./contracten.js?v=1780304789425');
+        const { genereerContractAutomatisch } = await import('./contracten.js?v=1783500000000');
         const contract = await genereerContractAutomatisch(lesgeverID, kampID);
         if (contract) {
           toonToast(`Lesgever gekoppeld aan "${kampNaam}". Contract automatisch aangemaakt.`, 'succes');
@@ -257,7 +257,7 @@ async function stuurKoppelingNotificatie(lesgeverID, kampNaam, direct = false) {
   await maakNotificatie(lesgeverID, 'ingepland', bericht, 'planner.html');
 
   try {
-    const { supabase: sb } = await import('./supabase.js?v=1780304789425');
+    const { supabase: sb } = await import('./supabase.js?v=1783500000000');
     await sb.functions.invoke('stuur-email-notificatie', {
       body: { type: direct ? 'koppeling_direct' : 'uitnodiging', lesgeverID, kampNaam },
     });
@@ -769,7 +769,15 @@ export async function werkVolgordesBij(updates) {
  */
 export async function genereerContractVoorLesgever(lesgeverID, kampID) {
   try {
-    // Haal lesgever en kamp op
+    // Controleer of lesgever nog gekoppeld is aan dit kamp
+    const { data: koppeling } = await supabase
+      .from('kamp_lesgevers').select('id')
+      .eq('kamp_id', kampID).eq('lesgever_id', lesgeverID).maybeSingle();
+    if (!koppeling) {
+      toonToast('Lesgever is niet gekoppeld aan dit kamp — contract niet aangemaakt.', 'fout');
+      return false;
+    }
+
     const [lesgeverRes, kampRes] = await Promise.all([
       supabase.from('profielen').select('*').eq('id', lesgeverID).single(),
       supabase.from('kampen').select('*').eq('id', kampID).single(),
