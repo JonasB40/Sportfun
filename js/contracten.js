@@ -453,7 +453,10 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
     admin:       'Administratieve ondersteuning van sportkampen',
   }[lesgever.rol] ?? 'Vrijwilligersactiviteiten in het kader van de sportkampen';
 
-  const vandaag     = datumNaarNL(lokaleISO(new Date()));
+  const opgesteldDatum = opties.contract?.aangemaakt_op
+    ? opties.contract.aangemaakt_op.split('T')[0]
+    : lokaleISO(new Date());
+  const vandaag     = datumNaarNL(opgesteldDatum);
   const ondertekend = opties.ondertekendOp
     ? datumNaarNL(opties.ondertekendOp.split('T')[0]) : null;
 
@@ -795,7 +798,7 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
     <div class="partij-detail">
       Heimolenstraat 157, 9100 Sint-Niklaas<br>
       Tel: 0474/800478 &middot; sportfunsombeke@gmail.com<br>
-      Erkend vrijwilligersorganisatie<br>
+      Erkend vrijwilligersorganisatie — sport- en beweegkampen voor kinderen en jongeren<br>
       Vertegenwoordigd door: Christoph Draps, voorzitter
     </div>
   </div>
@@ -909,6 +912,11 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
     <p class="artikel-inhoud" style="margin-top:4px">
       Verzekeringsmaatschappij: <strong>${ORG_VERZEKERAAR}</strong> &nbsp;&middot;&nbsp;
       Polisnummer: <strong style="font-family:monospace">${ORG_POLISNR}</strong>
+    </p>
+    <p class="artikel-inhoud" style="margin-top:4px">
+      Er is geen aanvullende verzekering voor lichamelijke ongevallen van de vrijwilliger
+      afgesloten. De vrijwilliger is hiervan op de hoogte en kan desgewenst een persoonlijke
+      verzekering afsluiten.
     </p>
   </div>
 </div>

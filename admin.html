@@ -1371,9 +1371,18 @@
   // Neemt alle ondertekende, nog niet betaalde contracten van het geladen
   // jaar en groepeert ze per lesgever tot één overschrijving.
   async function exporteerBetalingen(formaat) {
+    // Zorg dat de contractdata geladen is (knop kan vóór het laden geklikt worden)
+    if (contrAlleContracten.length === 0) await laadJaarData(HUIDIG_JAAR);
+
     const openstaand = contrAlleContracten.filter(c => c.ondertekend && !c.betaald);
     if (openstaand.length === 0) {
-      toonToast('Geen openstaande, ondertekende contracten om uit te betalen.', 'info');
+      const aantalNietOndertekend = contrAlleContracten.filter(c => !c.ondertekend && !c.betaald).length;
+      toonToast(
+        aantalNietOndertekend > 0
+          ? `Geen uitbetaalbare contracten: ${aantalNietOndertekend} contract(en) wachten nog op ondertekening. Enkel ondertekende, onbetaalde contracten worden geëxporteerd.`
+          : 'Geen openstaande, ondertekende contracten om uit te betalen.',
+        'info', 8000
+      );
       return;
     }
 
@@ -1422,7 +1431,8 @@
       const csv = ['Naam;IBAN;Bedrag;Mededeling',
         ...betalingen.map(b => `${b.naam};${formateerIBAN(b.iban)};${b.bedrag.toFixed(2).replace('.', ',')};${b.mededeling}`),
       ].join('\r\n');
-      downloadBestand('﻿' + csv, `betalingen-sportfun-${vandaag}.csv`, 'text/csv;charset=utf-8');
+      // BOM zodat Excel de UTF-8 tekens correct toont
+      downloadBestand(String.fromCharCode(0xFEFF) + csv, `betalingen-sportfun-${vandaag}.csv`, 'text/csv;charset=utf-8');
       toonToast(`CSV met ${betalingen.length} betaling(en) gedownload.`, 'succes');
       return;
     }
