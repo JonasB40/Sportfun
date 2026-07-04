@@ -372,6 +372,13 @@ export async function slaContractBijwerkenOp(data) {
       evaluatiemoment_datum:    data.evaluatiemoment_datum || null,
     };
 
+    // Bij wijziging van een ondertekend contract vervalt de handtekening:
+    // de lesgever moet de nieuwe versie opnieuw ondertekenen.
+    if (data.reset_ondertekening) {
+      payload.ondertekend = false;
+      payload.ondertekend_op = null;
+    }
+
     const { data: updated, error } = await supabase
       .from('contracten')
       .update(payload)

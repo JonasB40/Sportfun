@@ -165,12 +165,12 @@
     .plan-geen-groepen { padding: 24px 16px; color: var(--kleur-grijs); font-size: 0.85rem; text-align: center; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
 
     /* Blokken */
-    .plan-blok { position: absolute; left: 2px; right: 2px; border-radius: 4px; padding: 2px 5px; font-size: 0.68rem; overflow: hidden; cursor: pointer; border-left: 3px solid; transition: filter .15s; z-index: 1; line-height: 1.2; }
+    .plan-blok { position: absolute; left: 2px; right: 2px; border-radius: 4px; padding: 3px 6px; font-size: 0.72rem; overflow: hidden; cursor: pointer; border-left: 3px solid; transition: filter .15s; z-index: 1; line-height: 1.3; }
     .plan-blok:hover { filter: brightness(0.93); }
     .plan-blok-breed { left: 0; right: 0; border-radius: 0; opacity: 0.92; pointer-events: all; z-index: 4; }
-    .plan-blok-naam { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .plan-blok-naam { font-weight: 700; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; word-break: break-word; }
     .plan-blok-naam.geen-fiche { font-weight: 400; font-style: italic; opacity: 0.6; }
-    .plan-blok-tijd { font-size: 0.60rem; opacity: 0.8; }
+    .plan-blok-tijd { font-size: 0.62rem; opacity: 0.7; margin-top: 1px; }
     .plan-blok-lg { font-size: 0.60rem; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .plan-blok-del { position: absolute; top: 2px; right: 2px; background: rgba(255,105,85,0.2); border: none; border-radius: 3px; color: var(--kleur-koraal); width: 14px; height: 14px; font-size: 0.65rem; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; padding: 0; line-height: 1; }
     .plan-blok:hover .plan-blok-del { opacity: 1; }
@@ -1045,11 +1045,11 @@
 </div>
 
 <script type="module">
-  import { supabase } from './js/supabase.js?v=1780304789500';
-  import { checkSessie, haalProfielOp, vulNavigatieIn, initialiseerNotificatieBel, initialiseerContractBadge } from './js/auth.js?v=1780304789500';
+  import { supabase } from './js/supabase.js?v=1783500000000';
+  import { checkSessie, haalProfielOp, vulNavigatieIn, initialiseerNotificatieBel, initialiseerContractBadge } from './js/auth.js?v=1783500000000';
   import {
     haalAlleKampenOp, haalAlleGebruikersOp, haalKoppelingenOverzichtOp
-  } from './js/admin.js?v=1780304789500';
+  } from './js/admin.js?v=1783500000000';
   import {
     genereerKampDagen,
     haalKampGroepenOp, slaKampGroepenOp,
@@ -1058,12 +1058,12 @@
     haalBevestigdeKoppelingenOp,
     aanvaardKoppeling, weigerKoppeling, annuleerKoppeling,
     haalUitnodigingenOp, haalKampTeamOp
-  } from './js/planner.js?v=1780304789500';
-  import { haalFichesOp, haalFicheOp, renderFicheDetail, haalMateriaaloVerzichtVoorKamp, genereerMateriaaloVerzichtHTML } from './js/fiches.js?v=1780304789500';
-  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, formateerDatum, datumNaarNL, dagNaam, lokaleISO, ontsnap } from './js/utils.js?v=1780304789500';
+  } from './js/planner.js?v=1783500000000';
+  import { haalFichesOp, haalFicheOp, renderFicheDetail, haalMateriaaloVerzichtVoorKamp, genereerMateriaaloVerzichtHTML } from './js/fiches.js?v=1783500000000';
+  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, formateerDatum, datumNaarNL, dagNaam, lokaleISO, ontsnap } from './js/utils.js?v=1783500000000';
   import {
     nieuweFilterState, filterKampen, renderFilterBalk, haalKoppelingsMapOp
-  } from './js/kampfilter.js?v=1780304789500';
+  } from './js/kampfilter.js?v=1783500000000';
 
   // ── Globale state ────────────────────────────────────────────────
   let huidigProfiel = null;

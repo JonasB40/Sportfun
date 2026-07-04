@@ -17,8 +17,9 @@ import { maakNotificatie } from './auth.js?v=1783500000000';
 // ── Alle toekomstige kampen met beschikbaarheidsstatus ──────────────
 
 /**
- * Haal alle toekomstige kampen op (ongeacht koppeling of beschikbaarheid_open),
+ * Haal alle opengezette toekomstige kampen op (beschikbaarheid_open = true),
  * samen met de bestaande beschikbaarheid van de opgegeven lesgever.
+ * Kampen die de beheerder nog niet heeft opengesteld zijn niet zichtbaar.
  *
  * @param {string} lesgeverID
  * @returns {Promise<Array<{kamp: object, beschikbaarheid: object|null}>>}
@@ -31,6 +32,7 @@ export async function haalToekomstigeKampenMetBeschikbaarheidOp(lesgeverID) {
         .from('kampen')
         .select('id, naam, locatie, startdatum, einddatum, leeftijdsgroep, status')
         .neq('status', 'afgelopen')
+        .eq('beschikbaarheid_open', true)
         .gte('einddatum', vandaag)
         .order('startdatum', { ascending: true }),
       supabase
@@ -300,6 +302,28 @@ export async function slaaBeschikbaarheidOp(lesgeverID, kampID, beschikbaar, onb
       }, { onConflict: 'lesgever_id,kamp_id' });
     if (error) throw error;
     toonToast('Beschikbaarheid opgeslagen.', 'succes');
+
+    // Bestaat er al een contract voor deze combinatie? Dan is dat contract
+    // mogelijk verouderd (aantal dagen/kilometers) — verwittig de beheerders.
+    try {
+      const { data: contract } = await supabase
+        .from('contracten').select('id')
+        .eq('lesgever_id', lesgeverID).eq('kamp_id', kampID).maybeSingle();
+      if (contract) {
+        const [{ data: lg }, { data: kamp }] = await Promise.all([
+          supabase.from('profielen').select('voornaam, achternaam').eq('id', lesgeverID).single(),
+          supabase.from('kampen').select('naam, verantwoordelijke').eq('id', kampID).single(),
+        ]);
+        const bericht = `⚠️ ${lg?.voornaam ?? ''} ${lg?.achternaam ?? ''} wijzigde de beschikbaarheid voor "${kamp?.naam ?? 'een kamp'}" terwijl er al een contract bestaat. Controleer of het contract nog klopt.`;
+        const { data: beheerders } = await supabase
+          .from('profielen').select('id')
+          .in('rol', ['admin', 'coordinator']).eq('actief', true);
+        await Promise.all((beheerders ?? []).map(b =>
+          maakNotificatie(b.id, 'contract_klaar', bericht, 'admin.html')));
+      }
+    } catch (e) {
+      console.warn('[planner] Contract-waarschuwing bij beschikbaarheid overgeslagen:', e?.message);
+    }
     return true;
   } catch (fout) {
     console.error('[planner] Fout bij opslaan beschikbaarheid:', fout.message);

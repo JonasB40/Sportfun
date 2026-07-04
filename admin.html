@@ -1057,7 +1057,7 @@
 
 <script type="module">
   import { supabase } from './js/supabase.js?v=1783500000000';
-  import { checkSessie, haalProfielOp, vulNavigatieIn, controleerToegang, initialiseerNotificatieBel } from './js/auth.js?v=1783500000000';
+  import { checkSessie, haalProfielOp, vulNavigatieIn, controleerToegang, initialiseerNotificatieBel, maakNotificatie } from './js/auth.js?v=1783500000000';
   import {
     haalAlleKampenOp, slaKampOp, haalKampLesgeversOp,
     koppelLesgever, ontkoppelLesgever,
@@ -1837,15 +1837,21 @@
   });
 
   function cbLeesExtraDagen() {
+    // Datum enkel bewaren als er effectief dagen zijn — anders blijven er
+    // spookdatums in de database staan bij prestaties van 0 dagen.
+    const dagen = id => parseFloat(document.getElementById(id).value) || 0;
+    const datum = (id, aantal) => aantal > 0 ? (document.getElementById(id).value || null) : null;
+    const voor = dagen('cb-voorbereidingsdag'), opruim = dagen('cb-opruimdag'),
+          opl  = dagen('cb-opleidingsdag'),     evalm  = dagen('cb-evaluatiemoment');
     return {
-      voorbereidingsdag_dagen: parseFloat(document.getElementById('cb-voorbereidingsdag').value) || 0,
-      opruimdag_dagen:         parseFloat(document.getElementById('cb-opruimdag').value) || 0,
-      opleidingsdag_dagen:     parseFloat(document.getElementById('cb-opleidingsdag').value) || 0,
-      evaluatiemoment_dagen:   parseFloat(document.getElementById('cb-evaluatiemoment').value) || 0,
-      voorbereidingsdag_datum: document.getElementById('cb-voorbereidingsdag-datum').value || null,
-      opruimdag_datum:         document.getElementById('cb-opruimdag-datum').value || null,
-      opleidingsdag_datum:     document.getElementById('cb-opleidingsdag-datum').value || null,
-      evaluatiemoment_datum:   document.getElementById('cb-evaluatiemoment-datum').value || null,
+      voorbereidingsdag_dagen: voor,
+      opruimdag_dagen:         opruim,
+      opleidingsdag_dagen:     opl,
+      evaluatiemoment_dagen:   evalm,
+      voorbereidingsdag_datum: datum('cb-voorbereidingsdag-datum', voor),
+      opruimdag_datum:         datum('cb-opruimdag-datum', opruim),
+      opleidingsdag_datum:     datum('cb-opleidingsdag-datum', opl),
+      evaluatiemoment_datum:   datum('cb-evaluatiemoment-datum', evalm),
     };
   }
 
@@ -1911,8 +1917,28 @@
       return;
     }
 
+    // Een reeds ondertekend contract wijzigen = de handtekening vervalt.
+    // De lesgever moet de nieuwe versie opnieuw ondertekenen.
+    if (cbHuidigContract.ondertekend) {
+      const doorgaan = await bevestig(
+        '⚠️ Dit contract is al ONDERTEKEND. Als je het wijzigt vervalt de ondertekening '
+        + 'en moet de lesgever opnieuw tekenen. Doorgaan?'
+      );
+      if (!doorgaan) return;
+      data.reset_ondertekening = true;
+    }
+
     const opgeslagen = await slaContractBijwerkenOp(data);
     if (opgeslagen) {
+      if (data.reset_ondertekening) {
+        try {
+          await maakNotificatie(
+            cbHuidigContract.lesgever_id, 'contract_klaar',
+            `Je contract voor "${cbHuidigContract.kampen?.naam ?? 'een kamp'}" werd aangepast. Gelieve het opnieuw te ondertekenen.`,
+            'profiel.html'
+          );
+        } catch { /* notificatie is niet kritiek */ }
+      }
       toonToast('Contract opgeslagen.', 'succes');
       sluitModal('contract-bewerken-overlay');
       contrGeladen = false;
