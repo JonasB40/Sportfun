@@ -434,6 +434,26 @@ export function downloadBestand(inhoud, bestandsnaam, type = 'text/plain') {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Druk een HTML-document af via een verborgen iframe (geen pop-upblokkering).
+ *
+ * @param {string} htmlInhoud - Volledige HTML-pagina als string.
+ */
+export function drukHTML(htmlInhoud) {
+  let iframe = document.getElementById('print-frame');
+  if (!iframe) {
+    iframe = document.createElement('iframe');
+    iframe.id = 'print-frame';
+    iframe.style.cssText = 'position:fixed;width:0;height:0;border:none;left:-9999px';
+    document.body.appendChild(iframe);
+  }
+  const doc = iframe.contentDocument || iframe.contentWindow.document;
+  doc.open();
+  doc.write(htmlInhoud);
+  doc.close();
+  iframe.onload = () => { iframe.contentWindow.focus(); iframe.contentWindow.print(); };
+}
+
 export function formateerIBAN(iban) {
   if (!iban) return '';
   return iban.replace(/\s/g, '').replace(/(.{4})/g, '$1 ').trim();

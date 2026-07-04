@@ -11,7 +11,7 @@
  */
 
 import { supabase } from './supabase.js?v=1783500000000';
-import { toonToast, formateerDatum, datumNaarNL, dagNaam, lokaleISO, ontsnap } from './utils.js?v=1783500000000';
+import { toonToast, formateerDatum, datumNaarNL, dagNaam, lokaleISO, ontsnap, drukHTML } from './utils.js?v=1783500000000';
 import { maakNotificatie } from './auth.js?v=1783500000000';
 
 // ── Alle toekomstige kampen met beschikbaarheidsstatus ──────────────
@@ -316,10 +316,23 @@ export async function slaaBeschikbaarheidOp(lesgeverID, kampID, beschikbaar, onb
         ]);
         const bericht = `⚠️ ${lg?.voornaam ?? ''} ${lg?.achternaam ?? ''} wijzigde de beschikbaarheid voor "${kamp?.naam ?? 'een kamp'}" terwijl er al een contract bestaat. Controleer of het contract nog klopt.`;
         const { data: beheerders } = await supabase
-          .from('profielen').select('id')
+          .from('profielen').select('id, email, voornaam, achternaam')
           .in('rol', ['admin', 'coordinator']).eq('actief', true);
         await Promise.all((beheerders ?? []).map(b =>
           maakNotificatie(b.id, 'contract_klaar', bericht, 'admin.html')));
+        // E-mail naar beheerders (edge function is optioneel)
+        try {
+          await Promise.all((beheerders ?? []).map(b =>
+            supabase.functions.invoke('stuur-email-notificatie', {
+              body: {
+                type: 'beschikbaarheid_gewijzigd',
+                naam: `${b.voornaam} ${b.achternaam}`,
+                email: b.email,
+                kampNaam: kamp?.naam ?? '',
+                bericht,
+              },
+            })));
+        } catch { /* e-mail is optioneel */ }
       }
     } catch (e) {
       console.warn('[planner] Contract-waarschuwing bij beschikbaarheid overgeslagen:', e?.message);
@@ -683,10 +696,9 @@ function renderDagKolom(datum, dagprogrammas, kampID = '', isBeheerder = false) 
 // ── Print ───────────────────────────────────────────────────────────
 
 /**
- * Print het dagprogramma van een dag in een nieuw venster.
+ * Print het dagprogramma van een dag via een verborgen iframe.
  */
 export function printDagprogramma(kampNaam, datum, fiches) {
-  const venster = window.open('', '_blank');
   const inhoud  = fiches.map((f, i) => `
     <div style="margin-bottom:16px;padding:12px;border:1px solid #e5e7eb;border-radius:8px;page-break-inside:avoid">
       <strong>${i + 1}. ${ontsnap(f.naam)}</strong>
@@ -694,12 +706,11 @@ export function printDagprogramma(kampNaam, datum, fiches) {
       <br><small style="color:#6b7280">${ontsnap(f.categorie ?? '')} · ${f.duur_minuten ?? '?'} min</small>
       ${f.notitie ? `<p style="margin-top:6px;font-size:0.85rem">${f.notitie}</p>` : ''}
     </div>`).join('');
-  venster.document.write(`<!DOCTYPE html><html lang="nl"><head>
+  drukHTML(`<!DOCTYPE html><html lang="nl"><head>
     <meta charset="UTF-8"><title>Dagprogramma</title>
     <style>body{font-family:Arial,sans-serif;padding:32px;color:#194338}h1{font-size:1.4rem}h2{color:#6b7280;font-weight:400}</style>
     </head><body><h1>Dagprogramma — ${kampNaam}</h1><h2>${datumNaarNL(datum)}</h2>
-    ${inhoud}<script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`);
-  venster.document.close();
+    ${inhoud}</body></html>`);
 }
 
 // ── Hulpfuncties ────────────────────────────────────────────────────

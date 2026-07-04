@@ -8,12 +8,12 @@
  */
 
 import { supabase } from './supabase.js?v=1783500000000';
-import { toonToast, datumNaarNL, ontsnap, lokaleISO, formateerIBAN } from './utils.js?v=1783500000000';
+import { toonToast, datumNaarNL, ontsnap, lokaleISO, formateerIBAN, drukHTML } from './utils.js?v=1783500000000';
 import { maakNotificatie } from './auth.js?v=1783500000000';
 import {
   haalLimietenOp, haalStandaardVergoedingOp,
   berekenGewerkteDagen, berekenContractTotaal, formaatBedrag,
-  haalJaarTotaalLesgeverOp
+  haalJaarTotaalLesgeverOp, logContractActie
 } from './financieel.js?v=1783500000000';
 
 // ── Automatische contractgeneratie bij koppeling ────────────────────
@@ -135,6 +135,8 @@ export async function genereerContractAutomatisch(lesgeverID, kampID) {
       .select()
       .single();
     if (error) throw error;
+
+    logContractActie(nieuw, 'aangemaakt', { bron: 'automatisch', totaal_bedrag: nieuw.totaal_bedrag });
 
     // 8. Notificeer lesgever
     await maakNotificatie(
@@ -1045,7 +1047,7 @@ ${finBlok}
 }
 
 /**
- * Open een nieuwe browsertab met het opgemaakte contract — klaar om af te drukken of als PDF op te slaan.
+ * Druk het opgemaakte contract af via een verborgen iframe (geen pop-ups).
  *
  * @param {object} lesgever - Profiel.
  * @param {object} kamp - Kamp-object.
@@ -1053,13 +1055,7 @@ ${finBlok}
  */
 export function openContractAfdrukken(lesgever, kamp, opties = {}) {
   const html = genereerContractHTML(lesgever, kamp, opties);
-  const venster = window.open('', '_blank');
-  if (!venster) {
-    toonToast('Sta pop-ups toe om het contract af te drukken.', 'fout');
-    return;
-  }
-  venster.document.write(html);
-  venster.document.close();
+  drukHTML(html.replace('window.print()', '/* print via drukHTML */'));
 }
 
 // ── Massa-acties (admin) ────────────────────────────────────────────
@@ -1173,9 +1169,10 @@ export async function openBulkContractenAfdrukken(kampID) {
           ondertekendOp: c.ondertekend_op,
           contract: c,
         });
-        // Extraheer enkel de <body>-inhoud zodat alles in één document past
+        // Extraheer enkel de <body>-inhoud zodat alles in één document past;
+        // verwijder de per-contract autoprint-scripts (drukHTML drukt zelf af).
         const match = html.match(/<body>([\s\S]*?)<\/body>/);
-        return match ? match[1] : html;
+        return (match ? match[1] : html).replace(/<script>[\s\S]*?<\/script>/g, '');
       })
     );
 
@@ -1212,17 +1209,10 @@ export async function openBulkContractenAfdrukken(kampID) {
 </head>
 <body>
 ${samengevoegd}
-<script>window.onload = () => setTimeout(() => window.print(), 400);<\/script>
 </body>
 </html>`;
 
-    const venster = window.open('', '_blank');
-    if (!venster) {
-      toonToast('Sta pop-ups toe om de bulk-PDF te openen.', 'fout');
-      return;
-    }
-    venster.document.write(bulkHTML);
-    venster.document.close();
+    drukHTML(bulkHTML);
     toonToast(`${contracten.length} contracten klaar voor afdrukken.`, 'succes');
   } catch (fout) {
     console.error('[contracten] Bulk-afdrukken fout:', fout?.message ?? fout);
@@ -1313,6 +1303,8 @@ export async function slaContractOp(lesgeverID, kampID, contractInhoud) {
 
     if (error) throw error;
 
+    logContractActie(data, 'aangemaakt', { bron: 'handmatig' });
+
     // Stuur notificatie naar lesgever
     await maakNotificatie(
       lesgeverID,
@@ -1350,6 +1342,7 @@ export async function onderteken(contractID) {
       .eq('id', contractID);
 
     if (error) throw error;
+    logContractActie({ id: contractID }, 'ondertekend');
     toonToast('Contract succesvol ondertekend.', 'succes');
     return true;
   } catch (fout) {

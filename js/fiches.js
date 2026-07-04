@@ -8,7 +8,7 @@
  */
 
 import { supabase } from './supabase.js?v=1783500000000';
-import { toonToast, ontsnap } from './utils.js?v=1783500000000';
+import { toonToast, ontsnap, drukHTML } from './utils.js?v=1783500000000';
 
 // ── Fiches ophalen ──────────────────────────────────────────────────
 
@@ -965,9 +965,7 @@ export function drukFicheAf(fiche) {
     ? `<div class="fotos">${fiche.fotos.map(url =>
         `<img src="${e(url)}" alt="Foto">`).join('')}</div>` : '';
 
-  const w = window.open('', '_blank');
-  if (!w) { toonToast('Sta pop-ups toe om de fiche af te drukken.', 'fout'); return; }
-  w.document.write(`<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8">
+  drukHTML(`<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8">
     <title>${e(fiche.naam)} — SportFun Activiteitenfiche</title>
     <style>
       @page { margin: 16mm 14mm; }
@@ -1040,6 +1038,4 @@ export function drukFicheAf(fiche) {
 
     <div class="footer">SportFun vzw — Activiteitenfiche "${e(fiche.naam)}"</div>
   </body></html>`);
-  w.document.close();
-  w.print();
 }

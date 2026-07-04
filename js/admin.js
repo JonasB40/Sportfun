@@ -491,7 +491,7 @@ export async function haalBeschikbaarhedenMatrixOp() {
   try {
     const [{ data: kampen }, { data: lesgevers }, { data: beschikbaarheden }] = await Promise.all([
       supabase.from('kampen')
-        .select('id, naam, startdatum, einddatum')
+        .select('id, naam, startdatum, einddatum, beschikbaarheid_open')
         .neq('status', 'afgelopen')
         .gte('einddatum', vandaag)
         .order('startdatum'),

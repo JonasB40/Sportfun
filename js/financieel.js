@@ -313,6 +313,30 @@ export function contractStatusPil(contract) {
   return '<span class="badge badge-grijs">📄 Aangemaakt</span>';
 }
 
+// ── Audit-log ────────────────────────────────────────────────────────
+
+/**
+ * Log een contract-actie in contract_historiek (audit-log voor de
+ * jaarrekening). Faalt stil: logging mag de hoofdactie nooit blokkeren.
+ *
+ * @param {object} contract - Minstens {id, lesgever_id, kamp_id}.
+ * @param {string} actie - aangemaakt|gewijzigd|ondertekend|betaald|onbetaald|verwijderd|handtekening_vervallen
+ * @param {object} [details] - Extra context (bv. oude/nieuwe bedragen).
+ */
+export async function logContractActie(contract, actie, details = null) {
+  try {
+    await supabase.from('contract_historiek').insert({
+      contract_id: contract.id,
+      lesgever_id: contract.lesgever_id ?? null,
+      kamp_id:     contract.kamp_id ?? null,
+      actie,
+      details,
+    });
+  } catch (fout) {
+    console.warn('[financieel] Audit-log overgeslagen:', fout?.message);
+  }
+}
+
 // ── Markeer als betaald / niet betaald ───────────────────────────────
 
 /**
@@ -332,6 +356,7 @@ export async function markeerBetaaldStatus(contractID, betaald) {
       })
       .eq('id', contractID);
     if (error) throw error;
+    logContractActie({ id: contractID }, betaald ? 'betaald' : 'onbetaald');
     toonToast(betaald ? 'Contract gemarkeerd als betaald.' : 'Status teruggezet naar niet-betaald.', 'succes');
     return true;
   } catch (fout) {
@@ -387,6 +412,12 @@ export async function slaContractBijwerkenOp(data) {
       .single();
 
     if (error) throw error;
+    logContractActie(updated, data.reset_ondertekening ? 'handtekening_vervallen' : 'gewijzigd', {
+      vergoeding_per_dag: updated.vergoeding_per_dag,
+      aantal_dagen:       updated.aantal_dagen,
+      kilometers:         updated.kilometers,
+      totaal_bedrag:      updated.totaal_bedrag,
+    });
     return updated;
   } catch (fout) {
     console.error('[financieel] Contract opslaan mislukt:', fout?.message ?? fout);

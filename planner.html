@@ -1060,7 +1060,7 @@
     haalUitnodigingenOp, haalKampTeamOp
   } from './js/planner.js?v=1783500000000';
   import { haalFichesOp, haalFicheOp, renderFicheDetail, haalMateriaaloVerzichtVoorKamp, genereerMateriaaloVerzichtHTML } from './js/fiches.js?v=1783500000000';
-  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, formateerDatum, datumNaarNL, dagNaam, lokaleISO, ontsnap } from './js/utils.js?v=1783500000000';
+  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, formateerDatum, datumNaarNL, dagNaam, lokaleISO, ontsnap, drukHTML } from './js/utils.js?v=1783500000000';
   import {
     nieuweFilterState, filterKampen, renderFilterBalk, haalKoppelingsMapOp
   } from './js/kampfilter.js?v=1783500000000';
@@ -2765,8 +2765,7 @@
   document.getElementById('materiaal-afdrukken')?.addEventListener('click', () => {
     const inhoud  = document.getElementById('materiaal-modal-inhoud')?.innerHTML ?? '';
     const kampNaam = document.getElementById('materiaal-modal-kamp')?.textContent ?? '';
-    const win = window.open('', '_blank', 'width=800,height=700');
-    win.document.write(`<!DOCTYPE html><html lang="nl"><head>
+    drukHTML(`<!DOCTYPE html><html lang="nl"><head>
       <meta charset="UTF-8">
       <title>Materiaaloverzicht — ${kampNaam}</title>
       <style>
@@ -2777,9 +2776,6 @@
         :root { --kleur-donkergroen:#194338; --kleur-middengroen:#148869; --kleur-grijs:#6B7280; }
       </style>
     </head><body>${inhoud}</body></html>`);
-    win.document.close();
-    win.focus();
-    setTimeout(() => win.print(), 400);
   });
 
   // ── Hulpfuncties ─────────────────────────────────────────────────

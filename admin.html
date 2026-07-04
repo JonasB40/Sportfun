@@ -395,6 +395,9 @@
     </header>
 
     <div class="pagina-inhoud">
+      <!-- Openstaande acties -->
+      <div id="actie-widget" class="verborgen" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
+
       <!-- Tabs -->
       <div class="tabs">
         <button class="tab-knop actief" data-tab="kampen">Kampen</button>
@@ -539,6 +542,8 @@
             </div>
             <button class="knop knop-omtrek knop-klein" id="contr-print-selectie" style="display:none">🖨 Selectie afdrukken (<span id="contr-selectie-aantal">0</span>)</button>
             <button class="knop knop-omtrek knop-klein" id="contr-print-alles">🖨 Overzicht afdrukken</button>
+            <button class="knop knop-middengroen knop-klein" id="contr-export-sepa" title="SEPA-betaalbestand van alle openstaande, ondertekende contracten">💶 SEPA-export</button>
+            <button class="knop knop-omtrek knop-klein" id="contr-export-csv" title="CSV met naam, IBAN, bedrag en mededeling">⬇ CSV</button>
           </div>
         </div>
 
@@ -719,7 +724,7 @@
       <div class="formulier-rij">
         <div class="formulier-groep">
           <label for="cb-km">Kilometers per dag (heen-retour)</label>
-          <input type="number" id="cb-km" min="0" step="0.1">
+          <input type="number" id="cb-km" min="0" step="any">
           <div class="hulptekst">Vul de dagelijkse afstand heen en terug in.</div>
         </div>
         <div class="formulier-groep">
@@ -1072,12 +1077,12 @@
   import {
     nieuweFilterState, filterKampen, renderFilterBalk, haalKoppelingsMapOp
   } from './js/kampfilter.js?v=1783500000000';
-  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, datumNaarNL, bevestig, kopieerNaarKlembord, lokaleISO, ontsnap, formateerIBAN } from './js/utils.js?v=1783500000000';
+  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, datumNaarNL, bevestig, kopieerNaarKlembord, lokaleISO, ontsnap, formateerIBAN, drukHTML, downloadBestand } from './js/utils.js?v=1783500000000';
   import {
     haalOverzichtPerLesgeverOp, haalAlleContractenFinancieelOp,
     haalLimietenOp, valideerContract, berekenContractTotaal,
     haalJaarTotaalLesgeverOp, markeerBetaaldStatus,
-    formaatBedrag, contractStatusPil, slaContractBijwerkenOp,
+    formaatBedrag, contractStatusPil, slaContractBijwerkenOp, logContractActie,
     berekenGewerkteDagen, HUIDIG_JAAR, MAX_PER_JAAR_2026
   } from './js/financieel.js?v=1783500000000';
   import { openContractAfdrukken, genereerContractTekst, genereerContractHTML } from './js/contracten.js?v=1783500000000';
@@ -1141,6 +1146,10 @@
       if (sel.length === 0) { toonToast('Selecteer eerst contracten.', 'fout'); return; }
       await drukContractenVolledigAf(sel);
     });
+
+    // Betalingsexport (SEPA + CSV)
+    document.getElementById('contr-export-sepa').addEventListener('click', () => exporteerBetalingen('sepa'));
+    document.getElementById('contr-export-csv').addEventListener('click', () => exporteerBetalingen('csv'));
 
     await laadJaarData(HUIDIG_JAAR);
     vulFilterDropdowns();
@@ -1356,20 +1365,116 @@
     });
   }
 
-  // ── Print via verborgen iframe (geen pop-ups) ──────────────────
-  function drukHTML(htmlInhoud) {
-    let iframe = document.getElementById('print-frame');
-    if (!iframe) {
-      iframe = document.createElement('iframe');
-      iframe.id = 'print-frame';
-      iframe.style.cssText = 'position:fixed;width:0;height:0;border:none;left:-9999px';
-      document.body.appendChild(iframe);
+  // drukHTML komt uit utils.js (print via verborgen iframe, geen pop-ups)
+
+  // ── Betalingsexport: SEPA-XML (pain.001) of CSV ─────────────────
+  // Neemt alle ondertekende, nog niet betaalde contracten van het geladen
+  // jaar en groepeert ze per lesgever tot één overschrijving.
+  async function exporteerBetalingen(formaat) {
+    const openstaand = contrAlleContracten.filter(c => c.ondertekend && !c.betaald);
+    if (openstaand.length === 0) {
+      toonToast('Geen openstaande, ondertekende contracten om uit te betalen.', 'info');
+      return;
     }
-    const doc = iframe.contentDocument || iframe.contentWindow.document;
-    doc.open();
-    doc.write(htmlInhoud);
-    doc.close();
-    iframe.onload = () => { iframe.contentWindow.focus(); iframe.contentWindow.print(); };
+
+    // Groepeer per lesgever
+    const perLg = new Map();
+    for (const c of openstaand) {
+      if (!perLg.has(c.lesgever_id)) {
+        perLg.set(c.lesgever_id, {
+          naam: `${c.profielen?.voornaam ?? ''} ${c.profielen?.achternaam ?? ''}`.trim(),
+          bedrag: 0, kampen: [],
+        });
+      }
+      const rij = perLg.get(c.lesgever_id);
+      rij.bedrag = +(rij.bedrag + Number(c.totaal_bedrag ?? 0)).toFixed(2);
+      rij.kampen.push(c.kampen?.naam ?? '');
+    }
+
+    // IBAN's ophalen (staan niet in de contracten-query)
+    const { data: profielen } = await supabase
+      .from('profielen').select('id, rekeningnummer')
+      .in('id', [...perLg.keys()]);
+    const ibanMap = new Map((profielen ?? []).map(p => [p.id, (p.rekeningnummer ?? '').replace(/\s/g, '')]));
+
+    const zonderIBAN = [];
+    const betalingen = [];
+    for (const [id, rij] of perLg) {
+      const iban = ibanMap.get(id);
+      if (!iban) { zonderIBAN.push(rij.naam); continue; }
+      betalingen.push({
+        naam: rij.naam, iban,
+        bedrag: rij.bedrag,
+        mededeling: `Vrijwilligersvergoeding ${HUIDIG_JAAR} SportFun vzw`,
+      });
+    }
+    if (zonderIBAN.length > 0) {
+      toonToast(`⚠️ Overgeslagen (geen IBAN): ${zonderIBAN.join(', ')}`, 'fout', 8000);
+    }
+    if (betalingen.length === 0) {
+      toonToast('Geen betalingen met geldig IBAN gevonden.', 'fout');
+      return;
+    }
+
+    const vandaag = lokaleISO(new Date());
+
+    if (formaat === 'csv') {
+      const csv = ['Naam;IBAN;Bedrag;Mededeling',
+        ...betalingen.map(b => `${b.naam};${formateerIBAN(b.iban)};${b.bedrag.toFixed(2).replace('.', ',')};${b.mededeling}`),
+      ].join('\r\n');
+      downloadBestand('﻿' + csv, `betalingen-sportfun-${vandaag}.csv`, 'text/csv;charset=utf-8');
+      toonToast(`CSV met ${betalingen.length} betaling(en) gedownload.`, 'succes');
+      return;
+    }
+
+    // SEPA: organisatie-IBAN nodig (onthouden in localStorage)
+    let orgIBAN = (localStorage.getItem('sportfun_org_iban') ?? '').replace(/\s/g, '');
+    const invoer = prompt('IBAN van de SportFun-rekening (opdrachtgever):', formateerIBAN(orgIBAN));
+    if (invoer === null) return;
+    orgIBAN = invoer.replace(/\s/g, '').toUpperCase();
+    if (!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(orgIBAN)) {
+      toonToast('Ongeldig IBAN voor de opdrachtgever.', 'fout');
+      return;
+    }
+    localStorage.setItem('sportfun_org_iban', orgIBAN);
+
+    const totaal = betalingen.reduce((s, b) => s + b.bedrag, 0).toFixed(2);
+    const msgId = `SPORTFUN-${vandaag.replace(/-/g, '')}-${Date.now().toString().slice(-6)}`;
+    const xmlEsc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const txs = betalingen.map((b, i) => `
+      <CdtTrfTxInf>
+        <PmtId><EndToEndId>${msgId}-${i + 1}</EndToEndId></PmtId>
+        <Amt><InstdAmt Ccy="EUR">${b.bedrag.toFixed(2)}</InstdAmt></Amt>
+        <Cdtr><Nm>${xmlEsc(b.naam)}</Nm></Cdtr>
+        <CdtrAcct><Id><IBAN>${b.iban}</IBAN></Id></CdtrAcct>
+        <RmtInf><Ustrd>${xmlEsc(b.mededeling)}</Ustrd></RmtInf>
+      </CdtTrfTxInf>`).join('');
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03">
+  <CstmrCdtTrfInitn>
+    <GrpHdr>
+      <MsgId>${msgId}</MsgId>
+      <CreDtTm>${new Date().toISOString().slice(0, 19)}</CreDtTm>
+      <NbOfTxs>${betalingen.length}</NbOfTxs>
+      <CtrlSum>${totaal}</CtrlSum>
+      <InitgPty><Nm>SportFun vzw</Nm></InitgPty>
+    </GrpHdr>
+    <PmtInf>
+      <PmtInfId>${msgId}-P1</PmtInfId>
+      <PmtMtd>TRF</PmtMtd>
+      <NbOfTxs>${betalingen.length}</NbOfTxs>
+      <CtrlSum>${totaal}</CtrlSum>
+      <ReqdExctnDt>${vandaag}</ReqdExctnDt>
+      <Dbtr><Nm>SportFun vzw</Nm></Dbtr>
+      <DbtrAcct><Id><IBAN>${orgIBAN}</IBAN></Id></DbtrAcct>
+      <ChrgBr>SLEV</ChrgBr>${txs}
+    </PmtInf>
+  </CstmrCdtTrfInitn>
+</Document>`;
+
+    downloadBestand(xml, `sepa-betalingen-sportfun-${vandaag}.xml`, 'application/xml');
+    toonToast(`SEPA-bestand met ${betalingen.length} betaling(en) (€${totaal}) gedownload. Laad dit op in je bankomgeving.`, 'succes', 8000);
   }
 
   // ── Volledige contracten afdrukken ──────────────────────────────
@@ -1633,8 +1738,10 @@
 
       // Vul velden
       document.getElementById('cb-dagbedrag').value = contract.vergoeding_per_dag ?? 0;
+      // Deel met 4 decimalen precisie zodat km/dag × dagen bij heropslaan
+      // niet afwijkt van het originele km-totaal (geen centenverschuiving).
       const aantalDagenVoorKm = contract.aantal_dagen || 1;
-      document.getElementById('cb-km').value = +(((contract.kilometers ?? 0) / aantalDagenVoorKm).toFixed(1));
+      document.getElementById('cb-km').value = +(((contract.kilometers ?? 0) / aantalDagenVoorKm).toFixed(4));
 
       // Andere prestaties inladen
       const anderePrestatieDefs = [
@@ -1937,7 +2044,15 @@
             `Je contract voor "${cbHuidigContract.kampen?.naam ?? 'een kamp'}" werd aangepast. Gelieve het opnieuw te ondertekenen.`,
             'profiel.html'
           );
-        } catch { /* notificatie is niet kritiek */ }
+          await supabase.functions.invoke('stuur-email-notificatie', {
+            body: {
+              type: 'herinnering_contract',
+              naam: `${cbHuidigContract.profielen?.voornaam ?? ''} ${cbHuidigContract.profielen?.achternaam ?? ''}`,
+              email: cbHuidigContract.profielen?.email,
+              kampNaam: cbHuidigContract.kampen?.naam ?? '',
+            },
+          });
+        } catch { /* notificatie/e-mail is niet kritiek */ }
       }
       toonToast('Contract opgeslagen.', 'succes');
       sluitModal('contract-bewerken-overlay');
@@ -1984,6 +2099,12 @@
       toonToast('Kon contract niet verwijderen: ' + error.message, 'fout');
       return;
     }
+    logContractActie(cbHuidigContract, 'verwijderd', {
+      kamp: cbHuidigContract.kampen?.naam,
+      totaal_bedrag: cbHuidigContract.totaal_bedrag,
+      was_ondertekend: cbHuidigContract.ondertekend,
+      was_betaald: cbHuidigContract.betaald,
+    });
     toonToast('Contract verwijderd.', 'succes');
     sluitModal('contract-bewerken-overlay');
     contrGeladen = false;
@@ -2090,6 +2211,61 @@
     if (gearchiveerd > 0) toonToast(`${gearchiveerd} verlopen kamp${gearchiveerd > 1 ? 'en' : ''} automatisch gearchiveerd.`, 'info');
 
     await Promise.all([laadKampen(), laadGebruikers()]);
+    laadActieWidget(); // async op de achtergrond, niet blokkerend
+  }
+
+  // ── Openstaande acties widget ────────────────────────────────────
+  async function laadActieWidget() {
+    const widget = document.getElementById('actie-widget');
+    if (!widget) return;
+    try {
+      const vandaag = lokaleISO(new Date());
+      const [contrRes, koppelRes, matrix] = await Promise.all([
+        supabase.from('contracten')
+          .select('id, kamp_id, lesgever_id, ondertekend, kampen!inner(status, startdatum)')
+          .gte('kampen.startdatum', `${HUIDIG_JAAR}-01-01`),
+        supabase.from('kamp_lesgevers').select('kamp_id, lesgever_id'),
+        haalBeschikbaarhedenMatrixOp(),
+      ]);
+      const contracten  = contrRes.data ?? [];
+      const koppelSet   = new Set((koppelRes.data ?? []).map(k => `${k.kamp_id}|${k.lesgever_id}`));
+
+      const wees = contracten.filter(c => !koppelSet.has(`${c.kamp_id}|${c.lesgever_id}`)).length;
+      const onondertekend = contracten.filter(c =>
+        !c.ondertekend && c.kampen?.status !== 'afgelopen').length;
+
+      const openKampen = (matrix.kampen ?? []).filter(k => k.beschikbaarheid_open);
+      const opgaveSet  = new Set((matrix.beschikbaarheden ?? []).map(b => `${b.lesgever_id}|${b.kamp_id}`));
+      const zonderOpgave = (matrix.lesgevers ?? []).filter(lg =>
+        openKampen.some(k => !opgaveSet.has(`${lg.id}|${k.id}`))).length;
+
+      const chip = (aantal, tekst, kleur, onclick) => aantal > 0 ? `
+        <button onclick="${onclick}"
+                style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;
+                       border:1.5px solid ${kleur};background:${kleur}14;cursor:pointer;
+                       font-family:var(--font);font-size:0.8rem;font-weight:700;color:var(--kleur-donkergroen)">
+          <span style="background:${kleur};color:white;border-radius:20px;padding:1px 9px;font-size:0.78rem">${aantal}</span>
+          ${tekst}
+        </button>` : '';
+
+      const html = [
+        chip(wees, '⚠️ Wees-contract(en)', '#DC2626',
+          `document.querySelector('.tab-knop[data-tab=\\'contracten\\']').click()`),
+        chip(onondertekend, '📄 Wachten op ondertekening', '#F59E0B',
+          `document.querySelector('.tab-knop[data-tab=\\'contracten\\']').click()`),
+        chip(zonderOpgave, '📋 Zonder beschikbaarheidsopgave', '#148869',
+          `document.querySelector('.tab-knop[data-tab=\\'lesgevers\\']').click();document.getElementById('beschikbaarheid-matrix-knop').click()`),
+      ].join('');
+
+      if (html) {
+        widget.innerHTML = html;
+        widget.classList.remove('verborgen');
+      } else {
+        widget.classList.add('verborgen');
+      }
+    } catch (fout) {
+      console.warn('[admin] Actie-widget laden mislukt:', fout?.message);
+    }
   }
 
   // ── Tabs ──
@@ -2572,6 +2748,8 @@
     if (verwijderContract) {
       const { error } = await supabase.from('contracten').delete().eq('id', bestaandContract.id);
       if (error) { toonToast('Kon contract niet verwijderen: ' + error.message, 'fout'); return; }
+      logContractActie({ id: bestaandContract.id, lesgever_id: lgID, kamp_id: kampID },
+        'verwijderd', { reden: 'lesgever ontkoppeld van kamp' });
     }
 
     const succes = await ontkoppelLesgever(kampID, lgID);
@@ -2871,6 +3049,7 @@
         <!-- Acties balk -->
         <div class="lg-acties-balk">
           <button class="knop knop-primair knop-klein" onclick="window._bewerkLesgever('${u.id}')">✏️ Bewerken</button>
+          <button class="knop knop-omtrek knop-klein" onclick="window._drukJaarfiche('${u.id}')">📄 Jaarfiche ${lgFinJaar}</button>
           <button class="knop knop-omtrek knop-klein" onclick="window._wijzigRol('${u.id}','${u.rol}')">Rol wijzigen</button>
           <button class="knop knop-omtrek knop-klein" onclick="window._wwReset('${u.id}','${(u.voornaam + ' ' + u.achternaam).replace(/'/g,'')}','${u.email ?? ''}')">🔑 Wachtwoord</button>
           <button class="knop ${u.actief ? 'knop-gevaar' : 'knop-middengroen'} knop-klein" onclick="window._toggleActief('${u.id}', ${!u.actief})">
@@ -2880,6 +3059,118 @@
       </div>
     `;
   }
+
+  // ─── Jaarfiche per lesgever (afdrukbaar jaaroverzicht) ────────
+  window._drukJaarfiche = async (lesgeverID) => {
+    const u = alleGebruikers.find(g => g.id === lesgeverID);
+    if (!u) return;
+    toonToast('Jaarfiche opstellen…', 'info');
+
+    const [alle, limiet] = await Promise.all([
+      haalAlleContractenFinancieelOp(lgFinJaar),
+      haalLimietenOp(lgFinJaar),
+    ]);
+    const eigen = alle
+      .filter(c => c.lesgever_id === lesgeverID)
+      .sort((a, b) => (a.kampen?.startdatum ?? '').localeCompare(b.kampen?.startdatum ?? ''));
+
+    if (eigen.length === 0) {
+      toonToast(`Geen contracten voor ${u.voornaam} in ${lgFinJaar}.`, 'info');
+      return;
+    }
+
+    const f = n => '€ ' + Number(n ?? 0).toFixed(2).replace('.', ',');
+    let forfaitTot = 0, kmTot = 0;
+    const rijen = eigen.map(c => {
+      const t = berekenContractTotaal(c);
+      const forfait = +(t.vergoedingBedrag + t.extraBedrag).toFixed(2);
+      forfaitTot += forfait;
+      kmTot += t.kmBedrag;
+      const extraDagen = ['voorbereidingsdag_dagen','opruimdag_dagen','opleidingsdag_dagen','evaluatiemoment_dagen']
+        .reduce((s, k) => s + Number(c[k] ?? 0), 0);
+      const status = c.betaald ? '💰 Betaald' : c.ondertekend ? '✓ Ondertekend' : '📄 Aangemaakt';
+      return `<tr>
+        <td>${ontsnap(c.kampen?.naam ?? '—')}</td>
+        <td>${datumNaarNL(c.kampen?.startdatum)} – ${datumNaarNL(c.kampen?.einddatum)}</td>
+        <td style="text-align:right">${Number(c.aantal_dagen ?? 0)}${extraDagen > 0 ? ` + ${extraDagen}` : ''}</td>
+        <td style="text-align:right">${f(forfait)}</td>
+        <td style="text-align:right">${f(t.kmBedrag)}</td>
+        <td style="text-align:right;font-weight:700">${f(t.totaal)}</td>
+        <td>${status}</td>
+      </tr>`;
+    }).join('');
+    forfaitTot = +forfaitTot.toFixed(2);
+    kmTot = +kmTot.toFixed(2);
+    const totaal = +(forfaitTot + kmTot).toFixed(2);
+    const resterend = +(limiet.max_per_jaar - forfaitTot).toFixed(2);
+    const pct = Math.min(100, (forfaitTot / limiet.max_per_jaar) * 100).toFixed(1);
+
+    drukHTML(`<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8">
+      <title>Jaarfiche ${lgFinJaar} — ${ontsnap(u.voornaam)} ${ontsnap(u.achternaam)}</title>
+      <style>
+        @page { margin: 18mm 16mm; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a2e28; font-size: 10pt; line-height: 1.6; }
+        .accent { height: 5px; background: linear-gradient(90deg,#194338,#148869,#D7FC5C); border-radius: 3px; margin-bottom: 18px; }
+        h1 { font-size: 15pt; color: #194338; margin: 0 0 2px; }
+        .sub { color: #6B7280; font-size: 9pt; margin-bottom: 18px; }
+        .kop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+        .blok { border: 1.5px solid #D1FAE5; border-radius: 8px; padding: 10px 14px; background: #FAFFFE; }
+        .blok-label { font-size: 7pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #148869; }
+        table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 14px; }
+        th { text-align: left; padding: 7px 8px; border-bottom: 2px solid #148869; color: #148869; font-size: 8pt; text-transform: uppercase; }
+        th:nth-child(n+3):not(:last-child) { text-align: right; }
+        td { padding: 6px 8px; border-bottom: 1px solid #E5E7EB; vertical-align: top; }
+        tfoot td { font-weight: 800; background: #194338; color: white; border: none; }
+        .plafond { border: 1.5px solid #E5E7EB; border-radius: 8px; padding: 12px 14px; margin-bottom: 14px; }
+        .balk { height: 10px; background: #E5E7EB; border-radius: 6px; overflow: hidden; margin: 8px 0 4px; }
+        .balk-vul { height: 100%; background: ${forfaitTot > limiet.max_per_jaar ? '#DC2626' : '#148869'}; width: ${pct}%; }
+        .voetnoot { font-size: 8pt; color: #6B7280; margin-top: 16px; border-top: 1px solid #E5E7EB; padding-top: 8px; }
+      </style></head><body>
+      <div class="accent"></div>
+      <h1>Jaarfiche vrijwilligersvergoedingen ${lgFinJaar}</h1>
+      <div class="sub">SportFun vzw · Heimolenstraat 157, 9100 Sint-Niklaas · opgesteld op ${datumNaarNL(lokaleISO(new Date()))}</div>
+
+      <div class="kop-grid">
+        <div class="blok">
+          <div class="blok-label">Vrijwilliger</div>
+          <strong>${ontsnap(u.voornaam)} ${ontsnap(u.achternaam)}</strong><br>
+          ${ontsnap(u.email ?? '')}<br>
+          ${u.rekeningnummer ? `IBAN: <span style="font-family:monospace">${formateerIBAN(u.rekeningnummer)}</span>` : ''}
+        </div>
+        <div class="blok">
+          <div class="blok-label">Samenvatting ${lgFinJaar}</div>
+          Forfaitaire vergoeding: <strong>${f(forfaitTot)}</strong><br>
+          Kilometervergoeding: <strong>${f(kmTot)}</strong><br>
+          Totaal: <strong>${f(totaal)}</strong> (${eigen.length} contract${eigen.length !== 1 ? 'en' : ''})
+        </div>
+      </div>
+
+      <table>
+        <thead><tr><th>Kamp</th><th>Periode</th><th>Dagen</th><th>Forfait</th><th>Km</th><th>Totaal</th><th>Status</th></tr></thead>
+        <tbody>${rijen}</tbody>
+        <tfoot><tr>
+          <td colspan="3">TOTAAL ${lgFinJaar}</td>
+          <td style="text-align:right">${f(forfaitTot)}</td>
+          <td style="text-align:right">${f(kmTot)}</td>
+          <td style="text-align:right">${f(totaal)}</td>
+          <td></td>
+        </tr></tfoot>
+      </table>
+
+      <div class="plafond">
+        <strong>Wettelijk jaarplafond forfaitaire vergoedingen (${limiet.jaar}): ${f(limiet.max_per_jaar)}</strong>
+        <div class="balk"><div class="balk-vul"></div></div>
+        Gebruikt: ${f(forfaitTot)} (${pct}%) · Resterend: <strong style="color:${resterend < 0 ? '#DC2626' : '#148869'}">${f(resterend)}</strong>
+        ${resterend < 0 ? '<br><strong style="color:#DC2626">⚠️ Het wettelijke jaarplafond is overschreden!</strong>' : ''}
+      </div>
+
+      <div class="voetnoot">
+        De kilometervergoeding valt buiten het wettelijke jaarplafond voor forfaitaire vrijwilligersvergoedingen
+        (Wet van 3 juli 2005 betreffende de rechten van vrijwilligers). Daglimiet ${limiet.jaar}: ${f(limiet.max_per_dag)}.
+        Dit overzicht is een intern administratief document van SportFun vzw.
+      </div>
+    </body></html>`);
+  };
 
   // ─── Toggle fiche open/dicht ──────────────────────────────────
   window._toggleFiche = async (id) => {
@@ -3222,6 +3513,7 @@
 
   // Beschikbaarheidsmatrix
   let _matrixGeladen = false;
+  let _matrixData = null;
   document.getElementById('beschikbaarheid-matrix-knop').addEventListener('click', async () => {
     const sectie = document.getElementById('beschikbaarheid-matrix-sectie');
     if (!sectie.classList.contains('verborgen')) {
@@ -3232,9 +3524,58 @@
     sectie.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (_matrixGeladen) return;
     _matrixGeladen = true;
-    const { kampen, lesgevers, beschikbaarheden } = await haalBeschikbaarhedenMatrixOp();
-    _renderBeschikbaarheidMatrix(kampen, lesgevers, beschikbaarheden);
+    _matrixData = await haalBeschikbaarhedenMatrixOp();
+    _renderBeschikbaarheidMatrix(_matrixData.kampen, _matrixData.lesgevers, _matrixData.beschikbaarheden);
   });
+
+  // Herinner alle lesgevers die nog geen beschikbaarheid opgaven
+  // voor één of meer opengestelde kampen.
+  window._herinnerBeschikbaarheid = async () => {
+    if (!_matrixData) return;
+    const { kampen, lesgevers, beschikbaarheden } = _matrixData;
+    const openKampen = kampen.filter(k => k.beschikbaarheid_open);
+    if (openKampen.length === 0) {
+      toonToast('Er zijn geen opengestelde kampen.', 'info');
+      return;
+    }
+    const opgaveSet = new Set(beschikbaarheden.map(b => `${b.lesgever_id}|${b.kamp_id}`));
+    const achterstallig = lesgevers
+      .map(lg => ({
+        lg,
+        ontbrekend: openKampen.filter(k => !opgaveSet.has(`${lg.id}|${k.id}`)),
+      }))
+      .filter(x => x.ontbrekend.length > 0);
+
+    if (achterstallig.length === 0) {
+      toonToast('Iedereen heeft zijn beschikbaarheid al ingevuld. 🎉', 'succes');
+      return;
+    }
+    if (!await bevestig(
+      `${achterstallig.length} lesgever(s) hebben nog geen beschikbaarheid ingevuld voor `
+      + `${openKampen.length} opengesteld(e) kamp(en). Herinnering sturen?`)) return;
+
+    let verzonden = 0;
+    for (const { lg, ontbrekend } of achterstallig) {
+      const kampNamen = ontbrekend.map(k => k.naam).join(', ');
+      await maakNotificatie(
+        lg.id, 'ingepland',
+        `📋 Herinnering: vul je beschikbaarheid in voor: ${kampNamen}.`,
+        'beschikbaarheid.html'
+      );
+      try {
+        await supabase.functions.invoke('stuur-email-notificatie', {
+          body: {
+            type: 'herinnering_beschikbaarheid',
+            naam: `${lg.voornaam} ${lg.achternaam}`,
+            lesgeverID: lg.id,
+            kampNaam: kampNamen,
+          },
+        });
+      } catch { /* e-mail is optioneel */ }
+      verzonden++;
+    }
+    toonToast(`${verzonden} herinnering(en) verstuurd.`, 'succes');
+  };
 
   document.getElementById('beschikbaarheid-matrix-sluiten').addEventListener('click', () => {
     document.getElementById('beschikbaarheid-matrix-sectie').classList.add('verborgen');
@@ -3304,11 +3645,15 @@
         </thead>
         <tbody>${rijen}</tbody>
       </table>
-      <div style="margin-top:10px;font-size:0.72rem;color:var(--kleur-grijs);display:flex;gap:14px;flex-wrap:wrap">
+      <div style="margin-top:10px;font-size:0.72rem;color:var(--kleur-grijs);display:flex;gap:14px;flex-wrap:wrap;align-items:center">
         <span>🟢 Beschikbaar</span>
         <span>🟡 Deels beschikbaar</span>
         <span>🔴 Niet beschikbaar</span>
         <span>⚪ Geen opgave</span>
+        <button class="knop knop-middengroen knop-klein" style="margin-left:auto"
+                onclick="window._herinnerBeschikbaarheid()">
+          🔔 Herinner iedereen zonder opgave
+        </button>
       </div>`;
   }
 
