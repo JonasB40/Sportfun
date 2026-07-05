@@ -358,6 +358,10 @@
     const isBeschikbaar = besch?.beschikbaar ?? null;
     const onbeschikbareDagen = new Set(besch?.onbeschikbare_dagen ?? []);
 
+    const vandaag = new Date().toISOString().slice(0, 10);
+    const deadline = kamp.beschikbaarheid_deadline ?? null;
+    const deadlineVoorbij = deadline && deadline < vandaag;
+
     let statusBadge = '';
     if (isBeschikbaar === null)
       statusBadge = `<span class="besch-status-badge besch-status-geen">Nog niet ingevuld</span>`;
@@ -376,9 +380,21 @@
 
     const isChecked = isBeschikbaar !== false;
 
+    const deadlineBanner = deadline
+      ? `<div style="margin:0 -16px;padding:6px 16px;font-size:0.78rem;font-weight:700;
+                     background:${deadlineVoorbij ? 'rgba(255,105,85,0.10)' : 'rgba(20,136,105,0.07)'};
+                     color:${deadlineVoorbij ? 'var(--kleur-koraal)' : 'var(--kleur-donkergroen)'};
+                     border-bottom:1px solid ${deadlineVoorbij ? 'rgba(255,105,85,0.2)' : 'rgba(20,136,105,0.15)'}">
+           ${deadlineVoorbij
+             ? `⚠️ Deadline verstreken — opgave was verwacht vóór ${datumNaarNL(deadline)}`
+             : `⏰ Geef je beschikbaarheid op vóór ${datumNaarNL(deadline)}`}
+         </div>`
+      : '';
+
     return `
       <div class="besch-kaart" id="besch-kaart-${kamp.id}">
-        <div class="besch-kaart-kop" id="besch-kop-${kamp.id}">
+        ${deadlineBanner}
+        <div class="besch-kaart-kop" id="besch-kop-${kamp.id}" style="margin-top:${deadline ? '8px' : '0'}">
           <div class="besch-kaart-kop-links">
             <div class="besch-kamp-naam">${ontsnap(kamp.naam)}</div>
             <div class="besch-kamp-meta">
@@ -399,7 +415,7 @@
             <label class="toggle-wrapper" style="gap:10px">
               <span class="toggle">
                 <input type="checkbox" class="besch-toggle" data-kamp="${kamp.id}"
-                       ${isChecked ? 'checked' : ''}>
+                       ${isChecked ? 'checked' : ''} ${deadlineVoorbij ? 'disabled' : ''}>
                 <span class="toggle-slider"></span>
               </span>
               <span style="font-size:0.85rem;font-weight:700;color:var(--kleur-donkergroen)">
@@ -420,17 +436,17 @@
               Opmerking (optioneel)
             </label>
             <textarea class="besch-opmerking" id="opmerking-${kamp.id}" rows="2"
-                      placeholder="Bv. 'Woensdag kom ik iets later'">${ontsnap(besch?.opmerking ?? '')}</textarea>
+                      placeholder="Bv. 'Woensdag kom ik iets later'"
+                      ${deadlineVoorbij ? 'disabled' : ''}>${ontsnap(besch?.opmerking ?? '')}</textarea>
           </div>
 
           <div class="besch-opslaan-rij">
-            <button class="knop knop-omtrek besch-sluiten-knop"
-                    data-kamp="${kamp.id}">
+            <button class="knop knop-omtrek besch-sluiten-knop" data-kamp="${kamp.id}">
               Sluiten
             </button>
-            <button class="knop knop-accent besch-opslaan-knop"
-                    data-kamp="${kamp.id}">
-              Opslaan
+            <button class="knop knop-accent besch-opslaan-knop" data-kamp="${kamp.id}"
+                    ${deadlineVoorbij ? 'disabled title="Deadline verstreken — neem contact op met de beheerder"' : ''}>
+              ${deadlineVoorbij ? '🔒 Deadline verstreken' : 'Opslaan'}
             </button>
           </div>
         </div>

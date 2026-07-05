@@ -27,22 +27,41 @@ import { maakNotificatie } from './auth.js?v=1783500000000';
 export async function haalToekomstigeKampenMetBeschikbaarheidOp(lesgeverID) {
   try {
     const vandaag = lokaleISO(new Date());
-    const [{ data: kampen, error: kFout }, { data: besch }] = await Promise.all([
+    const [{ data: openKampen, error: kFout }, { data: besch }, { data: koppelingen }] = await Promise.all([
+      // Kampen die de admin expliciet heeft opengesteld voor beschikbaarheid
       supabase
         .from('kampen')
-        .select('id, naam, locatie, startdatum, einddatum, leeftijdsgroep, status')
+        .select('id, naam, locatie, startdatum, einddatum, leeftijdsgroep, status, beschikbaarheid_deadline')
         .neq('status', 'afgelopen')
         .eq('beschikbaarheid_open', true)
         .gte('einddatum', vandaag)
         .order('startdatum', { ascending: true }),
+      // Bestaande beschikbaarheidsopgaven van deze lesgever
       supabase
         .from('beschikbaarheden')
         .select('kamp_id, beschikbaar, onbeschikbare_dagen, opmerking')
         .eq('lesgever_id', lesgeverID),
+      // Kampen waar de lesgever al aan gekoppeld is (ook als beschikbaarheid_open = false)
+      supabase
+        .from('kamp_lesgevers')
+        .select('kampen(id, naam, locatie, startdatum, einddatum, leeftijdsgroep, status, beschikbaarheid_deadline)')
+        .eq('lesgever_id', lesgeverID)
+        .in('status', ['gevraagd', 'bevestigd'])
+        .gte('kampen.einddatum', vandaag),
     ]);
     if (kFout) throw kFout;
+
+    // Voeg gekoppelde kampen samen met open kampen (geen duplicaten)
+    const gekoppeldeKampen = (koppelingen ?? [])
+      .map(k => k.kampen)
+      .filter(k => k && k.status !== 'afgelopen');
+    const kampenMap = new Map((openKampen ?? []).map(k => [k.id, k]));
+    for (const k of gekoppeldeKampen) kampenMap.set(k.id, k);
+    const kampen = [...kampenMap.values()].sort((a, b) =>
+      a.startdatum.localeCompare(b.startdatum));
+
     const beschMap = new Map((besch ?? []).map(b => [b.kamp_id, b]));
-    return (kampen ?? []).map(kamp => ({
+    return kampen.map(kamp => ({
       kamp,
       beschikbaarheid: beschMap.get(kamp.id) ?? null,
     }));

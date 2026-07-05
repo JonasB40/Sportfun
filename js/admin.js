@@ -465,11 +465,11 @@ export async function haalAlleDagprogrammasOp() {
  * @param {boolean} open
  * @returns {Promise<boolean>}
  */
-export async function zetBeschikbaarheidOpen(kampID, open) {
+export async function zetBeschikbaarheidOpen(kampID, open, deadline = null) {
   try {
     const { error } = await supabase
       .from('kampen')
-      .update({ beschikbaarheid_open: open })
+      .update({ beschikbaarheid_open: open, beschikbaarheid_deadline: deadline ?? null })
       .eq('id', kampID);
     if (error) throw error;
     toonToast(open ? 'Beschikbaarheid opengesteld.' : 'Beschikbaarheid gesloten.', 'succes');
@@ -489,23 +489,39 @@ export async function zetBeschikbaarheidOpen(kampID, open) {
 export async function haalBeschikbaarhedenMatrixOp() {
   const vandaag = lokaleISO(new Date());
   try {
-    const [{ data: kampen }, { data: lesgevers }, { data: beschikbaarheden }] = await Promise.all([
+    const [{ data: kampen }, { data: actieveLesgevers }, { data: beschikbaarheden }, { data: koppelingen }] = await Promise.all([
       supabase.from('kampen')
-        .select('id, naam, startdatum, einddatum, beschikbaarheid_open')
+        .select('id, naam, startdatum, einddatum, beschikbaarheid_open, beschikbaarheid_deadline')
         .neq('status', 'afgelopen')
         .gte('einddatum', vandaag)
         .order('startdatum'),
       supabase.from('profielen')
-        .select('id, voornaam, achternaam, rol')
-        .in('rol', ['lesgever', 'extra_hulp'])
+        .select('id, voornaam, achternaam, rol, actief')
+        .in('rol', ['lesgever', 'extra_hulp', 'coordinator', 'admin'])
         .eq('actief', true)
         .order('achternaam'),
       supabase.from('beschikbaarheden')
         .select('lesgever_id, kamp_id, beschikbaar, onbeschikbare_dagen'),
+      // Haal ook lesgevers op die gekoppeld zijn maar actief=false hebben
+      supabase.from('kamp_lesgevers')
+        .select('lesgever_id, profielen(id, voornaam, achternaam, rol, actief)')
+        .in('status', ['gevraagd', 'bevestigd']),
     ]);
+
+    // Voeg gekoppelde-maar-inactieve lesgevers toe aan de lesgeverlijst
+    const lesgeverMap = new Map((actieveLesgevers ?? []).map(l => [l.id, l]));
+    for (const k of (koppelingen ?? [])) {
+      const p = k.profielen;
+      if (p && !p.actief && !lesgeverMap.has(p.id)) {
+        lesgeverMap.set(p.id, { ...p, _inactief: true });
+      }
+    }
+    const lesgevers = [...lesgeverMap.values()]
+      .sort((a, b) => (a.achternaam ?? '').localeCompare(b.achternaam ?? ''));
+
     return {
-      kampen:         kampen ?? [],
-      lesgevers:      lesgevers ?? [],
+      kampen:           kampen ?? [],
+      lesgevers,
       beschikbaarheden: beschikbaarheden ?? [],
     };
   } catch (fout) {

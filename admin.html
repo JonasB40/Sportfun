@@ -2682,19 +2682,35 @@
          </div>`
       : '';
 
+    const deadlineWaarde = kamp.beschikbaarheid_deadline ?? '';
+    const deadlineTekst = deadlineWaarde
+      ? `Deadline: ${datumNaarNL(deadlineWaarde)}`
+      : 'Geen deadline ingesteld';
     container.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
-                  background:${isOpen ? 'rgba(20,136,105,0.08)' : 'var(--kleur-wit)'};
+      <div style="padding:10px 14px;background:${isOpen ? 'rgba(20,136,105,0.08)' : 'var(--kleur-wit)'};
                   border-radius:8px;border:1px solid ${isOpen ? 'rgba(20,136,105,0.2)' : 'var(--kleur-lichtgrijs)'};
                   margin-bottom:18px">
-        <div>
-          <div class="vet" style="font-size:0.88rem">${isOpen ? '🔓 Beschikbaarheid opengesteld' : '🔒 Beschikbaarheid gesloten'}</div>
-          <div class="font-klein kleur-grijs">${isOpen ? 'Lesgevers kunnen beschikbaarheid ingeven via de Beschikbaarheidspagina' : 'Zet open om lesgevers te herinneren dat ze beschikbaarheid kunnen ingeven'}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div>
+            <div class="vet" style="font-size:0.88rem">${isOpen ? '🔓 Beschikbaarheid opengesteld' : '🔒 Beschikbaarheid gesloten'}</div>
+            <div class="font-klein kleur-grijs">${isOpen ? 'Lesgevers kunnen beschikbaarheid ingeven via de Beschikbaarheidspagina' : 'Zet open om lesgevers te laten opgeven wanneer ze beschikbaar zijn'}</div>
+          </div>
+          <button class="knop ${isOpen ? 'knop-gevaar' : 'knop-middengroen'} knop-klein"
+                  onclick="window._toggleBeschikbaarheid('${kampID}', ${!isOpen})">
+            ${isOpen ? 'Sluiten' : 'Openzetten'}
+          </button>
         </div>
-        <button class="knop ${isOpen ? 'knop-gevaar' : 'knop-middengroen'} knop-klein"
-                onclick="window._toggleBeschikbaarheid('${kampID}', ${!isOpen})">
-          ${isOpen ? 'Sluiten' : 'Openzetten'}
-        </button>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--kleur-lichtgrijs)">
+          <label style="font-size:0.78rem;font-weight:700;color:var(--kleur-donkergroen);white-space:nowrap">
+            ⏰ Deadline opgave:
+          </label>
+          <input type="date" id="besch-deadline-${kampID}" value="${deadlineWaarde}"
+                 style="font-size:0.82rem;padding:4px 8px;border:1px solid var(--kleur-lichtgrijs);border-radius:6px;color:var(--kleur-donkergroen)"
+                 title="Lesgevers zien een waarschuwing na deze datum">
+          <button class="knop knop-omtrek knop-klein"
+                  onclick="window._slaDeadlineOp('${kampID}')">Opslaan</button>
+          <span class="font-klein kleur-grijs">${deadlineTekst}</span>
+        </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1.6fr;gap:24px;align-items:start">
         <div>
@@ -2776,11 +2792,22 @@
     }
   };
 
+  window._slaDeadlineOp = async (kampID) => {
+    const deadline = document.getElementById(`besch-deadline-${kampID}`)?.value || null;
+    const kamp = alleKampen.find(k => k.id === kampID);
+    const ok = await zetBeschikbaarheidOpen(kampID, kamp?.beschikbaarheid_open ?? false, deadline);
+    if (ok) {
+      if (kamp) kamp.beschikbaarheid_deadline = deadline;
+      await laadKampDetailInline(kampID);
+    }
+  };
+
   window._toggleBeschikbaarheid = async (kampID, open) => {
-    const ok = await zetBeschikbaarheidOpen(kampID, open);
+    const deadline = document.getElementById(`besch-deadline-${kampID}`)?.value || null;
+    const ok = await zetBeschikbaarheidOpen(kampID, open, deadline);
     if (ok) {
       const kamp = alleKampen.find(k => k.id === kampID);
-      if (kamp) kamp.beschikbaarheid_open = open;
+      if (kamp) { kamp.beschikbaarheid_open = open; kamp.beschikbaarheid_deadline = deadline; }
       await laadKampDetailInline(kampID);
     }
   };
@@ -3610,35 +3637,53 @@
       return `${d}/${m}`;
     };
 
-    const kolommen = kampen.map(k =>
-      `<th style="min-width:90px;max-width:120px;padding:6px 8px;text-align:center;white-space:normal;word-break:break-word;border-bottom:2px solid var(--kleur-lichtgrijs);font-weight:700;font-size:0.75rem;color:var(--kleur-donkergroen);vertical-align:bottom">
-        <div>${ontsnap(k.naam)}</div>
-        <div style="font-weight:400;color:var(--kleur-grijs);font-size:0.68rem">${datumFmt(k.startdatum)}–${datumFmt(k.einddatum)}</div>
-      </th>`
-    ).join('');
+    const vandaagISO = lokaleISO(new Date());
+    const kolommen = kampen.map(k => {
+      const aantalDagen = genereerKampDagen(k.startdatum, k.einddatum).length;
+      const deadlineVoorbij = k.beschikbaarheid_deadline && k.beschikbaarheid_deadline < vandaagISO;
+      const deadlineTekst = k.beschikbaarheid_deadline
+        ? `<div style="font-weight:400;font-size:0.65rem;margin-top:2px;color:${deadlineVoorbij ? 'var(--kleur-koraal)' : 'var(--kleur-grijs)'}">
+             ${deadlineVoorbij ? '⚠️' : '⏰'} deadline ${datumFmt(k.beschikbaarheid_deadline)}
+           </div>`
+        : '';
+      const openBadge = k.beschikbaarheid_open
+        ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--kleur-middengroen);margin-left:4px;vertical-align:middle" title="Opengesteld"></span>'
+        : '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--kleur-grijs);margin-left:4px;vertical-align:middle" title="Gesloten"></span>';
+      return `<th style="min-width:90px;max-width:120px;padding:6px 8px;text-align:center;white-space:normal;word-break:break-word;border-bottom:2px solid var(--kleur-lichtgrijs);font-weight:700;font-size:0.75rem;color:var(--kleur-donkergroen);vertical-align:bottom">
+        <div>${ontsnap(k.naam)}${openBadge}</div>
+        <div style="font-weight:400;color:var(--kleur-grijs);font-size:0.68rem">${datumFmt(k.startdatum)}–${datumFmt(k.einddatum)} (${aantalDagen}d)</div>
+        ${deadlineTekst}
+      </th>`;
+    }).join('');
 
     const rolLabel = { lesgever: 'Lesgever', extra_hulp: 'Extra hulp', coordinator: 'Coördinator', admin: 'Beheerder' };
 
     const rijen = lesgevers.map(lg => {
       const cellen = kampen.map(k => {
+        const aantalDagen = genereerKampDagen(k.startdatum, k.einddatum).length;
         const b = idx[lg.id]?.[k.id];
-        let icoon, titel, kleur;
+        let icoon, label, titel, kleur;
         if (!b) {
-          icoon = '⚪'; titel = 'Geen opgave'; kleur = 'transparent';
+          icoon = '⚪'; label = ''; titel = 'Geen opgave'; kleur = 'transparent';
         } else if (b.beschikbaar === false) {
-          icoon = '🔴'; titel = 'Niet beschikbaar'; kleur = '#fff0f0';
+          icoon = '🔴'; label = ''; titel = 'Niet beschikbaar'; kleur = '#fff0f0';
         } else {
-          const deels = b.onbeschikbare_dagen?.length > 0;
+          const onb = b.onbeschikbare_dagen?.length ?? 0;
+          const beschDagen = aantalDagen - onb;
+          const deels = onb > 0;
           icoon = deels ? '🟡' : '🟢';
-          titel = deels ? `Deels beschikbaar (${b.onbeschikbare_dagen.length} dag(en) niet)` : 'Beschikbaar';
+          label = `<div style="font-size:0.65rem;margin-top:1px;font-weight:700">${beschDagen}/${aantalDagen}d</div>`;
+          titel = deels ? `Beschikbaar ${beschDagen}/${aantalDagen} dagen (${onb} dag(en) niet)` : `Beschikbaar alle ${aantalDagen} dagen`;
           kleur = deels ? '#fffbea' : '#f0fff4';
         }
-        return `<td style="text-align:center;padding:5px 8px;font-size:1rem;background:${kleur};border-bottom:1px solid var(--kleur-lichtgrijs)" title="${titel}">${icoon}</td>`;
+        return `<td style="text-align:center;padding:5px 8px;font-size:1rem;background:${kleur};border-bottom:1px solid var(--kleur-lichtgrijs)" title="${titel}">${icoon}${label}</td>`;
       }).join('');
 
-      return `<tr>
+      const inactiefBadge = lg._inactief
+        ? '<span class="badge badge-grijs" style="font-size:0.6rem;opacity:0.6">inactief</span>' : '';
+      return `<tr style="${lg._inactief ? 'opacity:0.6' : ''}">
         <td style="padding:6px 12px;white-space:nowrap;border-bottom:1px solid var(--kleur-lichtgrijs);min-width:140px;position:sticky;left:0;background:var(--kleur-wit);z-index:1">
-          <div style="font-weight:700;font-size:0.82rem">${ontsnap(lg.voornaam)} ${ontsnap(lg.achternaam)}</div>
+          <div style="font-weight:700;font-size:0.82rem">${ontsnap(lg.voornaam)} ${ontsnap(lg.achternaam)} ${inactiefBadge}</div>
           <div style="font-size:0.7rem;color:var(--kleur-grijs)">${rolLabel[lg.rol] ?? lg.rol}</div>
         </td>
         ${cellen}
