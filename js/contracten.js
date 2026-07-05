@@ -570,10 +570,13 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
   ` : '';
 
   // ── Handtekeningen ───────────────────────────────────────────────────
-  const vrijwHandtekening = eHandtekeningURL ? `
+  // Handtekening enkel tonen als het contract nog geldig ondertekend is
+  // (ondertekend_op aanwezig). Na een admin-reset is ondertekend_op null en
+  // mag de profielhandtekening NIET meer getoond worden.
+  const vrijwHandtekening = (eHandtekeningURL && ondertekend) ? `
     <img src="${eHandtekeningURL}" alt="Handtekening vrijwilliger"
          style="max-height:70px;max-width:200px;display:block;margin:10px 0 4px">
-    <div class="kleine-tekst">Digitaal ondertekend op ${ondertekend ?? vandaag}</div>
+    <div class="kleine-tekst">Digitaal ondertekend op ${ondertekend}</div>
   ` : ondertekend ? `
     <div class="handtekening-digitaal">
       <strong>✓ Digitaal ondertekend</strong><br>
