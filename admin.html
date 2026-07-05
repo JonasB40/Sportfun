@@ -1257,26 +1257,38 @@
     </tr>`;
   }
 
-  function groepHeader(titel, subtitel, cts, kleur) {
+  function groepHeader(titel, subtitel, cts, kleur, groepId) {
     const aantalOnd = cts.filter(c => c.ondertekend).length;
     const aantalBetaald = cts.filter(c => c.betaald).length;
     const totaal = cts.reduce((s, c) => s + (c.totaal_bedrag ?? 0), 0);
     const ids = cts.map(c => c.id);
     const alleGeselecteerd = ids.every(id => contrGeselecteerd.has(id));
-    return `<div style="padding:10px 18px;background:${kleur};color:var(--kleur-wit);display:flex;align-items:center;flex-wrap:wrap;gap:6px">
+    return `<div style="padding:10px 18px;background:${kleur};color:var(--kleur-wit);display:flex;align-items:center;flex-wrap:wrap;gap:6px;cursor:pointer"
+                 onclick="window._toggleGroep('${groepId}', this)">
       <input type="checkbox" class="contr-groep-cb" data-ids='${JSON.stringify(ids)}' ${alleGeselecteerd ? 'checked' : ''}
-        style="width:16px;height:16px;cursor:pointer;flex-shrink:0;accent-color:var(--kleur-limoen)">
+        style="width:16px;height:16px;cursor:pointer;flex-shrink:0;accent-color:var(--kleur-limoen)"
+        onclick="event.stopPropagation()">
       <div style="flex:1;min-width:0">
         <div style="font-weight:800;font-size:0.9rem">${ontsnap(titel)}</div>
         ${subtitel ? `<div style="font-size:0.73rem;color:rgba(255,255,255,0.75);margin-top:1px">${subtitel}</div>` : ''}
       </div>
-      <div style="display:flex;gap:12px;font-size:0.73rem">
+      <div style="display:flex;gap:12px;font-size:0.73rem;align-items:center">
         <div style="text-align:right"><div style="color:rgba(255,255,255,0.6)">Ond.</div><div style="font-weight:800;color:var(--kleur-limoen)">${aantalOnd}/${cts.length}</div></div>
         <div style="text-align:right"><div style="color:rgba(255,255,255,0.6)">Bet.</div><div style="font-weight:800;color:var(--kleur-limoen)">${aantalBetaald}/${cts.length}</div></div>
         <div style="text-align:right"><div style="color:rgba(255,255,255,0.6)">Totaal</div><div style="font-weight:800;color:var(--kleur-limoen)">${formaatBedrag(totaal)}</div></div>
+        <span class="groep-pijl" style="font-size:0.8rem;margin-left:4px;transition:transform 0.15s">▼</span>
       </div>
     </div>`;
   }
+
+  window._toggleGroep = (groepId, headerEl) => {
+    const inhoud = document.getElementById(groepId);
+    if (!inhoud) return;
+    const ingeklapt = inhoud.style.display === 'none';
+    inhoud.style.display = ingeklapt ? '' : 'none';
+    const pijl = headerEl.querySelector('.groep-pijl');
+    if (pijl) pijl.style.transform = ingeklapt ? '' : 'rotate(-90deg)';
+  };
 
   function renderContractenOverzicht() {
     const gefilterd = filterContracten();
@@ -1299,14 +1311,15 @@
         perKamp.get(kId).cts.push(c);
       }
       for (const { kamp, cts } of [...perKamp.values()].sort((a, b) =>
-        (b.kamp?.startdatum ?? '').localeCompare(a.kamp?.startdatum ?? ''))) {
+        (a.kamp?.startdatum ?? '').localeCompare(b.kamp?.startdatum ?? ''))) {
+        const groepId = `groep-kamp-${cts[0]?.kamp_id ?? Math.random()}`;
         const sub = [
           kamp?.startdatum ? datumNaarNL(kamp.startdatum) + ' – ' + datumNaarNL(kamp.einddatum) : '',
           kamp?.locatie ? ontsnap(kamp.locatie) : ''
         ].filter(Boolean).join(' · ');
         html += `<div style="border-bottom:1px solid var(--kleur-lichtgrijs)">
-          ${groepHeader(kamp?.naam ?? 'Onbekend kamp', sub, cts, 'var(--kleur-donkergroen)')}
-          <div class="tabel-wrapper" style="margin:0"><table class="tabel" style="margin:0">
+          ${groepHeader(kamp?.naam ?? 'Onbekend kamp', sub, cts, 'var(--kleur-donkergroen)', groepId)}
+          <div id="${groepId}" class="tabel-wrapper" style="margin:0"><table class="tabel" style="margin:0">
             <thead><tr><th style="width:30px"></th><th>Lesgever</th><th style="text-align:right">Dagen</th><th style="text-align:right">Verg.</th><th style="text-align:right">KM</th><th style="text-align:right">Totaal</th><th>Status</th><th></th></tr></thead>
             <tbody>${cts.map(c => contractRij(c, 'lesgever')).join('')}</tbody>
           </table></div></div>`;
@@ -1321,11 +1334,12 @@
       for (const { profiel, cts } of [...perLg.values()].sort((a, b) =>
         `${a.profiel?.achternaam}`.localeCompare(`${b.profiel?.achternaam}`, 'nl'))) {
         const naam = `${profiel?.voornaam ?? ''} ${profiel?.achternaam ?? ''}`;
+        const groepId = `groep-lg-${profiel?.id ?? Math.random()}`;
         html += `<div style="border-bottom:1px solid var(--kleur-lichtgrijs)">
-          ${groepHeader(naam, ontsnap(profiel?.email ?? ''), cts, 'var(--kleur-middengroen)')}
-          <div class="tabel-wrapper" style="margin:0"><table class="tabel" style="margin:0">
+          ${groepHeader(naam, ontsnap(profiel?.email ?? ''), cts, 'var(--kleur-middengroen)', groepId)}
+          <div id="${groepId}" class="tabel-wrapper" style="margin:0"><table class="tabel" style="margin:0">
             <thead><tr><th style="width:30px"></th><th>Kamp</th><th style="text-align:right">Dagen</th><th style="text-align:right">Verg.</th><th style="text-align:right">KM</th><th style="text-align:right">Totaal</th><th>Status</th><th></th></tr></thead>
-            <tbody>${cts.sort((a,b) => (b.kampen?.startdatum??'').localeCompare(a.kampen?.startdatum??'')).map(c => contractRij(c, 'kamp')).join('')}</tbody>
+            <tbody>${cts.sort((a,b) => (a.kampen?.startdatum??'').localeCompare(b.kampen?.startdatum??'')).map(c => contractRij(c, 'kamp')).join('')}</tbody>
           </table></div></div>`;
       }
     }
