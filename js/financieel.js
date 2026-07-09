@@ -17,7 +17,7 @@ import { toonToast } from './utils.js?v=1783500000000';
 export const HUIDIG_JAAR = new Date().getFullYear();
 export const KM_TARIEF_2026   = 0.4449; // autotarief 1/7/2025 – 30/6/2026
 export const MAX_PER_DAG_2026 = 44.02;
-export const MAX_PER_JAAR_2026 = 1761.00;
+export const MAX_PER_JAAR_2026 = 1760.83;
 
 // Standaardvergoeding per rol (fallback als DB niet ingelezen kan worden)
 const STANDAARD_FALLBACK = {

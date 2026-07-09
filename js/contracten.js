@@ -228,7 +228,7 @@ const ACTIVITEIT_LABELS = {
   lesgever:    'Voorbereiden en geven van sportinitiaties als lesgever',
   extra_hulp:  'Ondersteunen van sportinitiaties als extra hulp',
   coordinator: 'Coördineren en begeleiden van sportkampen',
-  admin:       'Administratieve ondersteuning van sportkampen',
+  admin:       'Coördineren en begeleiden van sportkampen',
 };
 const activiteitVoorRol = rol =>
   ACTIVITEIT_LABELS[rol] ?? 'Vrijwilligersactiviteiten in het kader van de sportkampen';
@@ -355,8 +355,30 @@ ARTIKEL 2 — GEEN BEZOLDIGING
   verplichting inzake sociale zekerheid of fiscale regelgeving.
 
 ARTIKEL 3 — DUUR VAN DE OVEREENKOMST
-  Het vrijwilligerswerk vangt aan op ${datumNaarNL(kamp.startdatum)} en loopt
-  tot ${datumNaarNL(kamp.einddatum)}. De overeenkomst kan steeds eindigen in
+  Het vrijwilligerswerk vangt aan op ${datumNaarNL((() => {
+    const extra = [
+      contract.voorbereidingsdag_datum, contract.opruimdag_datum,
+      contract.opleidingsdag_datum, contract.evaluatiemoment_datum,
+    ].filter(Boolean);
+    return [kamp.startdatum, ...extra].sort()[0];
+  })())} en loopt
+  tot ${datumNaarNL((() => {
+    const eindVanType = (datum, aantalDagen) => {
+      if (!datum || !aantalDagen) return null;
+      const n = Math.ceil(Number(aantalDagen));
+      if (n <= 0) return null;
+      const d = new Date(datum + 'T00:00:00');
+      d.setDate(d.getDate() + n - 1);
+      return lokaleISO(d);
+    };
+    const extra = [
+      eindVanType(contract.voorbereidingsdag_datum, contract.voorbereidingsdag_dagen),
+      eindVanType(contract.opruimdag_datum, contract.opruimdag_dagen),
+      eindVanType(contract.opleidingsdag_datum, contract.opleidingsdag_dagen),
+      eindVanType(contract.evaluatiemoment_datum, contract.evaluatiemoment_dagen),
+    ].filter(Boolean);
+    return [kamp.einddatum, ...extra].sort().at(-1);
+  })())}. De overeenkomst kan steeds eindigen in
   onderling akkoord of door schriftelijke mededeling van één van beide
   partijen.
 
@@ -441,16 +463,11 @@ Datum: _______________                 Datum: _______________
  */
 export function genereerContractHTML(lesgever, kamp, opties = {}) {
   // ── Labels & datums ──────────────────────────────────────────────────
-  const rolLabels = {
-    lesgever: 'Lesgever', extra_hulp: 'Extra hulp',
-    coordinator: 'Coördinator', admin: 'Beheerder',
-  };
-  const rolLabel = rolLabels[lesgever.rol] ?? lesgever.rol;
   const activiteitLabel = {
     lesgever:    'Voorbereiden en geven van sport initiaties als lesgever',
     extra_hulp:  'Ondersteunen van sport initiaties als extra hulp',
     coordinator: 'Coördineren en begeleiden van sportkampen',
-    admin:       'Administratieve ondersteuning van sportkampen',
+    admin:       'Coördineren en begeleiden van sportkampen',
   }[lesgever.rol] ?? 'Vrijwilligersactiviteiten in het kader van de sportkampen';
 
   const opgesteldDatum = opties.contract?.aangemaakt_op
@@ -493,7 +510,6 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
   const eKampNaam        = ontsnap(kamp.naam ?? '');
   const eKampLocatie     = ontsnap(kamp.locatie ?? '');
   const eKampAdres       = ontsnap(kamp.adres ?? '');
-  const eKampLeeftijd    = ontsnap(kamp.leeftijdsgroep ?? '');
   const eHandtekeningURL    = ontsnap(opties.handtekeningURL ?? '');
   const eSfHandtekeningURL  = ontsnap(opties.sportfunHandtekeningURL ?? '');
 
@@ -518,10 +534,14 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
       let datumTekst = '';
       if (datumVal) {
         const kalenderDagen = Math.ceil(d);
+        const rest = d % 1;
         const datums = [];
         for (let i = 0; i < kalenderDagen; i++) {
           const dt = new Date(new Date(datumVal + 'T00:00:00').getTime() + i * 86400000);
-          datums.push(datumNaarNL(lokaleISO(dt), true));
+          const label = datumNaarNL(lokaleISO(dt), true);
+          const isLaatste = i === kalenderDagen - 1;
+          const fractie = isLaatste && rest !== 0 ? ` (${brk(rest)} dag)` : '';
+          datums.push(label + fractie);
         }
         datumTekst = ` <span style="color:#6B7280;font-size:8pt">(${datums.join(', ')})</span>`;
       }
@@ -565,7 +585,7 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
       De vrijwilliger verklaart hierbij op eer dat hij/zij in het kalenderjaar ${new Date().getFullYear()}
       nooit een forfaitaire onkostenvergoeding ontvangt bij de sportclub en/of één of meer andere
       organisaties die in totaal hoger is dan de wettelijk toegestane maxima
-      (€&nbsp;44,02/dag · max. €&nbsp;1.761,00/jaar — tarieven 2026).
+      (€&nbsp;44,02/dag · max. €&nbsp;1.760,83/jaar — tarieven 2026).
     </p>
   ` : '';
 
@@ -831,19 +851,6 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
     <div class="kamp-item-label">Locatie</div>
     <div class="kamp-item-waarde">${eKampLocatie}${eKampAdres ? `<br><span style="font-size:8.5pt;font-weight:400;opacity:0.75">${eKampAdres}</span>` : ''}</div>
   </div>
-  <div class="kamp-item">
-    <div class="kamp-item-label">Leeftijdsgroep</div>
-    <div class="kamp-item-waarde">${eKampLeeftijd}</div>
-  </div>
-  <div class="kamp-item">
-    <div class="kamp-item-label">Rol vrijwilliger</div>
-    <div class="kamp-item-waarde">${rolLabel}</div>
-  </div>
-  ${heeftFinancieelData ? `
-  <div class="kamp-item" style="background:#D7FC5C;color:#194338">
-    <div class="kamp-item-label" style="color:rgba(25,67,56,0.65)">Totale vergoeding</div>
-    <div class="kamp-item-waarde">${f(eindtotaal)}</div>
-  </div>` : ''}
 </div>
 
 <div class="sectie-kop">Bepalingen</div>
@@ -884,8 +891,30 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
   <div>
     <div class="artikel-titel">Duur van de overeenkomst</div>
     <p class="artikel-inhoud">
-      Het vrijwilligerswerk vangt aan op <strong>${datumNaarNL(kamp.startdatum)}</strong>
-      en loopt tot <strong>${datumNaarNL(kamp.einddatum)}</strong>.
+      Het vrijwilligerswerk vangt aan op <strong>${datumNaarNL((() => {
+        const extra = [
+          contract.voorbereidingsdag_datum, contract.opruimdag_datum,
+          contract.opleidingsdag_datum, contract.evaluatiemoment_datum,
+        ].filter(Boolean);
+        return [kamp.startdatum, ...extra].sort()[0];
+      })())}</strong>
+      en loopt tot <strong>${datumNaarNL((() => {
+        const eindVanType = (datum, aantalDagen) => {
+          if (!datum || !aantalDagen) return null;
+          const n = Math.ceil(Number(aantalDagen));
+          if (n <= 0) return null;
+          const d = new Date(datum + 'T00:00:00');
+          d.setDate(d.getDate() + n - 1);
+          return lokaleISO(d);
+        };
+        const extra = [
+          eindVanType(contract.voorbereidingsdag_datum, contract.voorbereidingsdag_dagen),
+          eindVanType(contract.opruimdag_datum, contract.opruimdag_dagen),
+          eindVanType(contract.opleidingsdag_datum, contract.opleidingsdag_dagen),
+          eindVanType(contract.evaluatiemoment_datum, contract.evaluatiemoment_dagen),
+        ].filter(Boolean);
+        return [kamp.einddatum, ...extra].sort().at(-1);
+      })())}</strong>.
       De overeenkomst kan steeds eindigen in onderling akkoord tussen de sportclub en de vrijwilliger
       of door schriftelijke mededeling van één van beide partijen.
     </p>
