@@ -3448,7 +3448,7 @@
           const msg = e?.message ?? '';
           if (msg.includes('Function not found') || msg.includes('404') || msg.includes('non-2xx')) {
             extra = `<br><br>⚠️ De Edge Function <code>admin-reset-password</code> is nog niet gedeployed.<br>
-              Volg de instructies in <strong>DEPLOY-EDGE-FUNCTION.md</strong> of voer ondertussen handmatig deze SQL uit:`;
+              Volg de instructies in <strong>docs/DEPLOY-EDGE-FUNCTION.md</strong> of voer ondertussen handmatig deze SQL uit:`;
           } else {
             extra = '<br>' + msg;
           }

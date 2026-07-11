@@ -696,7 +696,7 @@ export async function maakNieuwGebruikerAan(gegevens, aangemaakt_door) {
     return {
       succes: true,
       fout: null,
-      waarschuwing: 'Het account is aangemaakt via de terugvalroute: de gebruiker moet eerst de bevestigingsmail aanklikken vóór inloggen lukt. Deploy de Edge Function "admin-create-user" (zie DEPLOY-EDGE-FUNCTION.md) zodat accounts direct bruikbaar zijn.',
+      waarschuwing: 'Het account is aangemaakt via de terugvalroute: de gebruiker moet eerst de bevestigingsmail aanklikken vóór inloggen lukt. Deploy de Edge Function "admin-create-user" (zie docs/DEPLOY-EDGE-FUNCTION.md) zodat accounts direct bruikbaar zijn.',
     };
 
   } catch (fout) {
