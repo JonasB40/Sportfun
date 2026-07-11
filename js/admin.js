@@ -585,11 +585,10 @@ export async function haalKoppelingenOverzichtOp(kampID) {
  * Maak een nieuw account aan voor een lesgever of medewerker,
  * zonder de huidige admin-sessie te verstoren.
  *
- * Stappen:
- *  1. Signup via tijdelijke Supabase-instantie
- *  2. Trigger maakt automatisch een profiel aan
- *  3. Profiel bijwerken met voornaam, achternaam, telefoon en rol
- *  4. Notificatie sturen indien gewenst
+ * Probeert eerst de Edge Function `admin-create-user`: die maakt het account
+ * aan met bevestigde e-mail, zodat de persoon DIRECT kan inloggen. Als de
+ * functie niet gedeployed is, valt dit terug op de gewone signup — dan moet
+ * de gebruiker wél eerst de bevestigingsmail aanklikken.
  *
  * @param {object} gegevens - Alle accountgegevens.
  * @param {string} gegevens.voornaam
@@ -599,13 +598,50 @@ export async function haalKoppelingenOverzichtOp(kampID) {
  * @param {string} gegevens.rol - 'lesgever' | 'extra_hulp' | 'coordinator' | 'admin'
  * @param {string} [gegevens.telefoon]
  * @param {string} aangemaakt_door - UUID van de beheerder die het account aanmaakt.
- * @returns {Promise<{succes: boolean, fout: string|null}>}
+ * @returns {Promise<{succes: boolean, fout: string|null, waarschuwing?: string}>}
  */
 export async function maakNieuwGebruikerAan(gegevens, aangemaakt_door) {
   const { voornaam, achternaam, email, wachtwoord, rol, telefoon } = gegevens;
 
+  // ── Route 1: Edge Function (account direct bruikbaar, geen mailbevestiging) ──
   try {
-    // Stap 1: auth-account aanmaken via tijdelijke client
+    const { data, error } = await supabase.functions.invoke('admin-create-user', {
+      body: { email, wachtwoord, voornaam, achternaam, rol, telefoon },
+    });
+    if (!error && data?.succes) {
+      await maakNotificatie(
+        data.gebruiker_id,
+        'uitnodiging',
+        `Welkom bij SportFun! Je account is aangemaakt als ${rolNaamNL(rol)}.`,
+        'profiel.html'
+      );
+      toonToast(`Account aangemaakt voor ${voornaam} ${achternaam} — direct bruikbaar.`, 'succes');
+      return { succes: true, fout: null };
+    }
+    // 409 = e-mailadres bestaat al: duidelijke fout, GEEN fallback proberen
+    // (anders krijgt de admin twee keer dezelfde melding of een half account)
+    if (error) {
+      let status = null, foutTekst = '';
+      try {
+        status = error.context?.status ?? null;
+        const responseBody = await error.context?.json?.();
+        foutTekst = responseBody?.error ?? '';
+      } catch { /* body niet leesbaar */ }
+      if (status === 409 || foutTekst === 'bestaat_al') {
+        return {
+          succes: false,
+          fout: 'Er bestaat al een account met dit e-mailadres. Gebruik "🔑 Wachtwoord" in het lesgeversoverzicht om een nieuw wachtwoord in te stellen.',
+        };
+      }
+      // Andere fouten (functie niet gedeployed, netwerk): val terug op signup
+      console.warn('[admin] Edge Function admin-create-user niet beschikbaar, terugval op signup:', foutTekst || error.message);
+    }
+  } catch (fout) {
+    console.warn('[admin] Edge Function admin-create-user mislukt, terugval op signup:', fout.message);
+  }
+
+  // ── Route 2 (fallback): gewone signup — vereist e-mailbevestiging ──
+  try {
     const { gebruiker, fout: authFout } = await maakGebruikerViaSignup(
       email, wachtwoord,
       { voornaam, achternaam, rol }
@@ -657,7 +693,11 @@ export async function maakNieuwGebruikerAan(gegevens, aangemaakt_door) {
     );
 
     toonToast(`Account aangemaakt voor ${voornaam} ${achternaam}.`, 'succes');
-    return { succes: true, fout: null };
+    return {
+      succes: true,
+      fout: null,
+      waarschuwing: 'Het account is aangemaakt via de terugvalroute: de gebruiker moet eerst de bevestigingsmail aanklikken vóór inloggen lukt. Deploy de Edge Function "admin-create-user" (zie DEPLOY-EDGE-FUNCTION.md) zodat accounts direct bruikbaar zijn.',
+    };
 
   } catch (fout) {
     console.error('[admin] Fout bij aanmaken gebruiker:', fout.message);
@@ -672,6 +712,87 @@ export async function maakNieuwGebruikerAan(gegevens, aangemaakt_door) {
  */
 function rolNaamNL(rol) {
   return { admin: 'Beheerder', coordinator: 'Coördinator', lesgever: 'Lesgever', extra_hulp: 'Extra hulp' }[rol] ?? rol;
+}
+
+/**
+ * Voeg twee dubbele profielen samen: verplaats alle kampkoppelingen,
+ * beschikbaarheden en contracten van het bron- naar het doelprofiel en
+ * deactiveer daarna het bronprofiel.
+ *
+ * Typisch scenario: de admin voegde een lesgever toe, die kon niet inloggen
+ * en registreerde zichzelf opnieuw. Het oude profiel (bron) heeft de
+ * kampkoppelingen; het nieuwe profiel (doel) is waarmee de persoon inlogt.
+ *
+ * @param {string} bronID - UUID van het oude/dubbele profiel.
+ * @param {string} doelID - UUID van het profiel dat behouden blijft.
+ * @returns {Promise<{succes: boolean, verplaatst: object, fout: string|null}>}
+ */
+export async function voegProfielenSamen(bronID, doelID) {
+  if (!bronID || !doelID || bronID === doelID) {
+    return { succes: false, verplaatst: {}, fout: 'Ongeldige profielcombinatie.' };
+  }
+  const verplaatst = { koppelingen: 0, beschikbaarheden: 0, contracten: 0 };
+  try {
+    // 1. Kampkoppelingen: verplaats per rij; sla over als het doel al
+    //    aan hetzelfde kamp gekoppeld is (uniek op lesgever_id+kamp_id).
+    const { data: bronKoppelingen } = await supabase
+      .from('kamp_lesgevers').select('id, kamp_id').eq('lesgever_id', bronID);
+    const { data: doelKoppelingen } = await supabase
+      .from('kamp_lesgevers').select('kamp_id').eq('lesgever_id', doelID);
+    const doelKampen = new Set((doelKoppelingen ?? []).map(k => k.kamp_id));
+
+    for (const k of (bronKoppelingen ?? [])) {
+      if (doelKampen.has(k.kamp_id)) {
+        await supabase.from('kamp_lesgevers').delete().eq('id', k.id);
+      } else {
+        const { error } = await supabase
+          .from('kamp_lesgevers').update({ lesgever_id: doelID }).eq('id', k.id);
+        if (!error) verplaatst.koppelingen++;
+      }
+    }
+
+    // 2. Beschikbaarheden: zelfde patroon (uniek op lesgever_id+kamp_id)
+    const { data: bronBeschik } = await supabase
+      .from('beschikbaarheden').select('id, kamp_id').eq('lesgever_id', bronID);
+    const { data: doelBeschik } = await supabase
+      .from('beschikbaarheden').select('kamp_id').eq('lesgever_id', doelID);
+    const doelBeschikKampen = new Set((doelBeschik ?? []).map(b => b.kamp_id));
+
+    for (const b of (bronBeschik ?? [])) {
+      if (doelBeschikKampen.has(b.kamp_id)) {
+        await supabase.from('beschikbaarheden').delete().eq('id', b.id);
+      } else {
+        const { error } = await supabase
+          .from('beschikbaarheden').update({ lesgever_id: doelID }).eq('id', b.id);
+        if (!error) verplaatst.beschikbaarheden++;
+      }
+    }
+
+    // 3. Contracten: geen uniciteitsbeperking — alles verplaatsen.
+    //    Handtekening vervalt NIET: het contract zelf wijzigt niet inhoudelijk,
+    //    maar de admin controleert best of de naam op het contract klopt.
+    const { data: bronContracten, error: contractFout } = await supabase
+      .from('contracten').update({ lesgever_id: doelID })
+      .eq('lesgever_id', bronID).select('id');
+    if (!contractFout) verplaatst.contracten = (bronContracten ?? []).length;
+
+    // 4. Bronprofiel deactiveren zodat het niet meer in lijsten opduikt.
+    //    Verwijderen kan niet (auth-koppeling), deactiveren wel.
+    await supabase.from('profielen')
+      .update({ actief: false })
+      .eq('id', bronID);
+
+    toonToast(
+      `Profielen samengevoegd: ${verplaatst.koppelingen} kampkoppeling(en), ` +
+      `${verplaatst.beschikbaarheden} beschikbaarhe(i)d(en) en ${verplaatst.contracten} contract(en) verplaatst.`,
+      'succes'
+    );
+    return { succes: true, verplaatst, fout: null };
+  } catch (fout) {
+    console.error('[admin] Fout bij samenvoegen profielen:', fout.message);
+    toonToast('Samenvoegen mislukt: ' + fout.message, 'fout');
+    return { succes: false, verplaatst, fout: fout.message };
+  }
 }
 
 // ── Dagprogramma's ──────────────────────────────────────────────────

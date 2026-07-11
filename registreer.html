@@ -201,7 +201,18 @@
       } catch (fout) {
         knop.disabled = false;
         knop.textContent = 'Account aanmaken';
-        foutEl.textContent = fout.message ?? 'Er is een fout opgetreden. Probeer opnieuw.';
+        const msg = fout.message ?? '';
+        if (msg.includes('already registered') || msg.includes('already been registered')) {
+          // Account bestaat al (bv. door de beheerder aangemaakt) — stuur naar
+          // login/wachtwoord-reset i.p.v. een tweede account te laten aanmaken.
+          foutEl.innerHTML =
+            'Er bestaat al een account met dit e-mailadres. ' +
+            'Maak géén nieuw account aan — <a href="index.html" style="color:inherit;font-weight:700">log in</a> ' +
+            'of gebruik <a href="index.html" style="color:inherit;font-weight:700">"Wachtwoord vergeten"</a> op de loginpagina. ' +
+            'Lukt dat niet, contacteer dan je coördinator.';
+        } else {
+          foutEl.textContent = msg || 'Er is een fout opgetreden. Probeer opnieuw.';
+        }
         foutEl.classList.remove('verborgen');
       }
     });

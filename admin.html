@@ -1067,7 +1067,7 @@
     haalAlleKampenOp, slaKampOp, haalKampLesgeversOp,
     koppelLesgever, ontkoppelLesgever,
     haalAlleGebruikersOp, werkRolBij, werkActiefStatusBij,
-    stuurUitnodiging, maakNieuwGebruikerAan,
+    stuurUitnodiging, maakNieuwGebruikerAan, voegProfielenSamen,
     zetBeschikbaarheidOpen, haalBeschikbaarhedenOverzichtOp, haalKoppelingenOverzichtOp,
     genereerContractVoorLesgever, archiveerVerloopenKampen,
     haalBeschikbaarhedenMatrixOp,
@@ -3103,6 +3103,7 @@
           <button class="knop knop-omtrek knop-klein" onclick="window._drukJaarfiche('${u.id}')">📄 Jaarfiche ${lgFinJaar}</button>
           <button class="knop knop-omtrek knop-klein" onclick="window._wijzigRol('${u.id}','${u.rol}')">Rol wijzigen</button>
           <button class="knop knop-omtrek knop-klein" onclick="window._wwReset('${u.id}','${(u.voornaam + ' ' + u.achternaam).replace(/'/g,'')}','${u.email ?? ''}')">🔑 Wachtwoord</button>
+          <button class="knop knop-omtrek knop-klein" onclick="window._voegSamen('${u.id}','${(u.voornaam + ' ' + u.achternaam).replace(/'/g,'')}')">🔗 Samenvoegen</button>
           <button class="knop ${u.actief ? 'knop-gevaar' : 'knop-middengroen'} knop-klein" onclick="window._toggleActief('${u.id}', ${!u.actief})">
             ${u.actief ? '⊘ Deactiveren' : '✓ Activeren'}
           </button>
@@ -3326,6 +3327,49 @@
     }
   };
 
+  // ─── Dubbele profielen samenvoegen ────────────────────────────
+  // Het aangeklikte profiel is het OUDE/dubbele profiel (bron); de admin
+  // kiest daarna het profiel dat behouden blijft (doel = waarmee de
+  // persoon inlogt). Alle kampkoppelingen, beschikbaarheden en contracten
+  // verhuizen naar het doel; de bron wordt gedeactiveerd.
+  window._voegSamen = async (bronID, bronNaam) => {
+    const kandidaten = alleGebruikers.filter(g => g.id !== bronID);
+    if (!kandidaten.length) { toonToast('Geen andere profielen gevonden.', 'info'); return; }
+
+    const bron = alleGebruikers.find(g => g.id === bronID);
+    // Sorteer: zelfde naam eerst — dat zijn vrijwel zeker de duplicaten
+    const genorm = s => (s ?? '').toLowerCase().trim();
+    kandidaten.sort((a, b) => {
+      const aMatch = genorm(a.voornaam) === genorm(bron?.voornaam) && genorm(a.achternaam) === genorm(bron?.achternaam) ? 0 : 1;
+      const bMatch = genorm(b.voornaam) === genorm(bron?.voornaam) && genorm(b.achternaam) === genorm(bron?.achternaam) ? 0 : 1;
+      return aMatch - bMatch;
+    });
+
+    const lijst = kandidaten.slice(0, 15).map((g, i) =>
+      `${i + 1}. ${g.voornaam} ${g.achternaam} (${g.email ?? 'geen e-mail'})${g.actief ? '' : ' — inactief'}`
+    ).join('\n');
+
+    const keuze = prompt(
+      `Profiel "${bronNaam}" samenvoegen.\n\n` +
+      `Dit profiel wordt GEDEACTIVEERD en alle kampkoppelingen, beschikbaarheden ` +
+      `en contracten verhuizen naar het profiel dat je hieronder kiest ` +
+      `(het account waarmee de persoon inlogt).\n\n${lijst}\n\nTyp het nummer:`
+    );
+    if (!keuze) return;
+    const doel = kandidaten[parseInt(keuze, 10) - 1];
+    if (!doel) { toonToast('Ongeldige keuze.', 'fout'); return; }
+
+    if (!confirm(
+      `Bevestig samenvoegen:\n\n` +
+      `• "${bronNaam}" wordt gedeactiveerd\n` +
+      `• Alles verhuist naar "${doel.voornaam} ${doel.achternaam}" (${doel.email ?? ''})\n\n` +
+      `Dit kan niet automatisch ongedaan gemaakt worden.`
+    )) return;
+
+    const { succes } = await voegProfielenSamen(bronID, doel.id);
+    if (succes) await laadGebruikers();
+  };
+
   // ─── Wachtwoord reset ─────────────────────────────────────────
   window._wwReset = (id, naam, email) => {
     document.getElementById('ww-reset-id').value = id;
@@ -3537,7 +3581,7 @@
     knop.disabled = true;
     knop.textContent = 'Bezig…';
 
-    const { succes, fout } = await maakNieuwGebruikerAan(gegevens, huidigProfiel.id);
+    const { succes, fout, waarschuwing } = await maakNieuwGebruikerAan(gegevens, huidigProfiel.id);
 
     if (!succes) {
       foutEl.textContent = fout;
@@ -3554,6 +3598,7 @@
       <span style="font-size:0.8rem;color:var(--kleur-grijs)">
         E-mail: ${ontsnap(gegevens.email)}
       </span>
+      ${waarschuwing ? `<div style="margin-top:8px;padding:8px 10px;background:#FFFDE7;border-left:3px solid #F59E0B;border-radius:0 4px 4px 0;font-size:0.8rem;color:#92400e">⚠️ ${ontsnap(waarschuwing)}</div>` : ''}
     `;
     succesEl.classList.remove('verborgen');
     knop.textContent = '✓ Aangemaakt';
