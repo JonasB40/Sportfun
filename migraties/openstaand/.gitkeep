@@ -1,0 +1,7 @@
+# Deze map hoort leeg te zijn.
+#
+# Plaats hier een .sql-bestand zolang het nog NIET is uitgevoerd op de
+# productiedatabase. Zodra het gedraaid is, verplaats je het naar de
+# map erboven (migraties/). Zie migraties/README.md.
+#
+# Dit bestand zorgt er enkel voor dat de map blijft bestaan in git.
