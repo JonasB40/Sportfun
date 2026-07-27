@@ -70,10 +70,15 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          if git diff --quiet .github/laatste-keepalive.txt; then
+          # Eerst stagen, dan pas vergelijken: een nog niet getrackt
+          # bestand toont geen verschil bij een gewone `git diff`,
+          # waardoor de commit anders altijd overgeslagen wordt.
+          git add .github/laatste-keepalive.txt
+
+          if git diff --cached --quiet; then
             echo "Niets gewijzigd."
           else
-            git add .github/laatste-keepalive.txt
             git commit -m "Supabase keep-alive heartbeat [skip ci]"
             git push
+            echo "✓ Heartbeat vastgelegd."
           fi
