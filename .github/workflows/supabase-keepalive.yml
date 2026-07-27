@@ -1,0 +1,79 @@
+# ═══════════════════════════════════════════════════════════════
+# Supabase keep-alive
+#
+# Gratis Supabase-projecten worden gepauzeerd na 7 dagen zonder
+# database-activiteit. Deze workflow doet om de 3 dagen een kleine
+# query, waardoor het project actief blijft.
+#
+# Draait op GitHub's servers — jouw computer hoeft niet aan te staan.
+#
+# De heartbeat-commit onderaan houdt óók de workflow zelf levend:
+# GitHub schakelt geplande workflows uit in repositories waar 60 dagen
+# geen activiteit was. De commit telt als activiteit.
+# ═══════════════════════════════════════════════════════════════
+
+name: Supabase keep-alive
+
+on:
+  schedule:
+    # Om de 3 dagen om 06:00 UTC
+    - cron: '0 6 */3 * *'
+  # Handmatig starten kan via tabblad "Actions" → "Run workflow"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository ophalen
+        uses: actions/checkout@v4
+
+      - name: Database aanspreken
+        env:
+          # Deze anon-sleutel staat sowieso al publiek in js/supabase.js —
+          # dat hoort zo. De beveiliging zit in de RLS-policies, niet in
+          # het geheimhouden van deze sleutel.
+          SUPABASE_URL: https://coiocqvopxgvdezuwqou.supabase.co
+          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvaW9jcXZvcHhndmRlenV3cW91Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyMzU2OTcsImV4cCI6MjA5NTgxMTY5N30.q_c8US8ifQEeOITc7_5N8oGFHhl6Yf7YCcZSyByEHWg
+        run: |
+          status=$(curl --silent --show-error --location \
+            --write-out '%{http_code}' --output /tmp/antwoord.json \
+            --max-time 30 \
+            --header "apikey: $SUPABASE_ANON_KEY" \
+            --header "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/kampen?select=id&limit=1")
+
+          echo "HTTP-status: $status"
+          echo "Antwoord: $(cat /tmp/antwoord.json)"
+
+          # 200 = gelukt, 401/403 = RLS blokkeert de anon-rol, maar de
+          # database is wél aangesproken. Alleen 5xx of geen antwoord
+          # betekent dat het project mogelijk gepauzeerd is.
+          case "$status" in
+            2*|401|403)
+              echo "✓ Supabase reageert — project blijft actief."
+              ;;
+            *)
+              echo "✗ Onverwachte status $status — controleer het project."
+              exit 1
+              ;;
+          esac
+
+      - name: Heartbeat vastleggen
+        run: |
+          mkdir -p .github
+          date -u '+%Y-%m-%d %H:%M UTC' > .github/laatste-keepalive.txt
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet .github/laatste-keepalive.txt; then
+            echo "Niets gewijzigd."
+          else
+            git add .github/laatste-keepalive.txt
+            git commit -m "Supabase keep-alive heartbeat [skip ci]"
+            git push
+          fi
