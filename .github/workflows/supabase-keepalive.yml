@@ -16,8 +16,15 @@ name: Supabase keep-alive
 
 on:
   schedule:
-    # Om de 3 dagen om 06:00 UTC
-    - cron: '0 6 */3 * *'
+    # Dagelijks om 06:00 UTC.
+    #
+    # Waarom dagelijks en niet om de 3 dagen: GitHub garandeert geplande
+    # runs niet — bij hoge belasting worden ze vertraagd of overgeslagen.
+    # Supabase pauzeert na 7 dagen, dus dagelijks pingen betekent dat er
+    # zes runs op rij mogen wegvallen voor het misgaat. De repo is publiek,
+    # dus Actions-minuten zijn gratis en onbeperkt; frequenter pingen kost
+    # dus niets.
+    - cron: '0 6 * * *'
   # Handmatig starten kan via tabblad "Actions" → "Run workflow"
   workflow_dispatch:
 
@@ -62,10 +69,36 @@ jobs:
               ;;
           esac
 
+      # De ping hierboven houdt Supabase wakker, maar niet GitHub:
+      # geplande workflows worden uitgeschakeld in repositories waar
+      # 60 dagen geen activiteit was. Een commit telt als activiteit.
+      #
+      # We committen niet elke dag — dat zou 365 bot-commits per jaar
+      # opleveren. Eens per 14 dagen volstaat ruimschoots (4x marge op
+      # de 60 dagen) en houdt de geschiedenis leesbaar.
       - name: Heartbeat vastleggen
+        env:
+          MAX_DAGEN: 14
         run: |
+          BESTAND=.github/laatste-keepalive.txt
+
+          # Ouderdom uit de INHOUD van het bestand lezen, niet uit
+          # `git log`: actions/checkout haalt standaard maar één commit
+          # op, waardoor de commit die dit bestand aanraakte vaak niet
+          # in de historie zit en git log leeg zou teruggeven.
+          if [ -f "$BESTAND" ] && laatste=$(date -u -d "$(cat "$BESTAND")" +%s 2>/dev/null); then
+            ouderdom=$(( ( $(date -u +%s) - laatste ) / 86400 ))
+            echo "Laatste heartbeat: $ouderdom dag(en) geleden."
+            if [ "$ouderdom" -lt "$MAX_DAGEN" ]; then
+              echo "Nog vers (< $MAX_DAGEN dagen) — geen commit nodig."
+              exit 0
+            fi
+          else
+            echo "Geen leesbare heartbeat gevonden — nu vastleggen."
+          fi
+
           mkdir -p .github
-          date -u '+%Y-%m-%d %H:%M UTC' > .github/laatste-keepalive.txt
+          date -u '+%Y-%m-%d %H:%M UTC' > "$BESTAND"
 
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -73,12 +106,25 @@ jobs:
           # Eerst stagen, dan pas vergelijken: een nog niet getrackt
           # bestand toont geen verschil bij een gewone `git diff`,
           # waardoor de commit anders altijd overgeslagen wordt.
-          git add .github/laatste-keepalive.txt
+          git add "$BESTAND"
 
           if git diff --cached --quiet; then
             echo "Niets gewijzigd."
-          else
-            git commit -m "Supabase keep-alive heartbeat [skip ci]"
-            git push
-            echo "✓ Heartbeat vastgelegd."
+            exit 0
           fi
+
+          git commit -m "Supabase keep-alive heartbeat [skip ci]"
+
+          # Iemand kan intussen gepusht hebben; rebasen voorkomt dat de
+          # workflow faalt op een niet-fast-forward push.
+          for poging in 1 2 3; do
+            if git push; then
+              echo "✓ Heartbeat vastgelegd."
+              exit 0
+            fi
+            echo "Push mislukt (poging $poging) — opnieuw proberen na rebase."
+            git pull --rebase --quiet || true
+          done
+
+          echo "✗ Heartbeat kon niet gepusht worden."
+          exit 1
