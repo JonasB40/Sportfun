@@ -57,11 +57,16 @@ export async function checkSessie() {
  */
 export async function haalProfielOp(gebruikerId) {
   try {
+    // maybeSingle() in plaats van single(): geeft netjes null terug bij
+    // nul rijen. single() liet PostgREST antwoorden met 406 Not
+    // Acceptable, wat in de console als harde netwerkfout verscheen
+    // terwijl "geen profiel gevonden" een normale uitkomst is — bv. bij
+    // een verlopen sessie, waarbij het verzoek als anoniem geldt.
     const { data, error } = await supabase
       .from('profielen')
       .select('*')
       .eq('id', gebruikerId)
-      .single();
+      .maybeSingle();
     if (error) throw error;
     return data;
   } catch (fout) {

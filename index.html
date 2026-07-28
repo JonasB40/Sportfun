@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Inloggen — SportFun Portaal</title>
+  <link rel="icon" type="image/svg+xml" href="sportfun-logo2.svg">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/components.css">
 </head>
@@ -219,7 +220,15 @@
       }
 
       if (session) {
-        const rol = await haalRolOp(session.user.id);
+        // Controleer het token eerst bij Supabase zelf. getSession() leest
+        // enkel uit de lokale opslag en zegt dus niets over geldigheid;
+        // getUser() vraagt het na bij de server. Zonder deze stap ging er
+        // eerst een profielverzoek uit dat als anoniem werd behandeld —
+        // zichtbaar in de console als een mislukt verzoek, terwijl er
+        // niets kapot was behalve het token.
+        const { data: { user: geldig } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+
+        const rol = geldig ? await haalRolOp(geldig.id) : null;
         if (rol) {
           stuurDoorOpRol(rol);
         } else {
