@@ -14,8 +14,14 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
-// Toegestane origins — stel SITE_URL in via Supabase Edge Function secrets
+// Toegestane origins.
+//
+// De productie-URL staat hier bewust hard in plaats van enkel in de
+// SITE_URL-secret. Een niet-ingestelde secret laat CORS stil falen met
+// "null" als toegestane origin, en dat is lastig te herkennen vanuit de
+// browser. SITE_URL blijft ondersteund voor een eventueel eigen domein.
 const ALLOWED_ORIGINS = new Set([
+  "https://sportfun.netlify.app",
   "http://localhost:8181",
   "http://localhost:8080",
   Deno.env.get("SITE_URL") ?? "",
