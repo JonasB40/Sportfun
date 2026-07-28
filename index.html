@@ -223,12 +223,24 @@
         if (rol) {
           stuurDoorOpRol(rol);
         } else {
-          // Sessie geldig maar geen leesbaar profiel: dit is precies het
-          // geval waarin de gebruiker anders eindeloos op de loginpagina
-          // blijft zonder te weten waarom.
+          // Er is wel een opgeslagen sessie, maar daarmee is het eigen
+          // profiel niet op te halen. Dat betekent dat het token niet
+          // meer geldig is — typisch nadat het wachtwoord elders is
+          // gewijzigd, wat bestaande sessies ongeldig maakt.
+          //
+          // Zo'n dode sessie bleef hier eindeloos staan: de pagina vond
+          // een sessie, kon er niets mee, en liet de gebruiker achter op
+          // een inlogscherm dat niet leek te werken. Opruimen dus, en
+          // gewoon opnieuw laten inloggen.
+          await supabase.auth.signOut().catch(() => {});
+          try {
+            Object.keys(localStorage)
+              .filter(k => k.startsWith('sb-') && k.includes('auth-token'))
+              .forEach(k => localStorage.removeItem(k));
+          } catch { /* localStorage kan geblokkeerd zijn */ }
+
           loginFoutTonen(
-            'Je bent aangemeld, maar je profiel kon niet geladen worden. ' +
-            'Ververs de pagina of contacteer de beheerder.'
+            'Je vorige sessie was verlopen en is opgeruimd. Log opnieuw in.'
           );
         }
       }

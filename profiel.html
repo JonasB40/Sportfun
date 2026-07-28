@@ -297,6 +297,51 @@
             </div>
           </div>
 
+          <!-- Wachtwoordkaart -->
+          <div class="kaart">
+            <div class="kaart-header">
+              <h2 class="kaart-titel">Wachtwoord wijzigen</h2>
+            </div>
+
+            <p style="font-size:0.85rem;color:var(--kleur-grijs);margin-bottom:16px">
+              Kies zelf een nieuw wachtwoord. Je hebt hiervoor geen e-mail nodig
+              en blijft gewoon ingelogd.
+            </p>
+
+            <div class="formulier-groep">
+              <label for="ww-huidig">Huidig wachtwoord</label>
+              <input type="password" id="ww-huidig" autocomplete="current-password"
+                     placeholder="Je wachtwoord van nu">
+              <div class="hulptekst">
+                Ter controle dat jij het bent — bijvoorbeeld als je je scherm
+                even onbeheerd hebt gelaten.
+              </div>
+            </div>
+            <div class="formulier-groep">
+              <label for="ww-nieuw-profiel">Nieuw wachtwoord (min. 8 tekens)</label>
+              <input type="password" id="ww-nieuw-profiel" autocomplete="new-password"
+                     placeholder="Minimaal 8 tekens">
+            </div>
+            <div class="formulier-groep">
+              <label for="ww-herhaal-profiel">Herhaal nieuw wachtwoord</label>
+              <input type="password" id="ww-herhaal-profiel" autocomplete="new-password"
+                     placeholder="Nogmaals hetzelfde">
+            </div>
+
+            <div id="ww-profiel-fout" class="verborgen" style="
+              background:rgba(255,105,85,0.1);border:1px solid rgba(255,105,85,0.3);
+              border-radius:8px;padding:10px 14px;font-size:0.85rem;
+              color:var(--kleur-koraal);margin-bottom:12px"></div>
+            <div id="ww-profiel-succes" class="verborgen" style="
+              background:rgba(20,136,105,0.1);border:1px solid rgba(20,136,105,0.25);
+              border-radius:8px;padding:10px 14px;font-size:0.85rem;
+              color:var(--kleur-middengroen);margin-bottom:12px"></div>
+
+            <button class="knop knop-accent" id="ww-profiel-opslaan">
+              Wachtwoord wijzigen
+            </button>
+          </div>
+
           <!-- Handtekeningkaart -->
           <div class="kaart">
             <div class="kaart-header">
@@ -1040,6 +1085,70 @@
     }
     return rest === 1n;
   }
+
+  // ─── Eigen wachtwoord wijzigen ────────────────────────────────────
+  //
+  // Bewust zonder e-mail: de resetmail van Supabase blijkt onbetrouwbaar
+  // (limiet van enkele berichten per uur, en Hotmail/Outlook weigeren de
+  // gedeelde afzender). Een ingelogde gebruiker heeft die omweg ook niet
+  // nodig — updateUser volstaat.
+  document.getElementById('ww-profiel-opslaan')?.addEventListener('click', async () => {
+    const huidig  = document.getElementById('ww-huidig').value;
+    const nieuw   = document.getElementById('ww-nieuw-profiel').value;
+    const herhaal = document.getElementById('ww-herhaal-profiel').value;
+    const foutEl  = document.getElementById('ww-profiel-fout');
+    const succEl  = document.getElementById('ww-profiel-succes');
+    const knop    = document.getElementById('ww-profiel-opslaan');
+
+    foutEl.classList.add('verborgen');
+    succEl.classList.add('verborgen');
+
+    const toonFout = (tekst) => {
+      foutEl.textContent = tekst;
+      foutEl.classList.remove('verborgen');
+      knop.disabled = false;
+      knop.textContent = 'Wachtwoord wijzigen';
+    };
+
+    if (!huidig)              return toonFout('Vul je huidige wachtwoord in.');
+    if (nieuw.length < 8)     return toonFout('Het nieuwe wachtwoord moet minstens 8 tekens bevatten.');
+    if (nieuw !== herhaal)    return toonFout('De twee nieuwe wachtwoorden komen niet overeen.');
+    if (nieuw === huidig)     return toonFout('Kies een ander wachtwoord dan je huidige.');
+
+    knop.disabled = true;
+    knop.textContent = 'Bezig…';
+
+    try {
+      // Eerst het huidige wachtwoord controleren. Dit levert meteen een
+      // verse sessie op, zodat de wijziging hieronder niet strandt op een
+      // token dat net verlopen is.
+      const { error: checkFout } = await supabase.auth.signInWithPassword({
+        email: huidigProfiel.email,
+        password: huidig,
+      });
+      if (checkFout) {
+        return toonFout('Je huidige wachtwoord klopt niet.');
+      }
+
+      const { error: zetFout } = await supabase.auth.updateUser({ password: nieuw });
+      if (zetFout) {
+        return toonFout('Wijzigen mislukt: ' + zetFout.message);
+      }
+
+      document.getElementById('ww-huidig').value = '';
+      document.getElementById('ww-nieuw-profiel').value = '';
+      document.getElementById('ww-herhaal-profiel').value = '';
+
+      succEl.textContent = '✓ Je wachtwoord is gewijzigd. Gebruik het vanaf nu om in te loggen.';
+      succEl.classList.remove('verborgen');
+      toonToast('Wachtwoord gewijzigd', 'succes');
+      knop.disabled = false;
+      knop.textContent = 'Wachtwoord wijzigen';
+
+    } catch (fout) {
+      toonFout('Er ging iets mis: ' + (fout?.message ?? fout));
+    }
+  });
 
   init();
 </script>
