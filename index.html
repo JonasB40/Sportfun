@@ -175,9 +175,39 @@
 
     // Controleer of er al een actieve sessie is
     (async () => {
+      // Zet de sessie expliciet op uit de tokens in de herstel-link.
+      //
+      // detectSessionInUrl doet dit in principe automatisch, maar dat
+      // bleek hier niet betrouwbaar: het herstelscherm verscheen wel,
+      // maar bij opslaan meldde Supabase "Auth session missing". Door
+      // setSession zelf aan te roepen hangt het niet langer af van de
+      // timing of de flow-variant van de bibliotheek.
+      const accessToken  = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+
+      if (isHerstel && accessToken) {
+        const { data: hersteld, error: zetFout } = await supabase.auth.setSession({
+          access_token:  accessToken,
+          refresh_token: refreshToken ?? '',
+        });
+
+        if (zetFout) {
+          loginFoutTonen(
+            zetFout.message?.includes('expired')
+              ? 'Deze herstel-link is verlopen. Vraag hieronder een nieuwe aan.'
+              : 'Herstel-link kon niet gelezen worden: ' + zetFout.message
+          );
+          return;
+        }
+
+        toonHerstelScherm(hersteld?.user?.email);
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
 
-      // Via een herstel-link: wachtwoordscherm tonen i.p.v. doorsturen.
+      // Via een herstel-link zonder token in de URL: toch niet doorsturen,
+      // anders verdwijnt het wachtwoordscherm meteen weer.
       if (isHerstel && session) {
         toonHerstelScherm(session.user?.email);
         return;
@@ -221,14 +251,30 @@
       knop.disabled = true;
       knop.textContent = 'Opslaan…';
 
+      // Is de sessie tussendoor weggevallen, zet hem dan opnieuw op uit
+      // de tokens van de herstel-link voordat we het wachtwoord opslaan.
+      const { data: { session: huidige } } = await supabase.auth.getSession();
+      if (!huidige) {
+        const at = hashParams.get('access_token');
+        const rt = hashParams.get('refresh_token');
+        if (at) {
+          await supabase.auth.setSession({ access_token: at, refresh_token: rt ?? '' });
+        }
+      }
+
       const { data, error } = await supabase.auth.updateUser({ password: ww });
 
       if (error) {
         knop.disabled = false;
         knop.textContent = 'Wachtwoord opslaan en inloggen';
-        foutEl.textContent = error.message.includes('expired')
-          ? 'Deze herstel-link is verlopen. Vraag een nieuwe aan.'
-          : 'Opslaan mislukt: ' + error.message;
+        const m = error.message ?? '';
+        foutEl.textContent =
+          m.includes('expired')
+            ? 'Deze herstel-link is verlopen. Vraag een nieuwe aan via "Wachtwoord vergeten?".'
+          : m.includes('session') || m.includes('Auth session missing')
+            ? 'De herstel-link is niet meer geldig — hij is waarschijnlijk al eerder geopend. ' +
+              'Vraag een nieuwe aan en open die link één keer.'
+            : 'Opslaan mislukt: ' + m;
         foutEl.classList.remove('verborgen');
         return;
       }
