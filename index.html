@@ -185,7 +185,12 @@
       const accessToken  = hashParams.get('access_token');
       const refreshToken = hashParams.get('refresh_token');
 
-      if (isHerstel && accessToken) {
+      // Bewust NIET afhankelijk van het type in de URL. Supabase zet daar
+      // afhankelijk van de mailsjabloon 'recovery', 'magiclink' of soms
+      // niets neer. Staat er een token in de link, dan zetten we altijd
+      // de sessie op en tonen we het wachtwoordscherm — dat is precies
+      // waarvoor iemand zo'n link opent.
+      if (accessToken) {
         const { data: hersteld, error: zetFout } = await supabase.auth.setSession({
           access_token:  accessToken,
           refresh_token: refreshToken ?? '',
