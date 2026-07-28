@@ -65,6 +65,29 @@ WHERE lower(email) = lower('jonasbaes@hotmail.com')
 
 
 -- ───────────────────────────────────────────────────────────────
+-- OORZAAK 4: e-mails komen helemaal niet aan
+--
+-- Werkt "wachtwoord vergeten" ook niet, dan ligt het niet aan het
+-- account maar aan de e-mailbezorging. Supabase verstuurt op het
+-- gratis plan via een gedeelde testserver met een strenge limiet van
+-- enkele mails per uur. Hotmail en Outlook weigeren zulke afzenders
+-- vaak volledig — de mail komt dan zelfs niet in spam terecht.
+--
+-- Dit zet rechtstreeks een nieuw wachtwoord, zonder e-mail. Vervang
+-- 'KiesEenNieuwWachtwoord' door een eigen wachtwoord van minstens
+-- 8 tekens, en wijzig het daarna in het portaal onder Profiel.
+--
+-- Werkt crypt() niet? Gebruik dan extensions.crypt() en
+-- extensions.gen_salt() — op Supabase staat pgcrypto in dat schema.
+-- ───────────────────────────────────────────────────────────────
+
+-- UPDATE auth.users
+-- SET encrypted_password = crypt('KiesEenNieuwWachtwoord', gen_salt('bf')),
+--     email_confirmed_at = COALESCE(email_confirmed_at, now())
+-- WHERE lower(email) = lower('jonasbaes@hotmail.com');
+
+
+-- ───────────────────────────────────────────────────────────────
 -- CONTROLE: voer dit na het herstel uit
 -- ───────────────────────────────────────────────────────────────
 
