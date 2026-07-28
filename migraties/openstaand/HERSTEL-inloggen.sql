@@ -1,10 +1,25 @@
 -- ═══════════════════════════════════════════════════════════════
 -- HERSTEL: inloggen weer mogelijk maken
 --
--- Voer eerst DIAGNOSE-inloggen.sql uit. Kies daarna hieronder het
--- blok dat bij de gevonden oorzaak past en voer ALLEEN dat blok uit.
+-- ▸ VASTGESTELD op 2026-07-28 voor jonasbaes@hotmail.com:
 --
--- Pas het e-mailadres aan waar nodig.
+--   Het account is volledig in orde — e-mail bevestigd, profiel
+--   aanwezig met rol admin, actief, niet geblokkeerd, en op
+--   2026-07-11 nog succesvol ingelogd.
+--
+--   Ook getest: de auth-endpoint antwoordt normaal en er is GEEN
+--   rate limiting, en de reset-endpoint aanvaardt aanvragen.
+--
+--   Conclusie: oorzaak 1, 2 en 3 hieronder zijn uitgesloten. Het
+--   wachtwoord klopt niet meer, en herstel via e-mail werkt niet
+--   omdat die mail Hotmail niet bereikt. Supabase antwoordt daar
+--   bewust altijd met "gelukt", ook als er niets verstuurd wordt —
+--   daarom lijkt "wachtwoord vergeten" stil te falen.
+--
+--   ▸ GA DIRECT NAAR OORZAAK 4 ONDERAAN.
+--
+-- De overige blokken blijven staan voor toekomstige gevallen bij
+-- andere gebruikers. Voer altijd eerst DIAGNOSE-inloggen.sql uit.
 -- ═══════════════════════════════════════════════════════════════
 
 
@@ -65,17 +80,15 @@ WHERE lower(email) = lower('jonasbaes@hotmail.com')
 
 
 -- ───────────────────────────────────────────────────────────────
--- OORZAAK 4: e-mails komen helemaal niet aan
+-- ▸ OORZAAK 4: wachtwoord kwijt, en herstel per e-mail werkt niet
 --
--- Werkt "wachtwoord vergeten" ook niet, dan ligt het niet aan het
--- account maar aan de e-mailbezorging. Supabase verstuurt op het
--- gratis plan via een gedeelde testserver met een strenge limiet van
--- enkele mails per uur. Hotmail en Outlook weigeren zulke afzenders
--- vaak volledig — de mail komt dan zelfs niet in spam terecht.
+-- Dit is het vastgestelde geval. Het account werkt, maar het
+-- wachtwoord klopt niet meer en de resetmail bereikt Hotmail niet.
 --
--- Dit zet rechtstreeks een nieuw wachtwoord, zonder e-mail. Vervang
--- 'KiesEenNieuwWachtwoord' door een eigen wachtwoord van minstens
--- 8 tekens, en wijzig het daarna in het portaal onder Profiel.
+-- Onderstaande query zet rechtstreeks een nieuw wachtwoord, volledig
+-- buiten e-mail om. Vervang 'KiesEenNieuwWachtwoord' door een eigen
+-- wachtwoord van minstens 8 tekens. Haal daarna de twee streepjes
+-- voor elke regel weg en voer alleen dit blok uit.
 --
 -- Werkt crypt() niet? Gebruik dan extensions.crypt() en
 -- extensions.gen_salt() — op Supabase staat pgcrypto in dat schema.
@@ -83,7 +96,7 @@ WHERE lower(email) = lower('jonasbaes@hotmail.com')
 
 -- UPDATE auth.users
 -- SET encrypted_password = crypt('KiesEenNieuwWachtwoord', gen_salt('bf')),
---     email_confirmed_at = COALESCE(email_confirmed_at, now())
+--     updated_at = now()
 -- WHERE lower(email) = lower('jonasbaes@hotmail.com');
 
 
