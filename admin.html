@@ -3443,21 +3443,33 @@
             </span>`;
           succEl.classList.remove('verborgen');
         } catch (e) {
-          // Specifieke melding op basis van fouttype
-          let extra = '';
+          // Meld wat er ECHT misging. De vorige versie schreef elke fout
+          // toe aan "niet gedeployed", ook een 401 of een geblokkeerde
+          // CORS-aanvraag — wat het zoeken naar de oorzaak juist verhult.
           const msg = e?.message ?? '';
-          if (msg.includes('Function not found') || msg.includes('404') || msg.includes('non-2xx')) {
-            extra = `<br><br>⚠️ De Edge Function <code>admin-reset-password</code> is nog niet gedeployed.<br>
-              Volg de instructies in <strong>docs/DEPLOY-EDGE-FUNCTION.md</strong> of voer ondertussen handmatig deze SQL uit:`;
+          let extra;
+
+          if (msg.includes('Function not found') || msg.includes('404')) {
+            extra = `<br><br>⚠️ De Edge Function <code>admin-reset-password</code> bestaat niet
+              op dit project. Zie <strong>docs/DEPLOY-EDGE-FUNCTION.md</strong>.`;
+          } else if (msg.includes('401') || msg.toLowerCase().includes('sessie')) {
+            extra = `<br><br>Je sessie is niet meegestuurd of verlopen.
+              Log opnieuw in en probeer het nog eens.`;
+          } else if (msg.includes('403') || msg.includes('rechten')) {
+            extra = `<br><br>Je account heeft geen beheerdersrechten voor deze actie.`;
+          } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+            extra = `<br><br>De aanvraag bereikte de server niet. Meestal is dit een
+              CORS-blokkade: het adres waarop je nu werkt staat niet in de lijst met
+              toegestane origins in de Edge Function.`;
           } else {
-            extra = '<br>' + msg;
+            extra = '<br><br>' + (msg || 'Onbekende fout.');
           }
-          foutEl.innerHTML = `Wachtwoord-reset mislukt.${extra}<br>
+
+          foutEl.innerHTML = `Wachtwoord-reset mislukt.${extra}
+            <br><br>Alternatief — voer dit uit in de
             <a href="https://supabase.com/dashboard/project/coiocqvopxgvdezuwqou/sql/new" target="_blank"
-               style="color:var(--kleur-koraal);text-decoration:underline;font-weight:700">
-              → SQL Editor openen
-            </a>
-            <code style="display:block;background:#fff;padding:8px;border-radius:4px;margin-top:8px;font-size:0.72rem;color:#194338;word-break:break-all">UPDATE auth.users SET encrypted_password = crypt('${ww}', gen_salt('bf')), email_confirmed_at = COALESCE(email_confirmed_at, now()), updated_at = now() WHERE id = '${id}';</code>`;
+               style="color:var(--kleur-koraal);text-decoration:underline;font-weight:700">SQL Editor</a>:
+            <code style="display:block;background:#fff;padding:8px;border-radius:4px;margin-top:8px;font-size:0.72rem;color:#194338;word-break:break-all">UPDATE auth.users SET encrypted_password = extensions.crypt('${ww}', extensions.gen_salt('bf', 10)), email_confirmed_at = COALESCE(email_confirmed_at, now()), updated_at = now() WHERE id = '${id}';</code>`;
           foutEl.classList.remove('verborgen');
         }
       } else {
