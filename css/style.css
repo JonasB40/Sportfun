@@ -187,6 +187,12 @@ a.gebruiker-avatar:hover {
 .hoofdinhoud {
   margin-left: var(--nav-breedte);
   flex: 1;
+  /* Zonder min-width:0 kan dit flex-item niet krimpen onder de minimale
+     inhoudsbreedte van zijn kinderen. De paginatitel en de knoppen in de
+     header hebben white-space:nowrap, waardoor de pagina op smalle
+     schermen zijwaarts zou scrollen. De titel heeft text-overflow:
+     ellipsis en kapt dus netjes af. */
+  min-width: 0;
   min-height: 100vh;
   display: flex;
   flex-direction: column;

@@ -50,7 +50,7 @@
     </form>
 
     <!-- Wachtwoord vergeten -->
-    <div style="text-align:center;margin-top:20px">
+    <div style="text-align:center;margin-top:12px">
       <button id="reset-knop" style="
         background: none;
         border: none;
@@ -59,6 +59,12 @@
         font-size: 0.85rem;
         cursor: pointer;
         text-decoration: underline;
+        /* Padding maakt het tikgebied 44px hoog zonder dat de tekst
+           groter oogt. Zonder dit was de knop 18px — te klein om op een
+           telefoon betrouwbaar te raken, terwijl dit juist de knop is
+           die iemand nodig heeft wanneer inloggen niet lukt. */
+        padding: 13px 12px;
+        min-height: 44px;
       ">Wachtwoord vergeten?</button>
     </div>
 

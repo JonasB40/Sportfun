@@ -1168,3 +1168,36 @@
 .vervoer-knop.actief svg { color: var(--kleur-limoen); }
 .vervoer-knop.actief .vervoer-label strong { color: var(--kleur-wit); }
 .vervoer-knop.actief .vervoer-label span { color: var(--kleur-limoen); }
+
+/* Losse velden die niet in een .formulier-groep zitten. Stond eerder
+   als font-size in een inline style-attribuut, maar inline stijlen
+   winnen het van elke media query — waardoor deze velden op iPhone
+   bleven inzoomen. Als klasse kan de mobiele regel hieronder ze wel
+   overschrijven. */
+.veld-los {
+  font-size: 0.88rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Mobiel: automatisch inzoomen op iOS voorkomen
+   ═══════════════════════════════════════════════════════════════
+   Safari op iPhone zoomt de hele pagina in zodra je een invoerveld
+   aantikt dat kleiner is dan 16px — en zoomt daarna niet vanzelf
+   terug uit. De gebruiker blijft achter op een ingezoomde pagina die
+   zijwaarts scrollt. Lesgevers vullen hun beschikbaarheid vaak op hun
+   telefoon in, dus dit is precies waar het misgaat.
+
+   Deze regels staan bewust achteraan components.css: dat bestand wordt
+   als laatste ingeladen, en de :not()-selectors geven net genoeg
+   specificiteit om de kleinere lettergroottes eerder in dit bestand
+   (o.a. .filter-select en .filterbalk .zoek-invoer input) te
+   overschrijven. Selectievakjes en keuzerondjes blijven ongemoeid —
+   die hebben geen tekstinvoer en dus geen zoomprobleem.
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select:not([hidden]),
+  textarea:not([hidden]) {
+    font-size: 16px;
+  }
+}
