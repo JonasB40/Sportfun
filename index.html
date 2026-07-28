@@ -87,27 +87,156 @@
       </div>
     </div>
 
+    <!-- Nieuw wachtwoord kiezen na het volgen van een herstel-link.
+         Zonder dit scherm wordt iemand die via zo'n link binnenkomt
+         meteen doorgestuurd, zonder ooit een wachtwoord te kunnen
+         instellen — waardoor herstel in de praktijk niets oplevert. -->
+    <div id="nieuw-ww-sectie" class="verborgen">
+      <p style="font-size:0.88rem;margin-bottom:14px">
+        Kies een nieuw wachtwoord voor <strong id="nieuw-ww-email">je account</strong>.
+      </p>
+      <div class="formulier-groep">
+        <label for="nieuw-ww">Nieuw wachtwoord (min. 8 tekens)</label>
+        <input type="password" id="nieuw-ww" autocomplete="new-password"
+               placeholder="Minimaal 8 tekens">
+      </div>
+      <div class="formulier-groep">
+        <label for="nieuw-ww-bevestig">Herhaal wachtwoord</label>
+        <input type="password" id="nieuw-ww-bevestig" autocomplete="new-password"
+               placeholder="Nogmaals hetzelfde">
+      </div>
+      <div id="nieuw-ww-fout" class="verborgen" style="
+        background:rgba(255,105,85,0.1);border:1px solid rgba(255,105,85,0.3);
+        border-radius:8px;padding:10px 14px;font-size:0.85rem;
+        color:var(--kleur-koraal);margin-bottom:14px"></div>
+      <button class="knop knop-accent w-100 knop-groot" id="nieuw-ww-opslaan">
+        Wachtwoord opslaan en inloggen
+      </button>
+    </div>
+
     <!-- Info: geen zelfregistratie -->
-    <p style="text-align:center;font-size:0.75rem;color:var(--kleur-grijs);margin-top:24px">
+    <p id="geen-account-info" style="text-align:center;font-size:0.75rem;color:var(--kleur-grijs);margin-top:24px">
       Nog geen account? Vraag een uitnodiging aan bij jouw coördinator.
     </p>
   </div>
 
   <div id="toast-container"></div>
 
+  <!-- Bewaar de fragment-URL vóórdat supabase-js hem leegmaakt.
+       Een <script type="module"> wordt uitgesteld tot na het parsen,
+       en supabase-js verwijdert bij het initialiseren het token uit de
+       URL. Zonder deze momentopname is #type=recovery en een eventuele
+       foutmelding daar al verdwenen tegen de tijd dat de module draait. -->
+  <script>window.__hashBijLaden = window.location.hash || '';</script>
+
   <script type="module">
     import { supabase } from './js/supabase.js?v=1783500000000';
     import { login, stuurWachtwoordReset, haalRolOp, stuurDoorOpRol } from './js/auth.js?v=1783500000000';
     import { toonToast } from './js/utils.js?v=1783500000000';
 
+    // ── Herstel-link herkennen ──────────────────────────────────────
+    // Supabase zet het token in de fragment-URL (#access_token=...&type=recovery).
+    // Dat moet vóór alles gebeuren: komt iemand via zo'n link binnen, dan
+    // mag de automatische doorverwijzing hieronder NIET afgaan, anders
+    // belandt hij op het dashboard zonder ooit een wachtwoord te kiezen.
+    const hashParams = new URLSearchParams(
+      (window.__hashBijLaden || location.hash || '').replace(/^#/, '')
+    );
+    const isHerstel  = ['recovery', 'magiclink', 'invite'].includes(hashParams.get('type') ?? '');
+    const hashFout   = hashParams.get('error_description') || hashParams.get('error');
+
+    function toonHerstelScherm(email) {
+      document.getElementById('login-formulier').classList.add('verborgen');
+      document.querySelector('.login-kaart > div:has(#reset-knop)')?.classList.add('verborgen');
+      document.getElementById('reset-sectie').classList.add('verborgen');
+      document.getElementById('geen-account-info')?.classList.add('verborgen');
+      document.getElementById('nieuw-ww-sectie').classList.remove('verborgen');
+      if (email) document.getElementById('nieuw-ww-email').textContent = email;
+    }
+
+    // Een verlopen of al gebruikte link geeft een foutmelding in de hash.
+    // Zonder deze afhandeling zou de pagina er gewoon leeg uitzien.
+    if (hashFout) {
+      loginFoutTonen(decodeURIComponent(hashFout).replace(/\+/g, ' '));
+    }
+
+    function loginFoutTonen(tekst) {
+      const el = document.getElementById('login-fout');
+      el.textContent = tekst;
+      el.classList.remove('verborgen');
+    }
+
+    // Supabase meldt een herstelsessie via dit event.
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        toonHerstelScherm(session?.user?.email);
+      }
+    });
+
     // Controleer of er al een actieve sessie is
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
+
+      // Via een herstel-link: wachtwoordscherm tonen i.p.v. doorsturen.
+      if (isHerstel && session) {
+        toonHerstelScherm(session.user?.email);
+        return;
+      }
+
       if (session) {
         const rol = await haalRolOp(session.user.id);
-        if (rol) stuurDoorOpRol(rol);
+        if (rol) {
+          stuurDoorOpRol(rol);
+        } else {
+          // Sessie geldig maar geen leesbaar profiel: dit is precies het
+          // geval waarin de gebruiker anders eindeloos op de loginpagina
+          // blijft zonder te weten waarom.
+          loginFoutTonen(
+            'Je bent aangemeld, maar je profiel kon niet geladen worden. ' +
+            'Ververs de pagina of contacteer de beheerder.'
+          );
+        }
       }
     })();
+
+    // ── Nieuw wachtwoord opslaan ────────────────────────────────────
+    document.getElementById('nieuw-ww-opslaan').addEventListener('click', async () => {
+      const ww       = document.getElementById('nieuw-ww').value;
+      const bevestig = document.getElementById('nieuw-ww-bevestig').value;
+      const foutEl   = document.getElementById('nieuw-ww-fout');
+      const knop     = document.getElementById('nieuw-ww-opslaan');
+      foutEl.classList.add('verborgen');
+
+      if (ww.length < 8) {
+        foutEl.textContent = 'Wachtwoord moet minimaal 8 tekens bevatten.';
+        foutEl.classList.remove('verborgen');
+        return;
+      }
+      if (ww !== bevestig) {
+        foutEl.textContent = 'De twee wachtwoorden komen niet overeen.';
+        foutEl.classList.remove('verborgen');
+        return;
+      }
+
+      knop.disabled = true;
+      knop.textContent = 'Opslaan…';
+
+      const { data, error } = await supabase.auth.updateUser({ password: ww });
+
+      if (error) {
+        knop.disabled = false;
+        knop.textContent = 'Wachtwoord opslaan en inloggen';
+        foutEl.textContent = error.message.includes('expired')
+          ? 'Deze herstel-link is verlopen. Vraag een nieuwe aan.'
+          : 'Opslaan mislukt: ' + error.message;
+        foutEl.classList.remove('verborgen');
+        return;
+      }
+
+      toonToast('Wachtwoord opgeslagen. Je wordt doorgestuurd…', 'succes');
+      const rol = await haalRolOp(data.user.id);
+      setTimeout(() => stuurDoorOpRol(rol ?? 'lesgever'), 1200);
+    });
 
     // Loginformulier
     const formulier = document.getElementById('login-formulier');
