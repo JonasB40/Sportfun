@@ -33,7 +33,7 @@ Het hoofdadres van dit portaal. Dit is waar Supabase standaard naartoe
 stuurt. Eén waarde, geen jokertekens.
 
 ```
-https://<jouw-site>.netlify.app
+https://sportfun.netlify.app
 ```
 
 ### Redirect URLs
@@ -43,14 +43,15 @@ een adres hier niet bij, dan valt Supabase stilzwijgend terug op de Site
 URL. Voeg deze allemaal toe:
 
 ```
-https://<jouw-site>.netlify.app
-https://<jouw-site>.netlify.app/index.html
-http://localhost:8181
-http://localhost:8181/index.html
+https://sportfun.netlify.app/**
+http://localhost:8181/**
 ```
 
-De twee `localhost:8181`-regels zijn voor de lokale ontwikkelserver
-(`tools/server.py`). Zonder die regels werkt wachtwoordherstel niet
+Dit is wat er op 2026-07-28 daadwerkelijk is ingesteld. De `/**` dekt
+alle paden, dus ook `/index.html` en elke pagina die er later bijkomt.
+
+De `localhost:8181`-regel is voor de lokale ontwikkelserver
+(`tools/server.py`). Zonder die regel werkt wachtwoordherstel niet
 tijdens het testen op je eigen computer.
 
 ## Waarom `/index.html` er apart bij moet
@@ -83,7 +84,7 @@ Een geldige herstel-URL kun je handmatig omleiden: neem alles vanaf de `#`
 en plak het achter het juiste adres.
 
 ```
-https://<jouw-site>.netlify.app/index.html#access_token=...
+https://sportfun.netlify.app/index.html#access_token=...
 ```
 
 Het token blijft één uur geldig. Werkt dat niet meer, zet dan een nieuw
