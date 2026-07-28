@@ -19,7 +19,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 /**
  * De gedeelde Supabase client instantie.
  * Importeer deze in alle andere modules via:
- *   import { supabase } from './supabase.js?v=1785244946203';
+ *   import { supabase } from './supabase.js?v=1785245322153';
  */
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {

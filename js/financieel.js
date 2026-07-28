@@ -10,8 +10,8 @@
  * @module financieel
  */
 
-import { supabase } from './supabase.js?v=1785244946203';
-import { toonToast } from './utils.js?v=1785244946203';
+import { supabase } from './supabase.js?v=1785245322153';
+import { toonToast } from './utils.js?v=1785245322153';
 
 // ── Constanten (synced met financiele_limieten tabel) ─────────────────
 export const HUIDIG_JAAR = new Date().getFullYear();

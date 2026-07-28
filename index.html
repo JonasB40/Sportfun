@@ -131,9 +131,9 @@
   <script>window.__hashBijLaden = window.location.hash || '';</script>
 
   <script type="module">
-    import { supabase } from './js/supabase.js?v=1785244946203';
-    import { login, stuurWachtwoordReset, haalRolOp, stuurDoorOpRol } from './js/auth.js?v=1785244946203';
-    import { toonToast } from './js/utils.js?v=1785244946203';
+    import { supabase } from './js/supabase.js?v=1785245322153';
+    import { login, stuurWachtwoordReset, haalRolOp, stuurDoorOpRol } from './js/auth.js?v=1785245322153';
+    import { toonToast } from './js/utils.js?v=1785245322153';
 
     // ── Herstel-link herkennen ──────────────────────────────────────
     // Supabase zet het token in de fragment-URL (#access_token=...&type=recovery).
@@ -341,12 +341,38 @@
         return;
       }
 
-      // Controleer of het profiel bestaat
-      const rol = await haalRolOp(gebruiker.id);
+      // Wacht tot de sessie echt vastligt voordat we de database
+      // bevragen. Zonder deze stap kan het profielverzoek vertrekken
+      // vóórdat het token eraan gekoppeld is; het geldt dan als anoniem
+      // en levert nul rijen op — waarna de app ten onrechte meldde dat
+      // het profiel ontbrak.
+      let rol = null;
+      for (let poging = 1; poging <= 3 && !rol; poging++) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          rol = await haalRolOp(gebruiker.id);
+        }
+        if (!rol && poging < 3) await new Promise(r => setTimeout(r, 350));
+      }
 
       if (!rol) {
-        // Auth geslaagd maar geen profiel in de database
-        loginFout.textContent = 'Inloggen gelukt, maar jouw profiel ontbreekt nog. Contacteer de beheerder.';
+        // Drie pogingen mét geldige sessie en nog steeds niets. Vrijwel
+        // altijd komt dat door resten van een oudere sessie in de opslag
+        // van de browser. Die ruimen we op, zodat een volgende poging
+        // schoon begint in plaats van eindeloos te blijven falen.
+        console.warn('[login] Profiel niet leesbaar ondanks geldige sessie — opslag opruimen.');
+        await supabase.auth.signOut().catch(() => {});
+        try {
+          Object.keys(localStorage)
+            .filter(k => k.startsWith('sb-'))
+            .forEach(k => localStorage.removeItem(k));
+          sessionStorage.clear();
+        } catch { /* opslag kan geblokkeerd zijn */ }
+
+        loginFout.innerHTML =
+          'Je profiel kon niet geladen worden. De opgeslagen sessiegegevens ' +
+          'zijn nu gewist — <strong>probeer opnieuw in te loggen</strong>.<br>' +
+          'Blijft dit terugkomen, contacteer dan je beheerder.';
         loginFout.classList.remove('verborgen');
         loginKnop.disabled = false;
         loginKnop.textContent = 'Aanmelden';
