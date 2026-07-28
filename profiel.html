@@ -304,6 +304,20 @@
               <h2 class="kaart-titel">Wachtwoord wijzigen</h2>
             </div>
 
+            <!-- Ingeklapt: enkel de knop. Wachtwoord wijzigen doe je zelden,
+                 dus het formulier hoeft niet permanent ruimte in te nemen. -->
+            <!-- Bevestiging staat buiten het inklapbare deel, zodat ze
+                 zichtbaar blijft nadat het formulier weer dichtklapt. -->
+            <div id="ww-profiel-succes" class="verborgen" style="
+              background:rgba(20,136,105,0.1);border:1px solid rgba(20,136,105,0.25);
+              border-radius:8px;padding:10px 14px;font-size:0.85rem;
+              color:var(--kleur-middengroen);margin-bottom:12px"></div>
+
+            <button class="knop knop-accent" id="ww-profiel-open">
+              Wachtwoord wijzigen
+            </button>
+
+            <div id="ww-profiel-formulier" class="verborgen">
             <p style="font-size:0.85rem;color:var(--kleur-grijs);margin-bottom:16px">
               Kies zelf een nieuw wachtwoord. Je hebt hiervoor geen e-mail nodig
               en blijft gewoon ingelogd.
@@ -333,14 +347,15 @@
               background:rgba(255,105,85,0.1);border:1px solid rgba(255,105,85,0.3);
               border-radius:8px;padding:10px 14px;font-size:0.85rem;
               color:var(--kleur-koraal);margin-bottom:12px"></div>
-            <div id="ww-profiel-succes" class="verborgen" style="
-              background:rgba(20,136,105,0.1);border:1px solid rgba(20,136,105,0.25);
-              border-radius:8px;padding:10px 14px;font-size:0.85rem;
-              color:var(--kleur-middengroen);margin-bottom:12px"></div>
-
-            <button class="knop knop-accent" id="ww-profiel-opslaan">
-              Wachtwoord wijzigen
-            </button>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="knop knop-accent" id="ww-profiel-opslaan">
+                Opslaan
+              </button>
+              <button class="knop knop-omtrek" id="ww-profiel-annuleren">
+                Annuleren
+              </button>
+            </div>
+            </div><!-- /ww-profiel-formulier -->
           </div>
 
           <!-- Handtekeningkaart -->
@@ -543,13 +558,13 @@
 <div id="toast-container"></div>
 
 <script type="module">
-  import { supabase } from './js/supabase.js?v=1785245322153';
-  import { checkSessie, haalProfielOp, vulNavigatieIn, rolLabel, initialiseerNotificatieBel } from './js/auth.js?v=1785245322153';
-  import { haalContractenOp, renderContractItem, renderContractModal, onderteken, openContractAfdrukken } from './js/contracten.js?v=1785245322153';
+  import { supabase } from './js/supabase.js?v=1785246391141';
+  import { checkSessie, haalProfielOp, vulNavigatieIn, rolLabel, initialiseerNotificatieBel } from './js/auth.js?v=1785246391141';
+  import { haalContractenOp, renderContractItem, renderContractModal, onderteken, openContractAfdrukken } from './js/contracten.js?v=1785246391141';
   import {
     haalJaarTotaalLesgeverOp, haalLimietenOp, formaatBedrag, contractStatusPil, HUIDIG_JAAR
-  } from './js/financieel.js?v=1785245322153';
-  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, datumNaarNL, toonToast } from './js/utils.js?v=1785245322153';
+  } from './js/financieel.js?v=1785246391141';
+  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, datumNaarNL, toonToast } from './js/utils.js?v=1785246391141';
 
   let huidigProfiel = null;
 
@@ -1093,6 +1108,27 @@
   // (limiet van enkele berichten per uur, en Hotmail/Outlook weigeren de
   // gedeelde afzender). Een ingelogde gebruiker heeft die omweg ook niet
   // nodig — updateUser volstaat.
+  // Open- en dichtklappen van het wachtwoordformulier.
+  const wwFormulier = document.getElementById('ww-profiel-formulier');
+  const wwOpenKnop  = document.getElementById('ww-profiel-open');
+
+  function wwSluit() {
+    wwFormulier?.classList.add('verborgen');
+    wwOpenKnop?.classList.remove('verborgen');
+    ['ww-huidig', 'ww-nieuw-profiel', 'ww-herhaal-profiel']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    document.getElementById('ww-profiel-fout')?.classList.add('verborgen');
+  }
+
+  wwOpenKnop?.addEventListener('click', () => {
+    wwFormulier?.classList.remove('verborgen');
+    wwOpenKnop.classList.add('verborgen');
+    document.getElementById('ww-profiel-succes')?.classList.add('verborgen');
+    document.getElementById('ww-huidig')?.focus();
+  });
+
+  document.getElementById('ww-profiel-annuleren')?.addEventListener('click', wwSluit);
+
   document.getElementById('ww-profiel-opslaan')?.addEventListener('click', async () => {
     const huidig  = document.getElementById('ww-huidig').value;
     const nieuw   = document.getElementById('ww-nieuw-profiel').value;
@@ -1136,15 +1172,15 @@
         return toonFout('Wijzigen mislukt: ' + zetFout.message);
       }
 
-      document.getElementById('ww-huidig').value = '';
-      document.getElementById('ww-nieuw-profiel').value = '';
-      document.getElementById('ww-herhaal-profiel').value = '';
+      knop.disabled = false;
+      knop.textContent = 'Opslaan';
 
+      // Klap dicht en toon de bevestiging boven de knop, zodat de kaart
+      // weer compact is maar de gebruiker wel ziet dat het gelukt is.
+      wwSluit();
       succEl.textContent = '✓ Je wachtwoord is gewijzigd. Gebruik het vanaf nu om in te loggen.';
       succEl.classList.remove('verborgen');
       toonToast('Wachtwoord gewijzigd', 'succes');
-      knop.disabled = false;
-      knop.textContent = 'Wachtwoord wijzigen';
 
     } catch (fout) {
       toonFout('Er ging iets mis: ' + (fout?.message ?? fout));

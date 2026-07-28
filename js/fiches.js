@@ -7,8 +7,8 @@
  * @module fiches
  */
 
-import { supabase } from './supabase.js?v=1785245322153';
-import { toonToast, ontsnap, drukHTML } from './utils.js?v=1785245322153';
+import { supabase } from './supabase.js?v=1785246391141';
+import { toonToast, ontsnap, drukHTML } from './utils.js?v=1785246391141';
 
 // ── Fiches ophalen ──────────────────────────────────────────────────
 
