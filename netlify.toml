@@ -18,6 +18,28 @@
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
     Permissions-Policy = "geolocation=(), camera=(), microphone=()"
 
+# HTML nooit uit de cache serveren.
+#
+# De JS-bestanden worden geladen met ?v=<versie> erachter. Die versie
+# staat in de HTML, dus zolang de browser een oude HTML uit zijn cache
+# haalt, blijft hij ook de oude JS gebruiken — een nieuwe versie bereikt
+# de gebruiker dan nooit, zelfs niet na Ctrl+F5 op een deelpagina.
+#
+# Dit is op 2026-07-28 daadwerkelijk misgegaan: fixes in js/auth.js
+# bereikten de browser niet omdat het versienummer sinds 3 juli niet was
+# aangepast. must-revalidate dwingt af dat de HTML telkens gecontroleerd
+# wordt; de JS eronder mag dan wél lang gecached blijven, want die krijgt
+# bij elke wijziging een nieuwe URL.
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache, must-revalidate"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-cache, must-revalidate"
+
 # Houd .sql-bestanden uit zoekmachines. Let op: dit BLOKKEERT geen
 # toegang — het de-indexeert alleen. Echte blokkering per extensie kan
 # Netlify niet betrouwbaar (een '*' mag enkel aan het einde van een pad
