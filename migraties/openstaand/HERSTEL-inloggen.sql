@@ -90,12 +90,20 @@ WHERE lower(email) = lower('jonasbaes@hotmail.com')
 -- wachtwoord van minstens 8 tekens. Haal daarna de twee streepjes
 -- voor elke regel weg en voer alleen dit blok uit.
 --
--- Werkt crypt() niet? Gebruik dan extensions.crypt() en
--- extensions.gen_salt() — op Supabase staat pgcrypto in dat schema.
+-- De functies crypt() en gen_salt() staan op Supabase in het schema
+-- 'extensions', niet in 'public'. Zonder dat voorvoegsel krijg je
+-- "function crypt(...) does not exist". Nagekeken op 2026-07-28.
+--
+-- gen_salt('bf', 10) gebruikt sterkte 10, dezelfde die Supabase zelf
+-- hanteert. Zonder dat tweede argument wordt het 6 — dat werkt ook,
+-- maar wijkt af van de rest van je gebruikers.
 -- ───────────────────────────────────────────────────────────────
 
+-- VERVANG hieronder JouwNieuwWachtwoord door je eigen wachtwoord
+-- (minstens 8 tekens) en haal de twee streepjes voor elke regel weg.
+
 -- UPDATE auth.users
--- SET encrypted_password = crypt('KiesEenNieuwWachtwoord', gen_salt('bf')),
+-- SET encrypted_password = extensions.crypt('JouwNieuwWachtwoord', extensions.gen_salt('bf', 10)),
 --     updated_at = now()
 -- WHERE lower(email) = lower('jonasbaes@hotmail.com');
 
