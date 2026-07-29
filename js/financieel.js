@@ -10,14 +10,23 @@
  * @module financieel
  */
 
-import { supabase } from './supabase.js?v=1785309475074';
-import { toonToast } from './utils.js?v=1785309475074';
+import { supabase } from './supabase.js?v=1785310964626';
+import { toonToast } from './utils.js?v=1785310964626';
 
 // ── Constanten (synced met financiele_limieten tabel) ─────────────────
 export const HUIDIG_JAAR = new Date().getFullYear();
 export const KM_TARIEF_2026   = 0.4449; // autotarief 1/7/2025 – 30/6/2026
 export const MAX_PER_DAG_2026 = 44.02;
 export const MAX_PER_JAAR_2026 = 1760.83;
+
+/**
+ * Wettelijk maximum aantal kilometers per vrijwilliger per kalenderjaar.
+ *
+ * De kilometervergoeding mag bovenop de forfaitaire vergoeding komen — een
+ * uitzondering op het verbod om forfaitair en reëel te combineren — maar
+ * enkel tot deze grens. Daarboven vervalt die uitzondering.
+ */
+export const MAX_KM_PER_JAAR = 2000;
 
 // Standaardvergoeding per rol (fallback als DB niet ingelezen kan worden)
 const STANDAARD_FALLBACK = {
@@ -165,7 +174,112 @@ export async function valideerContract(contract, lesgeverID, contractIDNegeren =
     };
   }
 
+  // 3. Kilometerplafond. De vergoeding valt buiten het bedragplafond
+  //    hierboven, maar kent een eigen grens van 2.000 km per kalenderjaar.
+  const kmDitContract = Number(contract.kilometers ?? 0);
+  const kmEerder = await haalJaarKilometersOp(lesgeverID, jaar, contractIDNegeren);
+  const kmTotaal = +(kmEerder + kmDitContract).toFixed(1);
+
+  if (kmTotaal > MAX_KM_PER_JAAR) {
+    return {
+      geldig: false,
+      fout: `Kilometertotaal zou ${kmTotaal.toLocaleString('nl-BE')} km worden (max ${MAX_KM_PER_JAAR.toLocaleString('nl-BE')} km per jaar). `
+          + `Eerder dit jaar: ${kmEerder.toLocaleString('nl-BE')} km, dit contract: ${kmDitContract.toLocaleString('nl-BE')} km.`,
+      jaarTotaal, limiet,
+    };
+  }
+
+  // 4. Dubbeltelling van dezelfde kalenderdag. Het dagmaximum geldt per
+  //    dag, niet per activiteit: valt een voorbereidingsdag op een dag
+  //    waarop ook al kampvergoeding wordt betaald, dan wordt er tweemaal
+  //    uitbetaald voor één dag en gaat het bedrag over het dagmaximum.
+  const dubbel = zoekDatumOverlap(contract);
+  if (dubbel) {
+    return {
+      geldig: false,
+      fout: `${dubbel} Daardoor zou voor die dag tweemaal een dagvergoeding worden betaald, `
+          + `terwijl het maximum van €${limiet.max_per_dag.toFixed(2)} per kalenderdag geldt. `
+          + `Kies een andere datum.`,
+      jaarTotaal, limiet,
+    };
+  }
+
   return { geldig: true, fout: null, jaarTotaal, limiet };
+}
+
+/**
+ * Zoek kalenderdagen die in meer dan één vergoede categorie voorkomen.
+ *
+ * Extra dagen (voorbereiding, opruim, opleiding, evaluatie) hebben een
+ * startdatum en een aantal dagen; het aantal kan een halve dag zijn, maar
+ * ze bezetten dan nog steeds die kalenderdag.
+ *
+ * @param {object} contract
+ * @returns {string|null} Omschrijving van de eerste botsing, of null.
+ */
+function zoekDatumOverlap(contract) {
+  const LABELS = {
+    voorbereidingsdag: 'De voorbereidingsdag',
+    opruimdag:         'De opruimdag',
+    opleidingsdag:     'De opleidingsdag',
+    evaluatiemoment:   'Het evaluatiemoment',
+  };
+
+  // Welke kalenderdagen bezet een extra type?
+  const dagenVan = (datum, aantal) => {
+    if (!datum) return [];
+    const n = Math.max(1, Math.ceil(Number(aantal ?? 0)));
+    if (!Number(aantal)) return [];
+    return Array.from({ length: n }, (_, i) => {
+      const d = new Date(datum + 'T00:00:00');
+      d.setDate(d.getDate() + i);
+      return lokaalISO(d);
+    });
+  };
+
+  const nl = iso => iso.split('-').reverse().join('/');
+
+  const kampDagen = new Set(contract.gewerkte_dagen ?? []);
+  const bezet = new Map(); // datum -> omschrijving van wie de dag al heeft
+
+  for (const [sleutel, label] of Object.entries(LABELS)) {
+    for (const dag of dagenVan(contract[`${sleutel}_datum`], contract[`${sleutel}_dagen`])) {
+      if (kampDagen.has(dag)) {
+        return `${label} valt op ${nl(dag)}, een dag waarop ook al kampvergoeding wordt betaald.`;
+      }
+      if (bezet.has(dag)) {
+        return `${label} valt op ${nl(dag)}, dezelfde dag als ${bezet.get(dag).toLowerCase()}.`;
+      }
+      bezet.set(dag, label);
+    }
+  }
+  return null;
+}
+
+/**
+ * Haal het aantal gereden kilometers op voor een lesgever in een jaar.
+ *
+ * @param {string} lesgeverID
+ * @param {number} [jaar=HUIDIG_JAAR]
+ * @param {string|null} negeerContractID - Contract dat genegeerd wordt (bij eigen update).
+ * @returns {Promise<number>} Totaal aantal kilometers.
+ */
+export async function haalJaarKilometersOp(lesgeverID, jaar = HUIDIG_JAAR, negeerContractID = null) {
+  try {
+    let q = supabase
+      .from('contracten')
+      .select('id, kilometers, kampen!inner(startdatum)')
+      .eq('lesgever_id', lesgeverID)
+      .gte('kampen.startdatum', `${jaar}-01-01`)
+      .lte('kampen.startdatum', `${jaar}-12-31`);
+    if (negeerContractID) q = q.neq('id', negeerContractID);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data ?? []).reduce((som, c) => som + Number(c.kilometers ?? 0), 0);
+  } catch (fout) {
+    console.warn('[financieel] Jaarkilometers ophalen mislukt:', fout?.message);
+    return 0;
+  }
 }
 
 // ── Jaartotaal ophalen ───────────────────────────────────────────────

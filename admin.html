@@ -1062,8 +1062,8 @@
 <div id="toast-container"></div>
 
 <script type="module">
-  import { supabase } from './js/supabase.js?v=1785309475074';
-  import { checkSessie, haalProfielOp, vulNavigatieIn, controleerToegang, initialiseerNotificatieBel, maakNotificatie } from './js/auth.js?v=1785309475074';
+  import { supabase } from './js/supabase.js?v=1785310964626';
+  import { checkSessie, haalProfielOp, vulNavigatieIn, controleerToegang, initialiseerNotificatieBel, maakNotificatie } from './js/auth.js?v=1785310964626';
   import {
     haalAlleKampenOp, slaKampOp, haalKampLesgeversOp,
     koppelLesgever, ontkoppelLesgever,
@@ -1073,20 +1073,20 @@
     genereerContractVoorLesgever, archiveerVerloopenKampen,
     haalBeschikbaarhedenMatrixOp,
     renderGebruikerRij, renderKampRij, kopieerKamp
-  } from './js/admin.js?v=1785309475074';
-  import { genereerKampDagen } from './js/planner.js?v=1785309475074';
+  } from './js/admin.js?v=1785310964626';
+  import { genereerKampDagen } from './js/planner.js?v=1785310964626';
   import {
     nieuweFilterState, filterKampen, renderFilterBalk, haalKoppelingsMapOp
-  } from './js/kampfilter.js?v=1785309475074';
-  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, datumNaarNL, bevestig, kopieerNaarKlembord, lokaleISO, ontsnap, formateerIBAN, drukHTML, downloadBestand } from './js/utils.js?v=1785309475074';
+  } from './js/kampfilter.js?v=1785310964626';
+  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, datumNaarNL, bevestig, kopieerNaarKlembord, lokaleISO, ontsnap, formateerIBAN, drukHTML, downloadBestand } from './js/utils.js?v=1785310964626';
   import {
     haalOverzichtPerLesgeverOp, haalAlleContractenFinancieelOp,
     haalLimietenOp, valideerContract, berekenContractTotaal,
     haalJaarTotaalLesgeverOp, markeerBetaaldStatus,
     formaatBedrag, contractStatusPil, slaContractBijwerkenOp, logContractActie,
     berekenGewerkteDagen, HUIDIG_JAAR, MAX_PER_JAAR_2026
-  } from './js/financieel.js?v=1785309475074';
-  import { openContractAfdrukken, genereerContractTekst, genereerContractHTML } from './js/contracten.js?v=1785309475074';
+  } from './js/financieel.js?v=1785310964626';
+  import { openContractAfdrukken, genereerContractTekst, genereerContractHTML } from './js/contracten.js?v=1785310964626';
 
   let huidigProfiel      = null;
   let alleKampen         = [];
