@@ -131,9 +131,9 @@
   <script>window.__hashBijLaden = window.location.hash || '';</script>
 
   <script type="module">
-    import { supabase } from './js/supabase.js?v=1785246391141';
-    import { login, stuurWachtwoordReset, haalRolOp, stuurDoorOpRol } from './js/auth.js?v=1785246391141';
-    import { toonToast } from './js/utils.js?v=1785246391141';
+    import { supabase } from './js/supabase.js?v=1785309098090';
+    import { login, stuurWachtwoordReset, haalRolOp, stuurDoorOpRol } from './js/auth.js?v=1785309098090';
+    import { toonToast } from './js/utils.js?v=1785309098090';
 
     // ── Herstel-link herkennen ──────────────────────────────────────
     // Supabase zet het token in de fragment-URL (#access_token=...&type=recovery).
@@ -159,6 +159,14 @@
     // Zonder deze afhandeling zou de pagina er gewoon leeg uitzien.
     if (hashFout) {
       loginFoutTonen(decodeURIComponent(hashFout).replace(/\+/g, ' '));
+    }
+
+    // Diagnosetekst bevat waarden uit foutmeldingen van de server; die
+    // gaan als HTML de pagina in, dus eerst onschadelijk maken.
+    function ontsnapTekst(t) {
+      return String(t).replace(/[&<>"']/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+      ));
     }
 
     function loginFoutTonen(tekst) {
@@ -346,33 +354,105 @@
       // vóórdat het token eraan gekoppeld is; het geldt dan als anoniem
       // en levert nul rijen op — waarna de app ten onrechte meldde dat
       // het profiel ontbrak.
+      // Diagnose meeschrijven. Deze melding is de enige plek waar we zien
+      // wat er misgaat op een computer waar we zelf niet bij kunnen.
+      const diag = [];
       let rol = null;
+
       for (let poging = 1; poging <= 3 && !rol; poging++) {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          rol = await haalRolOp(gebruiker.id);
+
+        if (!session?.access_token) {
+          diag.push(`p${poging}: geen sessie in opslag`);
+        } else {
+          // Rechtstreekse query i.p.v. haalRolOp, zodat we de foutcode
+          // van de database kunnen tonen in plaats van enkel "niets".
+          const { data, error, status } = await supabase
+            .from('profielen')
+            .select('id, rol')
+            .eq('id', gebruiker.id)
+            .maybeSingle();
+
+          if (error) {
+            diag.push(`p${poging}: HTTP ${status} ${error.code ?? ''} ${error.message ?? ''}`.trim());
+          } else if (!data) {
+            diag.push(`p${poging}: HTTP ${status} — 0 rijen (token telt als anoniem)`);
+          } else {
+            rol = data.rol;
+          }
         }
         if (!rol && poging < 3) await new Promise(r => setTimeout(r, 350));
       }
+
+      // Kan de browser überhaupt opslaan? Is dat geblokkeerd, dan kan
+      // supabase-js de sessie nergens bewaren en faalt elk vervolgverzoek.
+      let opslagWerkt = false;
+      try {
+        localStorage.setItem('__sf_test', '1');
+        opslagWerkt = localStorage.getItem('__sf_test') === '1';
+        localStorage.removeItem('__sf_test');
+      } catch { /* geblokkeerd */ }
 
       if (!rol) {
         // Drie pogingen mét geldige sessie en nog steeds niets. Vrijwel
         // altijd komt dat door resten van een oudere sessie in de opslag
         // van de browser. Die ruimen we op, zodat een volgende poging
         // schoon begint in plaats van eindeloos te blijven falen.
-        console.warn('[login] Profiel niet leesbaar ondanks geldige sessie — opslag opruimen.');
-        await supabase.auth.signOut().catch(() => {});
+        console.warn('[login] Profiel niet leesbaar — opslag volledig opruimen en opnieuw proberen.');
+
+        // Alles wegdoen, niet enkel de sb-sleutels. Resten van een vorig
+        // project of een half geschreven sessie kunnen supabase-js een
+        // token laten meesturen dat de server niet accepteert. In een
+        // incognitovenster werkt inloggen wél, en dat verschil is precies
+        // de opslag — dus die maken we hier volledig schoon.
+        await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
         try {
-          Object.keys(localStorage)
-            .filter(k => k.startsWith('sb-'))
-            .forEach(k => localStorage.removeItem(k));
+          localStorage.clear();
           sessionStorage.clear();
+          if (window.indexedDB?.databases) {
+            const dbs = await indexedDB.databases().catch(() => []);
+            dbs.filter(d => /supabase|sb-/i.test(d.name ?? ''))
+               .forEach(d => indexedDB.deleteDatabase(d.name));
+          }
         } catch { /* opslag kan geblokkeerd zijn */ }
 
+        // Meteen zelf opnieuw aanmelden met dezelfde gegevens. De
+        // gebruiker hoeft niets te doen; met een schone opslag slaagt dit
+        // in de praktijk wel.
+        knop: {
+          const { gebruiker: gebruiker2 } = await login(email, wachtwoord);
+          if (!gebruiker2) break knop;
+
+          for (let poging = 1; poging <= 3; poging++) {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              const { data } = await supabase
+                .from('profielen').select('rol')
+                .eq('id', gebruiker2.id).maybeSingle();
+              if (data?.rol) {
+                stuurDoorOpRol(data.rol);
+                return;
+              }
+            }
+            await new Promise(r => setTimeout(r, 400));
+          }
+          diag.push('herstelpoging na opruimen: nog steeds geen profiel');
+        }
+
         loginFout.innerHTML =
-          'Je profiel kon niet geladen worden. De opgeslagen sessiegegevens ' +
-          'zijn nu gewist — <strong>probeer opnieuw in te loggen</strong>.<br>' +
-          'Blijft dit terugkomen, contacteer dan je beheerder.';
+          'Je profiel kon niet geladen worden. De opslag van deze site is ' +
+          'volledig gewist en er is automatisch opnieuw geprobeerd.<br>' +
+          '<strong>Klik nog één keer op Aanmelden.</strong> Werkt dat niet, ' +
+          'probeer dan een privévenster (Ctrl+Shift+N) — lukt het daar wél, ' +
+          'dan blokkeert een browserextensie de verbinding.<br>' +
+          'Stuur bij aanhoudende problemen deze regels door:' +
+          '<code style="display:block;background:#fff;padding:8px;border-radius:4px;' +
+          'margin-top:8px;font-size:0.72rem;color:#194338;word-break:break-all;' +
+          'white-space:pre-wrap">' + ontsnapTekst(
+            'gebruiker: ' + gebruiker.id + '\n' +
+            'opslag bruikbaar: ' + (opslagWerkt ? 'ja' : 'NEE — dit is de oorzaak') + '\n' +
+            diag.join('\n')
+          ) + '</code>';
         loginFout.classList.remove('verborgen');
         loginKnop.disabled = false;
         loginKnop.textContent = 'Aanmelden';

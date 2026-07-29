@@ -7,7 +7,7 @@
  * @module kampfilter
  */
 
-import { supabase } from './supabase.js?v=1785246391141';
+import { supabase } from './supabase.js?v=1785309098090';
 
 // ── Seizoenen ────────────────────────────────────────────────────────
 export const SEIZOENEN = {
