@@ -10,8 +10,8 @@
  * @module financieel
  */
 
-import { supabase } from './supabase.js?v=1785310964626';
-import { toonToast } from './utils.js?v=1785310964626';
+import { supabase } from './supabase.js?v=1785334228507';
+import { toonToast } from './utils.js?v=1785334228507';
 
 // ── Constanten (synced met financiele_limieten tabel) ─────────────────
 export const HUIDIG_JAAR = new Date().getFullYear();
@@ -153,7 +153,7 @@ export async function valideerContract(contract, lesgeverID, contractIDNegeren =
   if (dagBedrag > limiet.max_per_dag) {
     return {
       geldig: false,
-      fout: `Dagvergoeding van €${dagBedrag.toFixed(2)} overschrijdt het wettelijke maximum van €${limiet.max_per_dag.toFixed(2)}/dag.`,
+      fout: `Dagvergoeding van ${formaatBedrag(dagBedrag)} overschrijdt het wettelijke maximum van ${formaatBedrag(limiet.max_per_dag)}/dag.`,
       jaarTotaal: 0, limiet,
     };
   }
@@ -169,7 +169,7 @@ export async function valideerContract(contract, lesgeverID, contractIDNegeren =
     const overschrijding = +(nieuwTotaal - limiet.max_per_jaar).toFixed(2);
     return {
       geldig: false,
-      fout: `Forfaitair jaartotaal zou €${nieuwTotaal.toFixed(2)} worden (max €${limiet.max_per_jaar.toFixed(2)}). Overschrijding: €${overschrijding.toFixed(2)}. (Kilometervergoeding telt niet mee.)`,
+      fout: `Forfaitair jaartotaal zou ${formaatBedrag(nieuwTotaal)} worden (max ${formaatBedrag(limiet.max_per_jaar)}). Overschrijding: ${formaatBedrag(overschrijding)}. (Kilometervergoeding telt niet mee.)`,
       jaarTotaal, limiet,
     };
   }
@@ -198,7 +198,7 @@ export async function valideerContract(contract, lesgeverID, contractIDNegeren =
     return {
       geldig: false,
       fout: `${dubbel} Daardoor zou voor die dag tweemaal een dagvergoeding worden betaald, `
-          + `terwijl het maximum van €${limiet.max_per_dag.toFixed(2)} per kalenderdag geldt. `
+          + `terwijl het maximum van ${formaatBedrag(limiet.max_per_dag)} per kalenderdag geldt. `
           + `Kies een andere datum.`,
       jaarTotaal, limiet,
     };
