@@ -6,10 +6,10 @@
  * @module admin
  */
 
-import { supabase, maakGebruikerViaSignup } from './supabase.js?v=1785309098090';
-import { toonToast, datumNaarNL, genereerToken, ontsnap, lokaleISO } from './utils.js?v=1785309098090';
-import { genereerContractTekst, slaContractOp } from './contracten.js?v=1785309098090';
-import { maakNotificatie } from './auth.js?v=1785309098090';
+import { supabase, maakGebruikerViaSignup } from './supabase.js?v=1785309475074';
+import { toonToast, datumNaarNL, genereerToken, ontsnap, lokaleISO } from './utils.js?v=1785309475074';
+import { genereerContractTekst, slaContractOp } from './contracten.js?v=1785309475074';
+import { maakNotificatie } from './auth.js?v=1785309475074';
 
 // ── Kampbeheer ──────────────────────────────────────────────────────
 
@@ -219,7 +219,7 @@ export async function koppelLesgever(kampID, lesgeverID, kampNaam, direct = fals
     // Automatisch contract aanmaken als status meteen 'bevestigd' is
     if (direct) {
       try {
-        const { genereerContractAutomatisch } = await import('./contracten.js?v=1785309098090');
+        const { genereerContractAutomatisch } = await import('./contracten.js?v=1785309475074');
         const contract = await genereerContractAutomatisch(lesgeverID, kampID);
         if (contract) {
           toonToast(`Lesgever gekoppeld aan "${kampNaam}". Contract automatisch aangemaakt.`, 'succes');
@@ -257,7 +257,7 @@ async function stuurKoppelingNotificatie(lesgeverID, kampNaam, direct = false) {
   await maakNotificatie(lesgeverID, 'ingepland', bericht, 'planner.html');
 
   try {
-    const { supabase: sb } = await import('./supabase.js?v=1785309098090');
+    const { supabase: sb } = await import('./supabase.js?v=1785309475074');
     await sb.functions.invoke('stuur-email-notificatie', {
       body: { type: direct ? 'koppeling_direct' : 'uitnodiging', lesgeverID, kampNaam },
     });

@@ -7,14 +7,14 @@
  * @module contracten
  */
 
-import { supabase } from './supabase.js?v=1785309098090';
-import { toonToast, datumNaarNL, ontsnap, lokaleISO, formateerIBAN, drukHTML } from './utils.js?v=1785309098090';
-import { maakNotificatie } from './auth.js?v=1785309098090';
+import { supabase } from './supabase.js?v=1785309475074';
+import { toonToast, datumNaarNL, ontsnap, lokaleISO, formateerIBAN, drukHTML } from './utils.js?v=1785309475074';
+import { maakNotificatie } from './auth.js?v=1785309475074';
 import {
   haalLimietenOp, haalStandaardVergoedingOp,
   berekenGewerkteDagen, berekenContractTotaal, formaatBedrag,
   haalJaarTotaalLesgeverOp, logContractActie
-} from './financieel.js?v=1785309098090';
+} from './financieel.js?v=1785309475074';
 
 // ── Automatische contractgeneratie bij koppeling ────────────────────
 

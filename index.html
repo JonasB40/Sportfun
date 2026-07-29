@@ -131,9 +131,9 @@
   <script>window.__hashBijLaden = window.location.hash || '';</script>
 
   <script type="module">
-    import { supabase } from './js/supabase.js?v=1785309098090';
-    import { login, stuurWachtwoordReset, haalRolOp, stuurDoorOpRol } from './js/auth.js?v=1785309098090';
-    import { toonToast } from './js/utils.js?v=1785309098090';
+    import { supabase } from './js/supabase.js?v=1785309475074';
+    import { login, stuurWachtwoordReset, haalRolOp, stuurDoorOpRol } from './js/auth.js?v=1785309475074';
+    import { toonToast } from './js/utils.js?v=1785309475074';
 
     // ── Herstel-link herkennen ──────────────────────────────────────
     // Supabase zet het token in de fragment-URL (#access_token=...&type=recovery).
@@ -181,6 +181,18 @@
         toonHerstelScherm(session?.user?.email);
       }
     });
+
+    // Zodra het inlogformulier verstuurd is, mag de controle hieronder
+    // niets meer opruimen.
+    //
+    // Die controle is asynchroon: ze haalt een opgeslagen sessie op en
+    // vraagt bij Supabase na of het token nog geldig is. Dat duurt even.
+    // Log je intussen in, dan komt die netwerkvraag pas daarna terug,
+    // concludeert ze terecht dat het OUDE token dood is, en wist ze de
+    // opslag — inclusief de verse sessie die je login net had gezet.
+    // De inlogpagina meldde dan "geen sessie in opslag" terwijl het
+    // aanmelden gewoon gelukt was.
+    let bezigMetInloggen = false;
 
     // Controleer of er al een actieve sessie is
     (async () => {
@@ -236,7 +248,14 @@
         // niets kapot was behalve het token.
         const { data: { user: geldig } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
 
+        // Intussen ingelogd? Dan is deze controle achterhaald en zou
+        // opruimen juist de nieuwe sessie kapotmaken.
+        if (bezigMetInloggen) return;
+
         const rol = geldig ? await haalRolOp(geldig.id) : null;
+
+        if (bezigMetInloggen) return;
+
         if (rol) {
           stuurDoorOpRol(rol);
         } else {
@@ -325,6 +344,7 @@
 
     formulier.addEventListener('submit', async (e) => {
       e.preventDefault();
+      bezigMetInloggen = true;   // zet de opruiming hierboven stil
       loginFout.classList.add('verborgen');
 
       const email = document.getElementById('email').value.trim();
