@@ -7,8 +7,8 @@
  * @module auth
  */
 
-import { supabase } from './supabase.js?v=1785590374964';
-import { ontsnap } from './utils.js?v=1785590374964';
+import { supabase } from './supabase.js?v=1785615765015';
+import { ontsnap } from './utils.js?v=1785615765015';
 
 // ── Logout altijd beschikbaar ───────────────────────────────────────
 // Koppelt de uitlogknop zodra het DOM klaar is — defensief verpakt
