@@ -11,7 +11,9 @@
 -- alle Supabase-projecten; de CREATE EXTENSION hieronder zet hem aan.
 -- ============================================================
 
-CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA cron;
+-- pg_cron bepaalt zijn eigen schema ('cron') in het control-bestand en is
+-- niet verplaatsbaar; daarom hier geen WITH SCHEMA meegeven.
+CREATE EXTENSION IF NOT EXISTS pg_cron;
 
 -- ── Functie: verlopen kampen archiveren ─────────────────────────
 --
@@ -43,7 +45,19 @@ COMMENT ON FUNCTION archiveer_verlopen_kampen() IS
   'Zet kampen met een verstreken einddatum op status ''afgelopen''. Draait nachtelijk via pg_cron.';
 
 -- Niet aanroepbaar vanaf de client: enkel de cron-job gebruikt dit.
-REVOKE EXECUTE ON FUNCTION archiveer_verlopen_kampen() FROM anon, authenticated;
+--
+-- Alle drie de regels zijn nodig. Postgres geeft EXECUTE standaard aan
+-- PUBLIC, en Supabase kent anon en authenticated daarbovenop nog een
+-- eigen recht toe via default privileges. Zo'n directe toekenning wordt
+-- niet geraakt door het intrekken van het PUBLIC-recht. Laat je een van
+-- beide staan, dan kan iedereen deze SECURITY DEFINER-functie aanroepen
+-- via /rest/v1/rpc/archiveer_verlopen_kampen.
+--
+-- Gecontroleerd met:
+--   SELECT has_function_privilege('anon', 'archiveer_verlopen_kampen()', 'EXECUTE');
+REVOKE EXECUTE ON FUNCTION archiveer_verlopen_kampen() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION archiveer_verlopen_kampen() FROM anon;
+REVOKE EXECUTE ON FUNCTION archiveer_verlopen_kampen() FROM authenticated;
 
 -- ── Nachtelijke job om 03:15 Brussel (= 02:15 UTC in de zomer) ───
 -- Het exacte uur maakt niet uit; het moet enkel ná middernacht zijn.
