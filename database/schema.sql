@@ -1,3 +1,24 @@
+-- ═══════════════════════════════════════════════════════════════
+-- LET OP — DIT BESTAND IS NIET MEER VOLLEDIG
+--
+-- Gecontroleerd op 2026-07-28 tegen de productiedatabase:
+--   dit bestand beschrijft 10 tabellen, de database heeft er 17.
+--
+-- Ontbreken hier: blok_fiches, contract_historiek, dag_blokken,
+-- financiele_limieten, kamp_groepen, materialen_categorieen en
+-- standaard_vergoeding.
+--
+-- Voer dit dus NIET uit in de verwachting een werkende database te
+-- krijgen — de app zal fouten geven op de ontbrekende tabellen. De
+-- migraties in migraties/ vullen het verschil aan, maar 21 daarvan zijn
+-- in één keer aan git toegevoegd en hun onderlinge volgorde is niet meer
+-- te achterhalen.
+--
+-- Wil je een tweede omgeving opzetten, kopieer dan de structuur van de
+-- bestaande database (Supabase-dashboard of pg_dump) in plaats van dit
+-- bestand te gebruiken.
+-- ═══════════════════════════════════════════════════════════════
+
 -- ============================================================
 -- SportFun Portaal — Databaseschema
 -- Voer dit script uit in de Supabase SQL Editor

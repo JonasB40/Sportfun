@@ -22,11 +22,16 @@ Een volledig functioneel webportaal voor het beheer van sportkampen, lesgevers, 
 
 ---
 
-## Stap 2: Database aanmaken (schema.sql)
+## Stap 2: Database aanmaken
+
+> **Let op:** `database/schema.sql` is niet meer volledig — het beschrijft
+> 10 tabellen terwijl de productiedatabase er 17 heeft. Zie de
+> waarschuwing bovenaan dat bestand. Zet je een tweede omgeving op,
+> kopieer dan de structuur van de bestaande database.
 
 1. Ga in het Supabase dashboard naar **SQL Editor**.
 2. Klik op **New query**.
-3. Kopieer de volledige inhoud van `schema.sql` en plak deze in het editor.
+3. Kopieer de volledige inhoud van `database/schema.sql` en plak deze in het editor.
 4. Klik op **Run** (of druk op `Ctrl+Enter`).
 5. Controleer dat er geen fouten zijn in de output onderaan.
 
@@ -74,12 +79,12 @@ Je kunt nu inloggen via `index.html` en andere teamleden uitnodigen via de behee
 
 > ⚠️ Alleen aanbevolen voor een testomgeving, niet voor productie.
 
-De demo-data in `seed.sql` gebruikt vaste UUID's die **niet overeenkomen** met echte auth-gebruikers. Voor een werkende demo:
+De demo-data in `database/seed.sql` gebruikt vaste UUID's die **niet overeenkomen** met echte auth-gebruikers. Voor een werkende demo:
 
 1. Maak de testgebruikers handmatig aan via **Authentication > Users**.
 2. Kopieer de echte UUID's.
-3. Vervang de UUID's bovenaan `seed.sql` door de echte waarden.
-4. Voer `seed.sql` uit via de **SQL Editor**.
+3. Vervang de UUID's bovenaan `database/seed.sql` door de echte waarden.
+4. Voer `database/seed.sql` uit via de **SQL Editor**.
 
 ---
 
@@ -104,8 +109,13 @@ sportfun-portaal/
 │   ├── contracten.js   # Contractgeneratie en ondertekening
 │   ├── admin.js        # Beheerfuncties
 │   └── utils.js        # Gedeelde hulpfuncties
-├── schema.sql          # Database-schema + RLS-policies
-├── seed.sql            # Demo-data
+├── database/
+│   ├── schema.sql      # Oorspronkelijk schema (ZIE WAARSCHUWING BOVENAAN)
+│   ├── seed.sql        # Demo-data
+│   └── migraties/      # Alle toegepaste wijzigingen, historisch
+├── docs/SUPABASE.md    # Instellingen in het Supabase-dashboard
+├── supabase/functions/ # Edge Functions (server-side)
+├── tools/              # Lokale server + versie-bump
 └── README.md           # Dit bestand
 ```
 
@@ -178,7 +188,7 @@ Vul de Supabase URL en anon key in `js/supabase.js` in (zie Stap 3).
 Controleer of het profiel correct is aangemaakt in de `profielen`-tabel met het juiste UUID.
 
 **De pagina laadt maar toont geen data.**
-Open de browser-console (F12) en controleer op RLS-fouten. Zorg dat de `eigen_rol()`-functie correct aangemaakt is via `schema.sql`.
+Open de browser-console (F12) en controleer op RLS-fouten. Zorg dat de `eigen_rol()`-functie correct aangemaakt is via `database/schema.sql`.
 
 **Kan ik het portaal hosten?**
 Ja — upload alle bestanden naar een statische hosting dienst zoals Netlify, Vercel of GitHub Pages. De `js/supabase.js` bevat de publieke anon-sleutel, die veilig is voor client-side gebruik mits RLS correct geconfigureerd is.
