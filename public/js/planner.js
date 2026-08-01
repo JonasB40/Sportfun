@@ -11,7 +11,7 @@
  */
 
 import { supabase } from './supabase.js?v=1785590374964';
-import { toonToast, formateerDatum, datumNaarNL, dagNaam, lokaleISO, ontsnap, drukHTML } from './utils.js?v=1785590374964';
+import { toonToast, formateerDatum, datumNaarNL, dagNaam, lokaleISO, ontsnap, drukHTML, toonKampStatus, isAfgelopenKamp } from './utils.js?v=1785590374964';
 import { maakNotificatie } from './auth.js?v=1785590374964';
 
 // ── Alle toekomstige kampen met beschikbaarheidsstatus ──────────────
@@ -54,7 +54,7 @@ export async function haalToekomstigeKampenMetBeschikbaarheidOp(lesgeverID) {
     // Voeg gekoppelde kampen samen met open kampen (geen duplicaten)
     const gekoppeldeKampen = (koppelingen ?? [])
       .map(k => k.kampen)
-      .filter(k => k && k.status !== 'afgelopen');
+      .filter(k => k && !isAfgelopenKamp(k));
     const kampenMap = new Map((openKampen ?? []).map(k => [k.id, k]));
     for (const k of gekoppeldeKampen) kampenMap.set(k.id, k);
     const kampen = [...kampenMap.values()].sort((a, b) =>
@@ -535,8 +535,9 @@ export function renderAdminKampKaart(kamp, dagprogrammas, teamInfo = null) {
   kaart.className = 'kamp-kaart';
 
   const dagDatums = genereerKampDagen(kamp.startdatum, kamp.einddatum);
-  const statusKleur = { concept: 'badge-concept', actief: 'badge-actief', afgelopen: 'badge-afgelopen' }[kamp.status] ?? 'badge-grijs';
-  const statusNaam  = { concept: 'Concept', actief: 'Actief', afgelopen: 'Afgelopen' }[kamp.status] ?? kamp.status;
+  const status      = toonKampStatus(kamp);
+  const statusKleur = { concept: 'badge-concept', actief: 'badge-actief', afgelopen: 'badge-afgelopen' }[status] ?? 'badge-grijs';
+  const statusNaam  = { concept: 'Concept', actief: 'Actief', afgelopen: 'Afgelopen' }[status] ?? status;
   const openBadge   = kamp.beschikbaarheid_open
     ? `<span class="badge badge-limoen">🔓 Beschikbaarheid open</span>` : '';
 

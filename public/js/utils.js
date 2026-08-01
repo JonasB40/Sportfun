@@ -121,6 +121,37 @@ export function lokaleISO(d) {
   return `${y}-${m}-${dd}`;
 }
 
+// ── Kampstatus ──────────────────────────────────────────────────────
+
+/**
+ * Bepaal of een kamp in het archief hoort.
+ *
+ * Een kamp telt als afgelopen zodra de einddatum voorbij is, ook als de
+ * status in de database nog op 'concept' of 'actief' staat. Zo verhuist een
+ * gepasseerd kamp meteen naar het archief — ook voor lesgevers, die de
+ * kampstatus door RLS niet zelf mogen bijwerken.
+ *
+ * @param {object} kamp - Kamp-object met minstens status en einddatum.
+ * @returns {boolean}
+ */
+export function isAfgelopenKamp(kamp) {
+  if (!kamp) return false;
+  if (kamp.status === 'afgelopen') return true;
+  return !!kamp.einddatum && kamp.einddatum < lokaleISO(new Date());
+}
+
+/**
+ * Geef de te tonen status van een kamp: 'afgelopen' zodra de einddatum
+ * voorbij is, anders de opgeslagen status. Voorkomt dat een kamp in het
+ * archief een groene "Actief"-badge draagt.
+ *
+ * @param {object} kamp - Kamp-object met minstens status en einddatum.
+ * @returns {'concept'|'actief'|'afgelopen'|string}
+ */
+export function toonKampStatus(kamp) {
+  return isAfgelopenKamp(kamp) ? 'afgelopen' : (kamp?.status ?? 'concept');
+}
+
 /**
  * Genereer een array van datumstrings tussen twee data.
  *

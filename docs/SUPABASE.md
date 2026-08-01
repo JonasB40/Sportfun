@@ -69,7 +69,7 @@ tijdens het testen op je eigen computer.
 
 ### Waarom `/index.html` er apart bij moet
 
-`js/auth.js` vraagt bij een herstelmail expliciet om terug te keren naar
+`public/js/auth.js` vraagt bij een herstelmail expliciet om terug te keren naar
 de loginpagina:
 
 ```js
@@ -87,7 +87,7 @@ genegeerd en beland je alsnog op de Site URL.
 3. Je hoort op de loginpagina van dit portaal uit te komen, met een lange
    `#access_token=...` achter de URL.
 
-Die fragmentwaarde wordt automatisch opgepikt door `js/supabase.js`, waar
+Die fragmentwaarde wordt automatisch opgepikt door `public/js/supabase.js`, waar
 `detectSessionInUrl: true` staat. Kom je ergens anders uit, dan klopt de
 Site URL of de Redirect URLs nog niet.
 

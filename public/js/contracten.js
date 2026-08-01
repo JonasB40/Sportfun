@@ -8,7 +8,7 @@
  */
 
 import { supabase } from './supabase.js?v=1785590374964';
-import { toonToast, datumNaarNL, ontsnap, lokaleISO, formateerIBAN, drukHTML } from './utils.js?v=1785590374964';
+import { toonToast, datumNaarNL, ontsnap, lokaleISO, formateerIBAN, drukHTML, isAfgelopenKamp } from './utils.js?v=1785590374964';
 import { maakNotificatie } from './auth.js?v=1785590374964';
 import {
   haalLimietenOp, haalStandaardVergoedingOp,
@@ -804,7 +804,7 @@ export function genereerContractHTML(lesgever, kamp, opties = {}) {
 <div class="accent-balk"></div>
 
 <div class="doc-header">
-  <img src="sportfun-logo2.svg" alt="SportFun vzw">
+  <img src="img/logo-kleur.svg" alt="SportFun vzw">
   <div class="doc-header-rechts">
     <div class="doc-type">Overeenkomst vrijwilligerswerk</div>
     <div class="doc-titel">${eKampNaam}</div>
@@ -1271,7 +1271,7 @@ export async function stuurHerinneringenOnondertekend(kampID = null) {
   try {
     let query = supabase
       .from('contracten')
-      .select('id, lesgever_id, kamp_id, kampen(naam, status), profielen!lesgever_id(voornaam, achternaam, email)')
+      .select('id, lesgever_id, kamp_id, kampen(naam, status, einddatum), profielen!lesgever_id(voornaam, achternaam, email)')
       .eq('ondertekend', false);
     if (kampID) query = query.eq('kamp_id', kampID);
 
@@ -1279,7 +1279,7 @@ export async function stuurHerinneringenOnondertekend(kampID = null) {
     if (error) throw error;
 
     // Filter: enkel kampen die nog niet afgelopen zijn
-    const relevant = (openstaand ?? []).filter(c => c.kampen?.status !== 'afgelopen');
+    const relevant = (openstaand ?? []).filter(c => !isAfgelopenKamp(c.kampen));
 
     if (relevant.length === 0) {
       toonToast('Geen openstaande contracten gevonden.', 'info');

@@ -13,7 +13,7 @@
  */
 
 import { supabase } from './supabase.js?v=1785590374964';
-import { ontsnap, lokaleISO, datumNaarNL } from './utils.js?v=1785590374964';
+import { ontsnap, lokaleISO, datumNaarNL, toonKampStatus } from './utils.js?v=1785590374964';
 
 // ── Data ophalen ─────────────────────────────────────────────────────
 
@@ -733,7 +733,7 @@ function maakKampKaart(kamp) {
         <div class="kamp-kaart-info">
           <div class="kamp-kaart-naam">
             ${ontsnap(kamp.naam)}
-            ${_statusBadge(kamp.status)}
+            ${_statusBadge(toonKampStatus(kamp))}
           </div>
           ${meta ? `<div class="kamp-kaart-meta">${meta}</div>` : ''}
         </div>
@@ -772,7 +772,7 @@ function maakAdminKampAccordion(kamp, isOpen) {
         <div class="admin-kamp-acc-info">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span class="admin-kamp-acc-naam">${ontsnap(kamp.naam)}</span>
-            ${_statusBadge(kamp.status)}
+            ${_statusBadge(toonKampStatus(kamp))}
           </div>
           ${meta ? `<div class="admin-kamp-acc-meta">${meta}</div>` : ''}
         </div>

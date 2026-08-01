@@ -1,10 +1,13 @@
 # Netlify-configuratie voor het SportFun Lesgeversportaal
 #
 # Dit is een statische site (HTML/CSS/JS) met Supabase als backend.
-# Er is geen build-stap nodig: Netlify serveert de bestanden uit de hoofdmap.
+# Er is geen build-stap nodig: Netlify serveert de map public/.
+#
+# Alleen public/ gaat online. database/, docs/, tools/ en supabase/
+# blijven daarbuiten en zijn dus niet meer publiek opvraagbaar.
 
 [build]
-  publish = "."
+  publish = "public"
   command = ""
 
 # Beveiligingsheaders voor alle pagina's
@@ -40,12 +43,9 @@
   [headers.values]
     Cache-Control = "no-cache, must-revalidate"
 
-# Houd .sql-bestanden uit zoekmachines. Let op: dit BLOKKEERT geen
-# toegang — het de-indexeert alleen. Echte blokkering per extensie kan
-# Netlify niet betrouwbaar (een '*' mag enkel aan het einde van een pad
-# staan, niet als '/*.sql'). Deze bestanden staan toch al publiek op
-# GitHub; de echte beveiliging zit in RLS op de database.
+# Afbeeldingen en logo's mogen lang gecached blijven: ze veranderen
+# zelden en hebben een vaste naam.
 [[headers]]
-  for = "/*.sql"
+  for = "/img/*"
   [headers.values]
-    X-Robots-Tag = "noindex"
+    Cache-Control = "public, max-age=604800"

@@ -40,7 +40,7 @@ jobs:
 
       - name: Database aanspreken
         env:
-          # Deze anon-sleutel staat sowieso al publiek in js/supabase.js —
+          # Deze anon-sleutel staat sowieso al publiek in public/js/supabase.js —
           # dat hoort zo. De beveiliging zit in de RLS-policies, niet in
           # het geheimhouden van deze sleutel.
           SUPABASE_URL: https://coiocqvopxgvdezuwqou.supabase.co

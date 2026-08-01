@@ -2,7 +2,7 @@
 versie-bump.py — vernieuw de cache-buster achter alle JS-imports
 
 WANNEER GEBRUIKEN
-    Telkens nadat je iets in js/*.js hebt gewijzigd, vóór het pushen.
+    Telkens nadat je iets in public/js/*.js hebt gewijzigd, vóór het pushen.
 
 WAAROM
     Alle JS wordt geladen als  ./js/auth.js?v=<versie> . De browser
@@ -27,7 +27,7 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
 
-bestanden = sorted(glob.glob('*.html') + glob.glob('js/*.js'))
+bestanden = sorted(glob.glob('public/*.html') + glob.glob('public/js/*.js'))
 huidige = set(re.findall(r'\?v=(\d+)', ' '.join(
     io.open(f, encoding='utf-8').read() for f in bestanden
 )))

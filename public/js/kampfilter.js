@@ -8,6 +8,7 @@
  */
 
 import { supabase } from './supabase.js?v=1785590374964';
+import { isAfgelopenKamp } from './utils.js?v=1785590374964';
 
 // ── Seizoenen ────────────────────────────────────────────────────────
 export const SEIZOENEN = {
@@ -61,11 +62,17 @@ export async function haalKoppelingsMapOp() {
 
 // ── Filteren ─────────────────────────────────────────────────────────
 
+/**
+ * Filter kampen op alle criteria behalve archief.
+ *
+ * Afgelopen kampen blijven bewust in het resultaat: de aanroeper splitst ze
+ * met `isAfgelopenKamp()` af naar een ingeklapte archiefsectie. Zo blijven ze
+ * zichtbaar zonder ruimte in te nemen. De `archiefDoorzoeken`-schakelaar
+ * bepaalt enkel of die sectie meteen openklapt.
+ */
 export function filterKampen(kampen, filter, koppelingsMap = new Map()) {
   if (!Array.isArray(kampen)) return [];
   return kampen.filter(k => {
-    if (!filter.archiefDoorzoeken && k.status === 'afgelopen') return false;
-
     if (filter.zoek) {
       const term = filter.zoek.toLowerCase();
       const hit = (k.naam ?? '').toLowerCase().includes(term)
@@ -94,6 +101,23 @@ export function filterKampen(kampen, filter, koppelingsMap = new Map()) {
 
     return true;
   });
+}
+
+/**
+ * Splits een gefilterde kamplijst in actieve kampen en archief.
+ * Een kamp is archief zodra de einddatum voorbij is of de status
+ * 'afgelopen' is — zie `isAfgelopenKamp()`.
+ *
+ * @param {object[]} kampen
+ * @returns {{actief: object[], archief: object[]}}
+ */
+export function splitsArchief(kampen) {
+  const actief = [];
+  const archief = [];
+  for (const k of kampen ?? []) {
+    (isAfgelopenKamp(k) ? archief : actief).push(k);
+  }
+  return { actief, archief };
 }
 
 /** Tel hoeveel filters er actief zijn (voor de badge). */
@@ -518,7 +542,7 @@ function renderChips(filter, alleGebruikers) {
     chips.push({ label: `${v} → ${t}`, veld: 'periode' });
   }
   if (filter.archiefDoorzoeken)
-    chips.push({ label: 'Incl. archief', veld: 'archiefDoorzoeken' });
+    chips.push({ label: 'Archief geopend', veld: 'archiefDoorzoeken' });
 
   if (chips.length === 0) {
     container.innerHTML = '';

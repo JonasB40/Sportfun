@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kampplanning — SportFun Portaal</title>
-  <link rel="icon" type="image/svg+xml" href="sportfun-logo2.svg">
+  <link rel="icon" type="image/svg+xml" href="img/logo-kleur.svg">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/kampfilter.css">
@@ -589,7 +589,7 @@
 <div class="portaal-wrapper">
   <nav class="zijbalk" id="zijbalk">
     <div class="zijbalk-logo">
-      <img src="sportfun-logo-wit.svg" alt="SportFun"
+      <img src="img/logo-wit.svg" alt="SportFun"
            style="max-width:170px;height:auto;display:block;margin-bottom:4px">
       <div class="logo-sub">Lesgeversportaal</div>
     </div>
@@ -1049,7 +1049,8 @@
   import { supabase } from './js/supabase.js?v=1785590374964';
   import { checkSessie, haalProfielOp, vulNavigatieIn, initialiseerNotificatieBel, initialiseerContractBadge } from './js/auth.js?v=1785590374964';
   import {
-    haalAlleKampenOp, haalAlleGebruikersOp, haalKoppelingenOverzichtOp
+    haalAlleKampenOp, haalAlleGebruikersOp, haalKoppelingenOverzichtOp,
+    archiveerVerloopenKampen
   } from './js/admin.js?v=1785590374964';
   import {
     genereerKampDagen,
@@ -1061,9 +1062,9 @@
     haalUitnodigingenOp, haalKampTeamOp
   } from './js/planner.js?v=1785590374964';
   import { haalFichesOp, haalFicheOp, renderFicheDetail, haalMateriaaloVerzichtVoorKamp, genereerMateriaaloVerzichtHTML } from './js/fiches.js?v=1785590374964';
-  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, formateerDatum, datumNaarNL, dagNaam, lokaleISO, ontsnap, drukHTML } from './js/utils.js?v=1785590374964';
+  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, toonToast, formateerDatum, datumNaarNL, dagNaam, lokaleISO, ontsnap, drukHTML, isAfgelopenKamp, toonKampStatus } from './js/utils.js?v=1785590374964';
   import {
-    nieuweFilterState, filterKampen, renderFilterBalk, haalKoppelingsMapOp
+    nieuweFilterState, filterKampen, splitsArchief, renderFilterBalk, haalKoppelingsMapOp
   } from './js/kampfilter.js?v=1785590374964';
 
   // ── Globale state ────────────────────────────────────────────────
@@ -1176,6 +1177,9 @@
 
   async function laadAdminPlannerView() {
     try {
+      // Verlopen kampen wegzetten vóór het laden, zodat de lijst meteen klopt
+      await archiveerVerloopenKampen();
+
       [alleKampen, alleGebruikers, plannerKoppelingsMap] = await Promise.all([
         haalAlleKampenOp(),
         haalAlleGebruikersOp(),
@@ -1196,7 +1200,7 @@
         renderFilterBalk(
           filterContainer, alleKampen, alleGebruikers, plannerFilter,
           () => renderKampenLijst(),
-          () => filterKampen(alleKampen, plannerFilter, plannerKoppelingsMap).length
+          () => splitsArchief(filterKampen(alleKampen, plannerFilter, plannerKoppelingsMap)).actief.length
         );
         filterGerenderd = true;
       }
@@ -1227,10 +1231,9 @@
     }
 
     const gefilterd = filterKampen(alleKampen, plannerFilter, plannerKoppelingsMap);
-    const actieveKampen = gefilterd.filter(k => k.status !== 'afgelopen');
-    const afgelopenKampen = gefilterd.filter(k => k.status === 'afgelopen');
+    const { actief: actieveKampen, archief: afgelopenKampen } = splitsArchief(gefilterd);
 
-    badge.textContent = gefilterd.length;
+    badge.textContent = actieveKampen.length;
 
     if (actieveKampen.length === 0) {
       container.innerHTML = afgelopenKampen.length > 0
@@ -1308,15 +1311,14 @@
       archiefWrap.classList.remove('verborgen');
       document.getElementById('archief-aantal').textContent = afgelopenKampen.length;
       archiefContainer.innerHTML = afgelopenKampen.map(k => renderPlanKaart(k)).join('');
-      if (plannerFilter.archiefDoorzoeken && !vorigeArchiefDoorzoeken) {
-        archiefOpen = true;
-        archiefContainer.classList.remove('verborgen');
-        document.getElementById('archief-pijl').style.transform = 'rotate(180deg)';
-      } else if (!plannerFilter.archiefDoorzoeken) {
-        archiefOpen = false;
-        archiefContainer.classList.add('verborgen');
-        document.getElementById('archief-pijl').style.transform = '';
+      // De schakelaar klapt het archief open of dicht; daarbuiten blijft de
+      // handmatig gekozen stand behouden bij het hertekenen.
+      if (plannerFilter.archiefDoorzoeken !== vorigeArchiefDoorzoeken) {
+        archiefOpen = plannerFilter.archiefDoorzoeken;
       }
+      archiefContainer.classList.toggle('verborgen', !archiefOpen);
+      document.getElementById('archief-pijl').style.transform =
+        archiefOpen ? 'rotate(180deg)' : '';
       vorigeArchiefDoorzoeken = plannerFilter.archiefDoorzoeken;
     } else {
       archiefWrap.classList.add('verborgen');
@@ -1326,8 +1328,9 @@
 
   function renderPlanKaart(kamp) {
     const dagen = genereerKampDagen(kamp.startdatum, kamp.einddatum);
-    const statusKleur = { concept: 'badge-concept', actief: 'badge-actief', afgelopen: 'badge-afgelopen' }[kamp.status] ?? 'badge-grijs';
-    const statusNaam  = { concept: 'Concept', actief: 'Actief', afgelopen: 'Afgelopen' }[kamp.status] ?? kamp.status;
+    const status      = toonKampStatus(kamp);
+    const statusKleur = { concept: 'badge-concept', actief: 'badge-actief', afgelopen: 'badge-afgelopen' }[status] ?? 'badge-grijs';
+    const statusNaam  = { concept: 'Concept', actief: 'Actief', afgelopen: 'Afgelopen' }[status] ?? status;
 
     // Bouw team-badges: coördinator met ⭐, overige gekoppelde lesgevers met 👤
     const coordID = kamp.verantwoordelijke ?? null;

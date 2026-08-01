@@ -7,7 +7,7 @@
  */
 
 import { supabase, maakGebruikerViaSignup } from './supabase.js?v=1785590374964';
-import { toonToast, datumNaarNL, genereerToken, ontsnap, lokaleISO } from './utils.js?v=1785590374964';
+import { toonToast, datumNaarNL, genereerToken, ontsnap, lokaleISO, toonKampStatus } from './utils.js?v=1785590374964';
 import { genereerContractTekst, slaContractOp } from './contracten.js?v=1785590374964';
 import { maakNotificatie } from './auth.js?v=1785590374964';
 
@@ -64,8 +64,15 @@ export async function slaKampOp(kampData, kampID = null) {
 }
 
 /**
- * Archiveer alle verlopen kampen (status 'actief', einddatum < vandaag).
- * Retourneert het aantal gearchiveerde kampen.
+ * Archiveer alle verlopen kampen (einddatum < vandaag).
+ *
+ * Zowel 'actief' als 'concept' wordt meegenomen: ook een kamp dat nooit op
+ * actief is gezet hoort na afloop in het archief. Alleen admins en
+ * coördinatoren mogen kampen bijwerken (RLS), dus voor lesgevers is dit een
+ * no-op — die zien gepasseerde kampen via `isAfgelopenKamp()` toch al in het
+ * archief.
+ *
+ * @returns {Promise<number>} Aantal gearchiveerde kampen.
  */
 export async function archiveerVerloopenKampen() {
   const vandaag = lokaleISO(new Date());
@@ -73,7 +80,7 @@ export async function archiveerVerloopenKampen() {
     const { data, error } = await supabase
       .from('kampen')
       .update({ status: 'afgelopen' })
-      .eq('status', 'actief')
+      .in('status', ['actief', 'concept'])
       .lt('einddatum', vandaag)
       .select('id');
     if (error) throw error;
@@ -1029,7 +1036,8 @@ export function renderGebruikerRij(gebruiker) {
  * @returns {string} HTML-string.
  */
 export function renderKampRij(kamp, gekoppelden = []) {
-  const statusKleur = { concept: 'badge-concept', actief: 'badge-actief', afgelopen: 'badge-afgelopen' }[kamp.status] ?? 'badge-grijs';
+  const status      = toonKampStatus(kamp);
+  const statusKleur = { concept: 'badge-concept', actief: 'badge-actief', afgelopen: 'badge-afgelopen' }[status] ?? 'badge-grijs';
   const verantw = kamp.verantwoordelijke_profiel
     ? `${kamp.verantwoordelijke_profiel.voornaam} ${kamp.verantwoordelijke_profiel.achternaam}`
     : '—';
@@ -1053,7 +1061,7 @@ export function renderKampRij(kamp, gekoppelden = []) {
       <td>${ontsnap(datumNaarNL(kamp.startdatum))} – ${ontsnap(datumNaarNL(kamp.einddatum))}</td>
       <td><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">${lesgeversHTMLVeilig}</div></td>
       <td>${ontsnap(verantw)}</td>
-      <td><span class="badge ${statusKleur}">${ontsnap(kamp.status)}</span></td>
+      <td><span class="badge ${statusKleur}">${ontsnap(status)}</span></td>
       <td>
         <div class="flex-gap">
           <button class="knop knop-primair knop-klein" id="lesgever-knop-${ontsnap(kamp.id)}"
