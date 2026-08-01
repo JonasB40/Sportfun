@@ -7,14 +7,14 @@
  * @module contracten
  */
 
-import { supabase } from './supabase.js?v=1785590040435';
-import { toonToast, datumNaarNL, ontsnap, lokaleISO, formateerIBAN, drukHTML } from './utils.js?v=1785590040435';
-import { maakNotificatie } from './auth.js?v=1785590040435';
+import { supabase } from './supabase.js?v=1785590374964';
+import { toonToast, datumNaarNL, ontsnap, lokaleISO, formateerIBAN, drukHTML } from './utils.js?v=1785590374964';
+import { maakNotificatie } from './auth.js?v=1785590374964';
 import {
   haalLimietenOp, haalStandaardVergoedingOp,
   berekenGewerkteDagen, berekenContractTotaal, formaatBedrag,
   haalJaarTotaalLesgeverOp, logContractActie
-} from './financieel.js?v=1785590040435';
+} from './financieel.js?v=1785590374964';
 
 // ── Automatische contractgeneratie bij koppeling ────────────────────
 
@@ -1450,11 +1450,35 @@ export function renderContractItem(contract) {
  * @param {object} contract - Het contract-object.
  * @returns {string} HTML-string voor de modal-inhoud.
  */
-export function renderContractModal(contract) {
+export function renderContractModal(contract, lesgever = null) {
   const isOndertekend = contract.ondertekend;
 
+  // Toon het contract zoals het afgedrukt wordt, niet de opgeslagen platte
+  // tekst. Die tekst is bedoeld voor e-mail en ondertekening en oogt in
+  // een venster als een terminaluitvoer. Bovendien bevat ze bij oudere
+  // contracten nog gegevens die intussen uit het contract gehaald zijn.
+  //
+  // Het gaat om een volledig HTML-document met eigen opmaak, dus het gaat
+  // in een iframe: zo blijven die stijlen binnen het contract en raken ze
+  // de profielpagina niet.
+  let weergave;
+  if (lesgever && contract.kampen) {
+    const doc = genereerContractHTML(lesgever, contract.kampen, contract)
+      .replace('window.print()', '/* niet automatisch afdrukken in het venster */');
+    weergave = `
+      <iframe title="Vrijwilligersovereenkomst"
+              srcdoc="${ontsnap(doc)}"
+              style="width:100%;height:70vh;border:1px solid var(--kleur-lichtgrijs);
+                     border-radius:var(--border-radius-sm);background:#fff"></iframe>`;
+  } else {
+    // Terugval als de lesgevergegevens ontbreken: dan liever de opgeslagen
+    // tekst dan een leeg venster.
+    weergave = `<div class="contract-tekst" style="white-space:pre-wrap">${
+      ontsnap(contract.contract_inhoud ?? 'Geen contractinhoud beschikbaar.')}</div>`;
+  }
+
   return `
-    <div class="contract-tekst" style="white-space:pre-wrap">${ontsnap(contract.contract_inhoud ?? 'Geen contractinhoud beschikbaar.')}</div>
+    ${weergave}
 
     <div class="gdpr-melding mt-16">
       🔒 Uw gegevens worden verwerkt conform de AVG/GDPR-wetgeving. Ze worden

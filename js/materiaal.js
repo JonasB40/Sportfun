@@ -12,8 +12,8 @@
  * @module materiaal
  */
 
-import { supabase } from './supabase.js?v=1785590040435';
-import { ontsnap, lokaleISO, datumNaarNL } from './utils.js?v=1785590040435';
+import { supabase } from './supabase.js?v=1785590374964';
+import { ontsnap, lokaleISO, datumNaarNL } from './utils.js?v=1785590374964';
 
 // ── Data ophalen ─────────────────────────────────────────────────────
 
@@ -354,7 +354,7 @@ window._slaMateriaalRegelOp = async function(ficheID, oudeOrigineel, regID) {
     .update({ materiaal: nieuwMateriaal })
     .eq('id', ficheID);
 
-  const { toonToast } = await import('./utils.js?v=1785590040435');
+  const { toonToast } = await import('./utils.js?v=1785590374964');
   if (updateFout) { toonToast('Opslaan mislukt: ' + updateFout.message, 'fout'); return; }
 
   // Update UI zonder herladen
@@ -381,7 +381,7 @@ window._verwijderMateriaalRegel = async function(ficheID, origineel, regID) {
     .update({ materiaal: nieuwMateriaal })
     .eq('id', ficheID);
 
-  const { toonToast } = await import('./utils.js?v=1785590040435');
+  const { toonToast } = await import('./utils.js?v=1785590374964');
   if (updateFout) { toonToast('Verwijderen mislukt: ' + updateFout.message, 'fout'); return; }
 
   document.getElementById(regID)?.remove();
@@ -1223,14 +1223,14 @@ window._hernoemMateriaal = async function(oudeNaam, safeID) {
       if (updateFout) throw updateFout;
     }
 
-    const { toonToast } = await import('./utils.js?v=1785590040435');
+    const { toonToast } = await import('./utils.js?v=1785590374964');
     toonToast(`"${oudeNaam}" hernoemd naar "${nieuweNaam}" in ${teUpdaten.length} fiche(s).`, 'succes');
     document.getElementById(safeID)?.classList.remove('zichtbaar');
 
     // Herlaad de materiaalpagina om de bijgewerkte lijst te tonen
     setTimeout(() => window.location.reload(), 800);
   } catch (fout) {
-    const { toonToast } = await import('./utils.js?v=1785590040435');
+    const { toonToast } = await import('./utils.js?v=1785590374964');
     toonToast('Hernoemen mislukt: ' + fout.message, 'fout');
   } finally {
     if (input) input.disabled = false;
@@ -1302,7 +1302,7 @@ window._voegTrefwoordToe = async function() {
   const { error } = await supabase.from('materialen_categorieen')
     .upsert({ trefwoord, categorie }, { onConflict: 'trefwoord' });
 
-  const { toonToast } = await import('./utils.js?v=1785590040435');
+  const { toonToast } = await import('./utils.js?v=1785590374964');
   if (error) { toonToast('Opslaan mislukt: ' + error.message, 'fout'); return; }
 
   document.getElementById('mat-cat-nieuw-trefwoord').value = '';
@@ -1315,7 +1315,7 @@ window._wijzigCategorie = async function(trefwoord, nieuweCategorie) {
     .update({ categorie: nieuweCategorie })
     .eq('trefwoord', trefwoord);
 
-  const { toonToast } = await import('./utils.js?v=1785590040435');
+  const { toonToast } = await import('./utils.js?v=1785590374964');
   if (error) toonToast('Opslaan mislukt: ' + error.message, 'fout');
   else toonToast(`"${trefwoord}" → ${nieuweCategorie} opgeslagen.`, 'succes');
 };
@@ -1323,7 +1323,7 @@ window._wijzigCategorie = async function(trefwoord, nieuweCategorie) {
 window._verwijderTrefwoord = async function(trefwoord) {
   if (!confirm(`Trefwoord "${trefwoord}" verwijderen?`)) return;
   const { error } = await supabase.from('materialen_categorieen').delete().eq('trefwoord', trefwoord);
-  const { toonToast } = await import('./utils.js?v=1785590040435');
+  const { toonToast } = await import('./utils.js?v=1785590374964');
   if (error) { toonToast('Verwijderen mislukt: ' + error.message, 'fout'); return; }
   toonToast(`"${trefwoord}" verwijderd.`, 'succes');
   await _herlaadCatTabel();

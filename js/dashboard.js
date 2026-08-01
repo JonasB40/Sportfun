@@ -8,10 +8,10 @@
  * @module dashboard
  */
 
-import { supabase } from './supabase.js?v=1785590040435';
-import { toonToast, datumNaarNL, ontsnap, lokaleISO, genereerICalBestand, downloadBestand } from './utils.js?v=1785590040435';
+import { supabase } from './supabase.js?v=1785590374964';
+import { toonToast, datumNaarNL, ontsnap, lokaleISO, genereerICalBestand, downloadBestand } from './utils.js?v=1785590374964';
 
-const V = '?v=1785590040435';
+const V = '?v=1785590374964';
 
 // ── Publieke initialisatie ────────────────────────────────────────────
 

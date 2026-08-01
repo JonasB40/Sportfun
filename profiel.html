@@ -365,6 +365,11 @@
               <div id="handtekening-status"></div>
             </div>
 
+            <button class="knop knop-accent" id="hand-open">
+              Handtekening beheren
+            </button>
+
+            <div id="hand-inhoud" class="verborgen">
             <p style="font-size:0.82rem;color:var(--kleur-grijs);margin-bottom:14px">
               Upload een foto of scan van je handtekening. Deze wordt gebruikt op
               vrijwilligerscontracten.
@@ -425,6 +430,7 @@
             <div style="font-size:0.72rem;color:var(--kleur-grijs);margin-top:8px">
               Toegestane formaten: JPG, PNG, WEBP · Max. 5 MB
             </div>
+            </div><!-- /hand-inhoud -->
           </div>
 
           <!-- Attest GGS type 2 -->
@@ -434,6 +440,11 @@
               <div id="attest-status-badge"></div>
             </div>
 
+            <button class="knop knop-accent" id="attest-open">
+              Attest beheren
+            </button>
+
+            <div id="attest-inhoud" class="verborgen">
             <p style="font-size:0.82rem;color:var(--kleur-grijs);margin-bottom:14px">
               Attest van goed gedrag en zeden type&nbsp;2 (werken met kinderen).
               Verplicht voor lesgevers bij SportFun.
@@ -494,6 +505,7 @@
             <div style="font-size:0.72rem;color:var(--kleur-grijs);margin-top:2px">
               Enkel PDF · Max. 10&nbsp;MB
             </div>
+            </div><!-- /attest-inhoud -->
           </div>
 
         </div><!-- /linkerkolom -->
@@ -558,13 +570,13 @@
 <div id="toast-container"></div>
 
 <script type="module">
-  import { supabase } from './js/supabase.js?v=1785590040435';
-  import { checkSessie, haalProfielOp, vulNavigatieIn, rolLabel, initialiseerNotificatieBel } from './js/auth.js?v=1785590040435';
-  import { haalContractenOp, renderContractItem, renderContractModal, onderteken, openContractAfdrukken } from './js/contracten.js?v=1785590040435';
+  import { supabase } from './js/supabase.js?v=1785590374964';
+  import { checkSessie, haalProfielOp, vulNavigatieIn, rolLabel, initialiseerNotificatieBel } from './js/auth.js?v=1785590374964';
+  import { haalContractenOp, renderContractItem, renderContractModal, onderteken, openContractAfdrukken } from './js/contracten.js?v=1785590374964';
   import {
     haalJaarTotaalLesgeverOp, haalLimietenOp, formaatBedrag, contractStatusPil, HUIDIG_JAAR
-  } from './js/financieel.js?v=1785590040435';
-  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, datumNaarNL, toonToast } from './js/utils.js?v=1785590040435';
+  } from './js/financieel.js?v=1785590374964';
+  import { initialiseerModals, initialiseerHamburger, openModal, sluitModal, datumNaarNL, toonToast } from './js/utils.js?v=1785590374964';
 
   let huidigProfiel = null;
 
@@ -1031,7 +1043,7 @@
       document.getElementById('contract-modal-titel').textContent =
         `Contract — ${contract.kampen?.naam ?? ''}`;
       document.getElementById('contract-modal-inhoud').innerHTML =
-        renderContractModal(contract);
+        renderContractModal(contract, huidigProfiel);
       openModal('contract-modal-overlay');
 
       // Checkbox-listener hier binden — script-tags in innerHTML worden NIET uitgevoerd
@@ -1108,6 +1120,27 @@
   // (limiet van enkele berichten per uur, en Hotmail/Outlook weigeren de
   // gedeelde afzender). Een ingelogde gebruiker heeft die omweg ook niet
   // nodig — updateUser volstaat.
+  // Handtekening en attest gedragen zich als de wachtwoordkaart: enkel een
+  // knop, en het beheer klapt pas open als je die aanklikt. De statusbadge
+  // in de kaartkop blijft altijd zichtbaar, zodat je in één oogopslag ziet
+  // of er al iets opgeladen is zonder het blok te openen.
+  for (const [knopID, inhoudID] of [['hand-open', 'hand-inhoud'],
+                                    ['attest-open', 'attest-inhoud']]) {
+    const knop = document.getElementById(knopID);
+    const inhoud = document.getElementById(inhoudID);
+    knop?.addEventListener('click', () => {
+      const open = !inhoud.classList.contains('verborgen');
+      inhoud.classList.toggle('verborgen', open);
+      knop.textContent = open
+        ? knop.dataset.dicht
+        : (knop.dataset.open ?? 'Sluiten');
+    });
+    if (knop) {
+      knop.dataset.dicht = knop.textContent.trim();
+      knop.dataset.open  = 'Sluiten';
+    }
+  }
+
   // Open- en dichtklappen van het wachtwoordformulier.
   const wwFormulier = document.getElementById('ww-profiel-formulier');
   const wwOpenKnop  = document.getElementById('ww-profiel-open');
