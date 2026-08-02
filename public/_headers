@@ -1,11 +1,13 @@
-# Headers voor een HANDMATIGE deploy van deze map.
+# Headers voor deze map.
 #
-# Bij een deploy via Git leest Netlify netlify.toml, dat een map hoger
-# staat. Bij een handmatige deploy upload je alleen public/, dus gaat
-# netlify.toml niet mee en zouden deze headers wegvallen. Dit bestand
-# hoort in de map die je uploadt en wordt dan wel gelezen.
+# Netlify leest bij een Git-deploy netlify.toml, dat een map hoger staat.
+# Zodra je alleen public/ uitlevert -- bij een handmatige upload, of bij
+# een host die deze map als webroot neemt -- gaat netlify.toml niet mee
+# en zouden deze headers wegvallen. Dit bestand hoort in de uitgeleverde
+# map zelf en wordt dan wel gelezen.
 #
-# Houd dit gelijk met netlify.toml.
+# Zelfde formaat op Netlify en Cloudflare Pages, dus dit werkt op beide.
+# Houd het gelijk met netlify.toml.
 
 /*
   X-Frame-Options: SAMEORIGIN
