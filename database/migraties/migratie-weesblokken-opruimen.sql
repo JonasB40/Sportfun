@@ -17,7 +17,8 @@
 -- deze wijziging zelf op bij een datumwijziging, en waarschuwt de
 -- gebruiker eerst wanneer er werk aan hangt.
 --
--- Uitvoeren in de Supabase SQL-editor.
+-- Uitgevoerd op 2026-08-02. De 4 rijen zijn verwijderd; de
+-- controlequery in stap 3 gaf daarna 0 terug.
 -- ============================================================
 
 -- ── Stap 1: bekijken wat er verdwijnt ───────────────────────────
@@ -67,9 +68,9 @@ SELECT count(*) AS weesblokken
 --
 -- `dagprogrammas` heeft dezelfde zwakke plek en wordt sinds deze
 -- wijziging ook door het portaal opgeruimd. Deze migratie verwijdert er
--- niets: een dagprogramma bevat activiteiten die iemand bewust heeft
--- ingepland, en er is niet vastgesteld dat hier weesrijen staan. Geeft
--- de query hieronder rijen terug, bekijk die dan eerst.
+-- niets: op 2026-08-02 gaf de query hieronder 0 rijen, en een
+-- dagprogramma bevat activiteiten die iemand bewust heeft ingepland.
+-- Geeft ze later toch rijen terug, bekijk die dan eerst.
 --
 --   SELECT k.naam, k.status, k.startdatum, k.einddatum, d.datum,
 --          (SELECT count(*) FROM dagprogramma_fiches f
