@@ -224,7 +224,7 @@ export function bevestig(vraag) {
     modal.innerHTML = `
       <div class="modal modal-sm">
         <div class="modal-lichaam" style="padding:28px 24px">
-          <p id="bevestig-tekst" style="font-size:0.95rem;line-height:1.6"></p>
+          <p id="bevestig-tekst" style="font-size:0.95rem;line-height:1.6;white-space:pre-line"></p>
           <div class="flex-gap mt-16" style="justify-content:flex-end">
             <button class="knop knop-omtrek" id="bevestig-nee">Annuleren</button>
             <button class="knop knop-gevaar" id="bevestig-ja">Bevestigen</button>

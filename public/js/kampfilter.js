@@ -7,8 +7,8 @@
  * @module kampfilter
  */
 
-import { supabase } from './supabase.js?v=1785615765015';
-import { isAfgelopenKamp } from './utils.js?v=1785615765015';
+import { supabase } from './supabase.js?v=1785693103237';
+import { isAfgelopenKamp } from './utils.js?v=1785693103237';
 
 // ── Seizoenen ────────────────────────────────────────────────────────
 export const SEIZOENEN = {

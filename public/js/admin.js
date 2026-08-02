@@ -6,10 +6,10 @@
  * @module admin
  */
 
-import { supabase, maakGebruikerViaSignup } from './supabase.js?v=1785615765015';
-import { toonToast, datumNaarNL, genereerToken, ontsnap, lokaleISO, toonKampStatus } from './utils.js?v=1785615765015';
-import { genereerContractTekst, slaContractOp } from './contracten.js?v=1785615765015';
-import { maakNotificatie } from './auth.js?v=1785615765015';
+import { supabase, maakGebruikerViaSignup } from './supabase.js?v=1785693103237';
+import { toonToast, datumNaarNL, genereerToken, ontsnap, lokaleISO, toonKampStatus, bevestig } from './utils.js?v=1785693103237';
+import { genereerContractTekst, slaContractOp } from './contracten.js?v=1785693103237';
+import { maakNotificatie } from './auth.js?v=1785693103237';
 
 // ── Kampbeheer ──────────────────────────────────────────────────────
 
@@ -38,14 +38,164 @@ export async function haalAlleKampenOp() {
 }
 
 /**
+ * Zoek planning die buiten een datumbereik valt.
+ *
+ * De planner toont enkel dagen binnen het kampbereik. Blokken en
+ * dagprogramma's op andere datums zijn dus onzichtbaar, maar blijven wel
+ * in de database staan — vandaar deze expliciete opzoeking bij het
+ * verzetten van kampdatums.
+ *
+ * @param {string} kampID - UUID van het kamp.
+ * @param {string} startdatum - Nieuwe startdatum (jjjj-mm-dd).
+ * @param {string} einddatum - Nieuwe einddatum (jjjj-mm-dd).
+ * @returns {Promise<{blokken: object[], blokkenMetFiche: number, dagprogrammas: object[], dagprogrammasMetFiche: number, dagen: string[]}>}
+ */
+async function haalPlanningBuitenBereikOp(kampID, startdatum, einddatum) {
+  const buitenBereik = `datum.lt.${startdatum},datum.gt.${einddatum}`;
+
+  const [blokResultaat, progResultaat] = await Promise.all([
+    supabase
+      .from('dag_blokken')
+      .select('id, datum, fiche_id, blok_fiches (id)')
+      .eq('kamp_id', kampID)
+      .or(buitenBereik),
+    supabase
+      .from('dagprogrammas')
+      .select('id, datum, dagprogramma_fiches (id)')
+      .eq('kamp_id', kampID)
+      .or(buitenBereik),
+  ]);
+
+  if (blokResultaat.error) throw blokResultaat.error;
+  if (progResultaat.error) throw progResultaat.error;
+
+  const blokken = blokResultaat.data ?? [];
+  const dagprogrammas = progResultaat.data ?? [];
+
+  return {
+    blokken,
+    dagprogrammas,
+    // Een blok "met fiche" is werk van een lesgever: dat verdwijnt mee.
+    // Zowel de tussentabel als de oude fiche_id-kolom telt mee.
+    blokkenMetFiche: blokken.filter(b => b.fiche_id || (b.blok_fiches ?? []).length > 0).length,
+    dagprogrammasMetFiche: dagprogrammas.filter(d => (d.dagprogramma_fiches ?? []).length > 0).length,
+    dagen: [...new Set([...blokken, ...dagprogrammas].map(r => r.datum))].sort(),
+  };
+}
+
+/**
+ * Stel de waarschuwingstekst samen voor planning die verloren gaat.
+ *
+ * @param {{startdatum: string, einddatum: string}} oud - De huidige kampdatums.
+ * @param {string} nieuweStart - De nieuwe startdatum.
+ * @param {string} nieuweEind - De nieuwe einddatum.
+ * @param {object} planning - Resultaat van `haalPlanningBuitenBereikOp()`.
+ * @returns {string} De vraag voor `bevestig()`.
+ */
+function bouwPlanningWaarschuwing(oud, nieuweStart, nieuweEind, planning) {
+  const bereik = (van, tot) => van === tot
+    ? datumNaarNL(van)
+    : `${datumNaarNL(van)} t/m ${datumNaarNL(tot)}`;
+
+  const aantal = (n, enkelvoud, meervoud) => `${n} ${n === 1 ? enkelvoud : meervoud}`;
+
+  const opsomming = (lijst) => lijst.length <= 1
+    ? lijst.join('')
+    : `${lijst.slice(0, -1).join(', ')} en ${lijst[lijst.length - 1]}`;
+
+  const regels = [];
+  if (planning.blokken.length > 0) {
+    const telling = aantal(planning.blokken.length, 'planningsblok', 'planningsblokken');
+    regels.push(planning.blokkenMetFiche > 0
+      ? `• ${telling}, waarvan ${planning.blokkenMetFiche} met een activiteitenfiche`
+      : `• ${telling}`);
+  }
+  if (planning.dagprogrammas.length > 0) {
+    const telling = aantal(planning.dagprogrammas.length, 'dagprogramma', "dagprogramma's");
+    regels.push(planning.dagprogrammasMetFiche > 0
+      ? `• ${telling}, waarvan ${planning.dagprogrammasMetFiche} met activiteiten`
+      : `• ${telling}`);
+  }
+
+  const heeftWerk = planning.blokkenMetFiche > 0 || planning.dagprogrammasMetFiche > 0;
+
+  return [
+    `Je verzet dit kamp van ${bereik(oud.startdatum, oud.einddatum)} naar ${bereik(nieuweStart, nieuweEind)}.`,
+    '',
+    `Op ${opsomming(planning.dagen.map(d => datumNaarNL(d)))} staat nog planning die buiten de nieuwe datums valt:`,
+    ...regels,
+    '',
+    heeftWerk
+      ? 'Die planning verhuist niet mee en wordt verwijderd. Wat een lesgever daar heeft ingepland, ben je kwijt.'
+      : 'Die planning verhuist niet mee en wordt verwijderd.',
+    '',
+    'Doorgaan?',
+  ].join('\n');
+}
+
+/**
+ * Verwijder planning op de meegegeven id's.
+ *
+ * Verwijderen gebeurt op id en niet op datumfilter: zo kan een fout in de
+ * filter nooit de volledige planning van een kamp wissen. Gekoppelde
+ * fiches (`blok_fiches`, `dagprogramma_fiches`) verdwijnen mee via de
+ * cascade in de database.
+ *
+ * @param {string[]} blokIDs - UUID's uit `dag_blokken`.
+ * @param {string[]} dagprogrammaIDs - UUID's uit `dagprogrammas`.
+ */
+async function verwijderPlanning(blokIDs, dagprogrammaIDs) {
+  if (blokIDs.length > 0) {
+    const { error } = await supabase.from('dag_blokken').delete().in('id', blokIDs);
+    if (error) throw error;
+  }
+  if (dagprogrammaIDs.length > 0) {
+    const { error } = await supabase.from('dagprogrammas').delete().in('id', dagprogrammaIDs);
+    if (error) throw error;
+  }
+}
+
+/**
  * Sla een nieuw kamp op of werk een bestaand kamp bij.
+ *
+ * Wijzigen de datums van een bestaand kamp, dan wordt de planning die
+ * daardoor buiten het kampbereik komt te vallen opgeruimd — anders blijft
+ * ze onzichtbaar in de database achter. De gebruiker bevestigt dat eerst.
  *
  * @param {object} kampData - Alle kampvelden.
  * @param {string|null} kampID - UUID bij bijwerken, null bij aanmaken.
- * @returns {Promise<object|null>} Het opgeslagen kamp of null bij fout.
+ * @returns {Promise<object|null>} Het opgeslagen kamp of null bij fout of annulering.
  */
 export async function slaKampOp(kampData, kampID = null) {
+  let opTeRuimen = null;
+
   try {
+    if (kampID) {
+      const { data: huidig, error: leesFout } = await supabase
+        .from('kampen')
+        .select('startdatum, einddatum')
+        .eq('id', kampID)
+        .single();
+      if (leesFout) throw leesFout;
+
+      const nieuweStart = kampData.startdatum ?? huidig.startdatum;
+      const nieuweEind  = kampData.einddatum  ?? huidig.einddatum;
+
+      if (nieuweStart !== huidig.startdatum || nieuweEind !== huidig.einddatum) {
+        const planning = await haalPlanningBuitenBereikOp(kampID, nieuweStart, nieuweEind);
+        if (planning.blokken.length > 0 || planning.dagprogrammas.length > 0) {
+          const doorgaan = await bevestig(
+            bouwPlanningWaarschuwing(huidig, nieuweStart, nieuweEind, planning)
+          );
+          if (!doorgaan) {
+            toonToast('Kamp niet gewijzigd.', 'info');
+            return null;
+          }
+          opTeRuimen = planning;
+        }
+      }
+    }
+
     let query;
     if (kampID) {
       query = supabase.from('kampen').update(kampData).eq('id', kampID).select().single();
@@ -54,6 +204,23 @@ export async function slaKampOp(kampData, kampID = null) {
     }
     const { data, error } = await query;
     if (error) throw error;
+
+    if (opTeRuimen) {
+      // Pas opruimen ná een geslaagde update: mislukt het bewaren, dan blijft
+      // de planning staan bij de datums waar ze bij hoort.
+      try {
+        await verwijderPlanning(
+          opTeRuimen.blokken.map(b => b.id),
+          opTeRuimen.dagprogrammas.map(d => d.id)
+        );
+        toonToast('Kamp bijgewerkt. Planning buiten de nieuwe datums is verwijderd.', 'succes');
+      } catch (opruimFout) {
+        console.error('[admin] Fout bij opruimen planning:', opruimFout.message);
+        toonToast('Kamp bijgewerkt, maar de oude planning kon niet verwijderd worden.', 'fout');
+      }
+      return data;
+    }
+
     toonToast(kampID ? 'Kamp bijgewerkt.' : 'Kamp aangemaakt.', 'succes');
     return data;
   } catch (fout) {
@@ -226,7 +393,7 @@ export async function koppelLesgever(kampID, lesgeverID, kampNaam, direct = fals
     // Automatisch contract aanmaken als status meteen 'bevestigd' is
     if (direct) {
       try {
-        const { genereerContractAutomatisch } = await import('./contracten.js?v=1785615765015');
+        const { genereerContractAutomatisch } = await import('./contracten.js?v=1785693103237');
         const contract = await genereerContractAutomatisch(lesgeverID, kampID);
         if (contract) {
           toonToast(`Lesgever gekoppeld aan "${kampNaam}". Contract automatisch aangemaakt.`, 'succes');
@@ -264,7 +431,7 @@ async function stuurKoppelingNotificatie(lesgeverID, kampNaam, direct = false) {
   await maakNotificatie(lesgeverID, 'ingepland', bericht, 'planner.html');
 
   try {
-    const { supabase: sb } = await import('./supabase.js?v=1785615765015');
+    const { supabase: sb } = await import('./supabase.js?v=1785693103237');
     await sb.functions.invoke('stuur-email-notificatie', {
       body: { type: direct ? 'koppeling_direct' : 'uitnodiging', lesgeverID, kampNaam },
     });
