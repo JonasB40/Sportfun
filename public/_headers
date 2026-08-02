@@ -1,0 +1,63 @@
+# Headers voor een HANDMATIGE deploy van deze map.
+#
+# Bij een deploy via Git leest Netlify netlify.toml, dat een map hoger
+# staat. Bij een handmatige deploy upload je alleen public/, dus gaat
+# netlify.toml niet mee en zouden deze headers wegvallen. Dit bestand
+# hoort in de map die je uploadt en wordt dan wel gelezen.
+#
+# Houd dit gelijk met netlify.toml.
+
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Permissions-Policy: geolocation=(), camera=(), microphone=()
+
+# HTML nooit uit de cache serveren.
+#
+# De JS wordt geladen met ?v=<versie> erachter, en die versie staat in de
+# HTML. Haalt de browser een oude HTML uit zijn cache, dan blijft hij ook
+# de oude JS gebruiken — een nieuwe versie bereikt de gebruiker dan nooit,
+# zelfs niet na Ctrl+F5. Dat is op 2026-07-28 daadwerkelijk misgegaan.
+#
+# Elke pagina staat hier apart. Een patroon als /*.html werkt in dit
+# bestand niet betrouwbaar: een * hoort aan het einde van een pad.
+# Maak je een nieuwe pagina, voeg ze dan hier toe.
+
+/
+  Cache-Control: no-cache, must-revalidate
+
+/index.html
+  Cache-Control: no-cache, must-revalidate
+
+/dashboard.html
+  Cache-Control: no-cache, must-revalidate
+
+/planner.html
+  Cache-Control: no-cache, must-revalidate
+
+/profiel.html
+  Cache-Control: no-cache, must-revalidate
+
+/fiches.html
+  Cache-Control: no-cache, must-revalidate
+
+/materiaal.html
+  Cache-Control: no-cache, must-revalidate
+
+/beschikbaarheid.html
+  Cache-Control: no-cache, must-revalidate
+
+/admin.html
+  Cache-Control: no-cache, must-revalidate
+
+/registreer.html
+  Cache-Control: no-cache, must-revalidate
+
+/404.html
+  Cache-Control: no-cache, must-revalidate
+
+# Afbeeldingen veranderen zelden en hebben een vaste naam.
+/img/*
+  Cache-Control: public, max-age=604800
